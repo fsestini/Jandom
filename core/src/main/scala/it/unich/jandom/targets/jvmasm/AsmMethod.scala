@@ -23,9 +23,9 @@ import java.util.NoSuchElementException
 
 import scala.collection.mutable.{ BitSet, HashMap, Queue }
 
-import org.objectweb.asm._
-import org.objectweb.asm.tree._
-import org.objectweb.asm.util._
+import jdk.internal.org.objectweb.asm._
+import jdk.internal.org.objectweb.asm.tree._
+import jdk.internal.org.objectweb.asm.util._
 
 import it.unich.jandom.domains.numerical.NumericalProperty
 import it.unich.jandom.targets.Annotation

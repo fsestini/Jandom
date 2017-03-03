@@ -26,9 +26,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.MethodNode
+import jdk.internal.org.objectweb.asm.ClassReader
+import jdk.internal.org.objectweb.asm.tree.ClassNode
+import jdk.internal.org.objectweb.asm.tree.MethodNode
 
 import it.unich.jandom.domains.numerical.NumericalDomain
 import it.unich.jandom.domains.objects.ObjectDomainFactory

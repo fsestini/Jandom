@@ -18,7 +18,7 @@
 
 package it.unich.jandom.targets.jvmasm
 
-import org.objectweb.asm.tree._
+import jdk.internal.org.objectweb.asm.tree._
 import soot.baf.Inst
 
 /**

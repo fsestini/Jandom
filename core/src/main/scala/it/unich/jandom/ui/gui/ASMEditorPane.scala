@@ -22,8 +22,8 @@ import java.awt.event.{ InputEvent, KeyEvent }
 import java.io.{ File, FileInputStream }
 import scala.swing.{Action, BorderPanel, BoxPanel, ComboBox, EditorPane, FileChooser, Label, MenuItem, Orientation, ScrollPane}
 import scala.swing.Dialog
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.tree.{ ClassNode, MethodNode }
+import jdk.internal.org.objectweb.asm.ClassReader
+import jdk.internal.org.objectweb.asm.tree.{ ClassNode, MethodNode }
 import it.unich.jandom._
 import it.unich.jandom.targets.jvmasm._
 import it.unich.jandom.targets.Parameters
