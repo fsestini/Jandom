@@ -106,10 +106,10 @@ class SootObjectModel(scene: soot.Scene) extends ObjectModel with ObjectModelHel
     case t: RefType =>
       val k = t.getSootClass()
       if (k.isInterface()) {
-        (fh.getAllImplementersOfInterface(k) map { _.getType() }).toSet ++
+        (fh.getAllImplementersOfInterface(k) map { _.asInstanceOf[SootClass].getType() }).toSet ++
           (fh.getSubinterfaces(k) map { _.getType() }).toSet
       } else {
-        (fh.getSubclassesOf(k) map { _.getType() }).toSet
+        (fh.getSubclassesOf(k) map { _.asInstanceOf[SootClass].getType() }).toSet
       }
     case _: PrimType => Set()
     case t: ArrayType => children(t.baseType) map { (ArrayType.v(_, t.numDimensions)) }

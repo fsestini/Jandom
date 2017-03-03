@@ -1,5 +1,8 @@
 //*** Libraries
 
+resolvers += 
+  "Conjars" at "http://conjars.org/repo"
+
 libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % "3.5",
   "org.scalatest" %% "scalatest" % "3.0.0" % "test",
@@ -15,7 +18,7 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   // ASM is included in the Soot Jar
-  "soot" % "soot" % "2.5.0+git2" from "https://ssebuild.cased.de/nightly/soot/lib/soot-trunk.jar"
+  "soot" % "soot" % "2.5.0"
 )
 
 //*** Additional source directories for PPL
