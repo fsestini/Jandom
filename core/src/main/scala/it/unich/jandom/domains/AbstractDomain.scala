@@ -21,8 +21,8 @@ package it.unich.jandom.domains
 import it.unich.scalafix.lattice.Domain
 
 /**
- * The base class for all abstract domains. An abstract domain is a collection of properties,
- * which may or may not be grouped into fibers.
+ * The base class for all abstract domains. An abstract domain is a collection
+ * of properties, which may or may not be grouped into fibers.
  * @author Gianluca Amato <gianluca.amato@unich.it>
  */
 trait AbstractDomain {
@@ -32,8 +32,8 @@ trait AbstractDomain {
   type Property <: AbstractProperty[Property]
 
   /**
-   * Returns the default widening of the domain. It should correspond to the widening method of
-   * the ``it.unich.jandom.domains.AbstractProperty`` class.
+   * Returns the default widening of the domain. It should correspond to the
+   * widening method of the ``it.unich.jandom.domains.AbstractProperty`` class.
    */
   def defaultWidening = widenings.head.box
 
@@ -43,13 +43,14 @@ trait AbstractDomain {
   def widening(name: String) = widenings.find ( _.name == name ).get.box
 
   /**
-   * A non-empty set of widenings supported by the abstract domain. The first element is supposed to be
-   * the default widening.
+   * A non-empty set of widenings supported by the abstract domain. The first
+   * element is supposed to be the default widening.
    */
   def widenings: Seq[WideningDescription[Property]]
 
   /**
-   * ScalaFixDomain is an instance of the ScalaFix type-class Domain for this abstract domain.
+   * ScalaFixDomain is an instance of the ScalaFix type-class Domain for this
+   * abstract domain.
    */
   val ScalaFixDomain = new Domain[Property] {
     def lteq(x: Property, y: Property) = x <= y
