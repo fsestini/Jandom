@@ -263,9 +263,9 @@ class JandomEditorPane(val frame: MainFrame) extends ScrollPane with TargetPane 
     }
   }
 
-  def analyze = {
-    for ((params, program, ann) <- performAnalysis()) yield params.debugWriter.toString + program.mkString(ann)
-  }
+  def analyze =
+    for ((params, program, ann) <- performAnalysis())
+    yield params.debugWriter.toString + program.mkString(ann)
 
   def outputHTML() {
     for ((params, program, ann) <- performAnalysis()) {
