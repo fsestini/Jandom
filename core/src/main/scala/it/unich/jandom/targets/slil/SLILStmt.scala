@@ -22,8 +22,8 @@ import it.unich.jandom.domains.numerical.NumericalProperty
 import it.unich.jandom.targets.Annotation
 
 /**
- * The abstract class for program statements. Each object in SLILStmt represents a statement
- * of a simple imperative language.
+ * The abstract class for program statements. Each object in SLILStmt represents
+ * a statement of a simple imperative language.
  */
 abstract class SLILStmt extends SLILTarget {
   import AnalysisPhase._
@@ -49,8 +49,10 @@ abstract class SLILStmt extends SLILTarget {
    * @param ann an annotation where to put informations on the inner program points
    * @return the property at the end of the statement
    */
-  def analyzeStmt(params: Parameters)(input: params.Property, phase: AnalysisPhase,
-      ann: Annotation[ProgramPoint,params.Property]): params.Property = input
+  def analyzeStmt(params: Parameters)(
+    input: params.Property,
+    phase: AnalysisPhase,
+    ann: Annotation[ProgramPoint,params.Property]): params.Property = input
 
   /**
    * @inheritdoc
