@@ -29,14 +29,19 @@ object NumericalDomains extends ParameterEnumeration[NumericalDomain] {
   val description = "The numerical domain to use for the analysis."
 
   val values: Buffer[ParameterValue[NumericalDomain]] = Buffer(
-    ParameterValue(BoxDoubleDomain(), "BoxDouble", "This is a native Scala implementation of boxes. It is safe " +
+    ParameterValue(BoxDoubleDomain(), "BoxDouble",
+      "This is a native Scala implementation of boxes. It is safe " +
       "w.r.t. double arithmetics."),
-    ParameterValue(BoxDoubleDomain(overReals=true), "BoxDouble over Reals", "This is a native Scala implementation of boxes. It is safe " +
+    ParameterValue(BoxDoubleDomain(overReals=true), "BoxDouble over Reals",
+      "This is a native Scala implementation of boxes. It is safe " +
       "w.r.t. reals."),
-    ParameterValue(ParallelotopeDomain(), "Parallelotope", "This is a native Scala implementation of parallelotopes. It is " +
+    ParameterValue(ParallelotopeDomain(), "Parallelotope",
+      "This is a native Scala implementation of parallelotopes. It is " +
       "not safe and should not be used."),
-    ParameterValue(SumIntParallelotopeDomain(), "BoxDouble + Parallelotope", "Sum of boxes and parallelotopes."),
-    ParameterValue(ParallelotopeRationalDomain(), "Parallelotope over Rationals", "This is a native Scala implementation of parallelotopes using rational numbers.")
+    ParameterValue(SumIntParallelotopeDomain(), "BoxDouble + Parallelotope",
+      "Sum of boxes and parallelotopes."),
+    ParameterValue(ParallelotopeRationalDomain(), "Parallelotope over Rationals",
+      "This is a native Scala implementation of parallelotopes using rational numbers.")
   )
   val default = values.last
 
