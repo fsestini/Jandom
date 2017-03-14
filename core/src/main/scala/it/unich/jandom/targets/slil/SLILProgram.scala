@@ -25,16 +25,24 @@ import it.unich.jandom.targets.parameters.NarrowingStrategy
 import it.unich.jandom.targets.slil.AnalysisPhase._
 
 /**
- * The target for a simple imperative language, similar to the one analyzed
- * by Random. Each program is essentially a function with some input variables and
+ * The target for a simple imperative language, similar to the one analyzed by
+ * Random. Each program is essentially a function with some input variables and
  * a body, with a single scope which extends to the entire body.
  * @param env the environment for the program
  * @param inputVars the input variables
  * @param stmt the body of the program
  * @author Gianluca Amato <gamato@unich.it>
  */
-case class SLILProgram(val env: Environment, val inputVars: Seq[Int], val stmt: SLILStmt) extends SLILTarget {
-  def mkString[U <: NumericalProperty[_]](ann: Annotation[ProgramPoint,U], ppspec: SLILPrinterSpec = SLILPrinterSpecInline(env)) = {
+case class SLILProgram(
+  val env: Environment,
+  val inputVars: Seq[Int],
+  val stmt: SLILStmt)
+    extends SLILTarget {
+
+  def mkString[U <: NumericalProperty[_]](
+    ann: Annotation[ProgramPoint,U],
+    ppspec: SLILPrinterSpec = SLILPrinterSpecInline(env)) = {
+
     val spaces = ppspec.indent(0)
     val innerspaces = ppspec.indent(1)
     spaces + "function (" + (inputVars map { v: Int => env(v) }).mkString(",") + ") {\n" +
