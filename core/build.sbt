@@ -19,7 +19,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   // ASM is included in the Soot Jar
   "soot" % "soot" % "2.5.0",
-  "org.scalaz" %% "scalaz-core" % "7.2.14"
+  "org.scalaz" %% "scalaz-core" % "7.2.14",
+  "org.scala-graph" %% "graph-core" % "1.11.5"
 )
 
 //*** Additional source directories for PPL
