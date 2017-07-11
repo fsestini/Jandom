@@ -12,7 +12,9 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   // ASM is included in the Soot Jar
-  "ca.mcgill.sable" % "soot" %"3.0.0-SNAPSHOT"
+  "ca.mcgill.sable" % "soot" %"3.0.0-SNAPSHOT",
+  "org.scalaz" %% "scalaz-core" % "7.2.14",
+  "org.scala-graph" %% "graph-core" % "1.11.5"
 )
 
 updateOptions := updateOptions.value.withLatestSnapshots(false)
