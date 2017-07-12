@@ -2,7 +2,7 @@ package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
 // A DBM is a matrix for which is makes sense to compute a strong closure.
-trait DifferenceBoundMatrix[M[_]] extends Lattice1[M] {
+trait DifferenceBoundMatrix[M[_]] extends Matrix[M] with Lattice1[M] {
   // strong closure and incremental closure are assumed to test for emptiness,
   // and return the bottom element in the positive case.
   def strongClosure[A](m: M[A])(implicit evidence: InfField[A]): M[A]
