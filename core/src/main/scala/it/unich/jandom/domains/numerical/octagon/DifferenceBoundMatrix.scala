@@ -3,10 +3,13 @@ package it.unich.jandom.domains.numerical.octagon
 
 // A DBM is a matrix for which is makes sense to compute a strong closure.
 trait DifferenceBoundMatrix[M[_]] extends Matrix[M] with Lattice1[M] {
+
+  type VarIndex = Int
+
   // strong closure and incremental closure are assumed to test for emptiness,
   // and return the bottom element in the positive case.
   def strongClosure[A](m: M[A])(implicit evidence: InfField[A]): M[A]
-  def incrementalClosure[A](m: M[A])(implicit evidence: InfField[A]): M[A]
+  def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit evidence: InfField[A]): M[A]
   def bottomDBM[A]: M[A]
   def topDBM[A]: M[A]
   def get[A](i: Int, j: Int)(m: M[A]): A
