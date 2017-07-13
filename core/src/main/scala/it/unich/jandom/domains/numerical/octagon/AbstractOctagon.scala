@@ -205,35 +205,49 @@ case class AbstractOctagon[M[_]](dbm: M[Double], e: DifferenceBoundMatrix[M]) {
     (dbm: M[Double]): M[Double] = {
     val f: (Int, Int) => Double = (i, j) => {
       if (i == 2 * v && j == 2 * v - 1) {
-        val p = lfAsInterval(v, lf) ; 2 * math.max(p _1, p _2)
+        val p = lfAsInterval(v, lf)
+        2 * math.max(p _1, p _2)
       } else if (i == 2 * v - 1 && j == 2 * v) {
-        val p = lfAsInterval(v, lf) ; - 2 * math.max(p _1, p _2)
+        val p = lfAsInterval(v, lf)
+        - 2 * math.max(p _1, p _2)
       } else {
-        val lol: List[Option[Double]] = (0 until dimension).map(other => {
-          if (v != other) {
-            val g1 = (i == 2 * other - 1 && j == 2 * v - 1) || (i == 2 * v && j == 2 * other)
-            val g2 = (i == 2 * other && j == 2 * v - 1) || (i == 2 * v && j == 2 * other - 1)
-            val g3 = (i == 2 * v - 1 && j == 2 * other - 1) || (i == 2 * other && j == 2 * v)
-            val g4 = (i == 2 * other - 1 && j == 2 * v) || (i == 2 * v - 1 && j == 2 * other)
-            if (g1) {
-              val p = lfAsInterval(v, lf - varLf(other, dimension))
-              Some(math.max(p _1, p _2))
-            } else if (g2) {
-              val p = lfAsInterval(v, lf + varLf(other, dimension))
-              Some(math.max(p _1, p _2))
-            } else if (g3) {
-              val p = lfAsInterval(v, varLf(other, dimension) - lf)
-              Some(math.max(p _1, p _2))
-            } else if (g4) {
-              val p = lfAsInterval(v, - lf - varLf(other, dimension))
-              Some(math.max(p _1, p _2))
-            } else None
-          } else None
-        }).toList
-        squash(lol) match {
+        val g1 = other =>
+        (v != other) && ((i == 2 * other - 1 && j == 2 * v - 1) ||
+          (i == 2 * v && j == 2 * other))
+        val g2 = other =>
+        (v != other) && ((i == 2 * other && j == 2 * v - 1) ||
+          (i == 2 * v && j == 2 * other - 1))
+        val g3 = other =>
+        (v != other) && ((i == 2 * v - 1 && j == 2 * other - 1) ||
+          (i == 2 * other && j == 2 * v))
+        val g4 = other =>
+        (v != other) && ((i == 2 * other - 1 && j == 2 * v) ||
+          (i == 2 * v - 1 && j == 2 * other))
+
+        val chooser = forSomeVar(0 until dimension)
+        val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
+          case (Some(other), _, _, _) => {
+            val p = lfAsInterval(v, lf - varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case (_, Some(other), _, _) => {
+            val p = lfAsInterval(v, lf + varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case (_, _, Some(other), _) => {
+            val p = lfAsInterval(v, varLf(other, dimension) - lf)
+            Some(math.max(p _1, p _2))
+          }
+          case (_, _, _, Some(other)) => {
+            val p = lfAsInterval(v, - lf - varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case _ => None
+        } match {
           case Some(x) => x
           case None => forceOption(e.get(i,j)(e.strongClosure(dbm)))
         }
+        r
       }
     }
     e.update(f)(dbm)
