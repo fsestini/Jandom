@@ -1,6 +1,8 @@
 package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
+import scala.language.higherKinds
+
 // A DBM is a matrix for which is makes sense to compute a strong closure.
 trait DifferenceBoundMatrix[M[_]] extends Matrix[M] with Lattice1[M] {
 
@@ -12,7 +14,6 @@ trait DifferenceBoundMatrix[M[_]] extends Matrix[M] with Lattice1[M] {
   def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit evidence: InfField[A]): M[A]
   def bottomDBM[A]: M[A]
   def topDBM[A]: M[A]
-  def get[A](i: Int, j: Int)(m: M[A]): A
 }
 
 // // Provide some default implementations for DBMs over a field.
