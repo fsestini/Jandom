@@ -101,20 +101,20 @@ case class BottomDBM[M[_], A]() extends FastDBM[M, A] { }
 object FastDBMTypeclasses {
 
   def fastDBMIsDBM[M[_]](implicit e: Matrix[M])
-  : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] =
-    new DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] {
-
-      def strongClosure[A](m: FastDBM[M, A])(implicit evidence: InfField[A]): FastDBM[M, A] = ???
-      def incrementalClosure[A](m: FastDBM[M, A])(implicit evidence: InfField[A]): FastDBM[M, A] = ???
-
-      def bottomDBM[A]: FastDBM[M, A] = BottomDBM()
-
-      def get[A](i: Int, j: Int)(m: FastDBM[M, A]): Option[A] = ???
-
-      // join and meet must act on submatrices if the DBM is decomposed!
-      def union[A](x: FastDBM[M, A], y: FastDBM[M, A]): FastDBM[M, A] = ???
-      def intersection[A](x: FastDBM[M, A], y: FastDBM[M, A]): FastDBM[M, A] = ???
-    }
+  : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] = ???
+//    new DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] {
+//
+//      def strongClosure[A](m: FastDBM[M, A])(implicit evidence: InfField[A]): FastDBM[M, A] = ???
+//      def incrementalClosure[A](m: FastDBM[M, A])(implicit evidence: InfField[A]): FastDBM[M, A] = ???
+//
+//      def bottomDBM[A]: FastDBM[M, A] = BottomDBM()
+//
+//      def get[A](i: Int, j: Int)(m: FastDBM[M, A]): Option[A] = ???
+//
+//      // join and meet must act on submatrices if the DBM is decomposed!
+//      def union[A](x: FastDBM[M, A], y: FastDBM[M, A]): FastDBM[M, A] = ???
+//      def intersection[A](x: FastDBM[M, A], y: FastDBM[M, A]): FastDBM[M, A] = ???
+//    }
 
 }
 
