@@ -1,13 +1,15 @@
 package it.unich.jandom.domains.numerical.octagon
 
+import scala.language.higherKinds
+
 /**
   * Created by fsestini on 7/10/17.
   */
 
 sealed trait Ordering
-case class GT() extends Ordering
-case class LT() extends Ordering
-case class EQ() extends Ordering
+object GT extends Ordering
+object LT extends Ordering
+object EQ extends Ordering
 
 trait Poset [P] {
   def compare(x: P, y: P): Option[Ordering]

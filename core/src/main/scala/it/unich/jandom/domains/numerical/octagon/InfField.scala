@@ -41,9 +41,9 @@ object InfField {
 
     def compare(x: Double, y: Double): Option[Ordering] =
       (x < y, x == y) match {
-        case (true, _) => Some(LT())
-        case (_, true) => Some(EQ())
-        case _ => Some(GT())
+        case (true, _) => Some(LT)
+        case (_, true) => Some(EQ)
+        case _ => Some(GT)
     }
   }
 }
