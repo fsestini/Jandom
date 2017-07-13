@@ -155,14 +155,49 @@ case class AbstractOctagon[M[_]](dbm: M[Double], e: DifferenceBoundMatrix[M]) {
     new DenseLinearForm(sss)
   }
 
-  def thruIntervals(v: VarIndex, lf: LinearForm)(dbm: M[Double]): M[Double] = {
-    val f: (Int, Int) => Double = (i, j) => {
-      val g1 = i == 2 * v && j == 2 * v - 1
-      val g2 = i == 2 * v - 1 && j == 2 * v
-      // val g3 = i == 2 * v - 1 && j == 2 * v - 1 && i
-      ???
+  private def squash[A](l: List[Option[A]]): Option[A] =
+    l match {
+      case Nil => None
+      case (Some(x) :: xs) => Some(x)
+      case (None :: xs) => squash(xs)
     }
-    ???
+
+  def thruIntervals(v: VarIndex, lf: LinearForm, dimension: Int)
+    (dbm: M[Double]): M[Double] = {
+    val f: (Int, Int) => Double = (i, j) => {
+      if (i == 2 * v && j == 2 * v - 1) {
+        val p = lfAsInterval(v, lf) ; 2 * math.max(p _1, p _2)
+      } else if (i == 2 * v - 1 && j == 2 * v) {
+        val p = lfAsInterval(v, lf) ; - 2 * math.max(p _1, p _2)
+      } else {
+        val lol: List[Option[Double]] = (0 until dimension).map(other => {
+          if (v != other) {
+            val g1 = (i == 2 * other - 1 && j == 2 * v - 1) || (i == 2 * v && j == 2 * other)
+            val g2 = (i == 2 * other && j == 2 * v - 1) || (i == 2 * v && j == 2 * other - 1)
+            val g3 = (i == 2 * v - 1 && j == 2 * other - 1) || (i == 2 * other && j == 2 * v)
+            val g4 = (i == 2 * other - 1 && j == 2 * v) || (i == 2 * v - 1 && j == 2 * other)
+            if (g1) {
+              val p = lfAsInterval(v, lf - varLf(other, dimension))
+              Some(math.max(p _1, p _2))
+            } else if (g2) {
+              val p = lfAsInterval(v, lf + varLf(other, dimension))
+              Some(math.max(p _1, p _2))
+            } else if (g3) {
+              val p = lfAsInterval(v, varLf(other, dimension) - lf)
+              Some(math.max(p _1, p _2))
+            } else if (g4) {
+              val p = lfAsInterval(v, - lf - varLf(other, dimension))
+              Some(math.max(p _1, p _2))
+            } else None
+          } else None
+        }).toList
+        squash(lol) match {
+          case Some(x) => x
+          case None => forceOption(e.get(i,j)(e.strongClosure(dbm)))
+        }
+      }
+    }
+    e.update(f)(dbm)
   }
 
   def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[M] = {
@@ -175,10 +210,10 @@ case class AbstractOctagon[M[_]](dbm: M[Double], e: DifferenceBoundMatrix[M]) {
         singleNegativeExactAssignment(v, const.toDouble)
       case Some(DoubleExact(other, Positive, const)) =>
         doublePositiveExactAssignment(v, other, const.toDouble) _ andThen
-          e.incrementalClosure(v)
+          e.incrementalClosure[Double](v)
       case Some(DoubleExact(other, Negative, const)) =>
         doubleNegativeExactAssignment(v, other, const.toDouble) andThen
-          e.incrementalClosure(v)
+          e.incrementalClosure[Double](v)
       case None => ???
     }
     new AbstractOctagon(f(dbm), e)
