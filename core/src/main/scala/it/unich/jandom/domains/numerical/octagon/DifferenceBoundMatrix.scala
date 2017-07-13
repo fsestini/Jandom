@@ -2,42 +2,55 @@ package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
 import scala.language.higherKinds
+import breeze.math.Ring
 
-// A DBM is a matrix for which is makes sense to compute a strong closure.
-trait DifferenceBoundMatrix[M[_]] extends Matrix[M] with Lattice1[M] {
+sealed trait DBMState
+case class Closed() extends DBMState
+case class NonClosed() extends DBMState
 
-  type VarIndex = Int
+// Distinguish integers used as variable indices
+case class VarIndex(i: Int)
+
+object VarIndexIsARing {
+  implicit val varIndexIsARing = new Ring[VarIndex] {
+
+  }
+}
+
+// Trait of Difference Bound Matrices, indexed by the closure state
+// (closed/non-closed) and the type of the elements.
+// Most operators require the type of elements to be a ring.
+trait DifferenceBoundMatrix[M[DBMState, _]] {
+
+  def get[A](i: Int, j: Int)(m: M[DBMState, A]): Option[A]
+  def update[A](f: (Int, Int) => A)(m: M[DBMState, A]): M[DBMState, A]
 
   // strong closure and incremental closure are assumed to test for emptiness,
   // and return the bottom element in the positive case.
-  def strongClosure[A](m: M[A])(implicit evidence: InfField[A]): M[A]
-  def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit evidence: InfField[A]): M[A]
-  def bottomDBM[A]: M[A]
-  def topDBM[A]: M[A]
+  def strongClosure[A](m: M[DBMState, A])
+    (implicit evidence: InfField[A]): M[Closed, A]
+  def incrementalClosure[A](v: VarIndex)(m: M[DBMState, A])
+    (implicit evidence: InfField[A]): M[Closed, A]
+  def bottomDBM[A]: M[Closed, A]
+  def isBottomDBM[A](m: M[DBMState, A]): Boolean
+  def topDBM[A]: M[Closed, A]
+
+  // dbm union preserves strong closure
+  def dbmUnion[S <: DBMState, A](m1: M[S, A], m2: M[S, A]): M[S, A]
+
+  // dbm intersection is exact regardless of the closure state of the inputs,
+  // and it seldomly produces a strongly closed result.
+  def dbmIntersection[A](m1: M[DBMState, A], m2: M[DBMState, A]): M[DBMState, A]
+
+  // flip a variable, i.e. interpret v := - v
+  // this operation preserves the closure state
+  def flipVar[S <: DBMState, A](v: VarIndex)
+    (m: M[S, A])(implicit ifield: InfField[A]): M[S, A]
+
+  // add scalar on a variable, i.e. interpret v := v + c
+  // this operation preserves the closure state
+  def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)
+    (m: M[S, A])(implicit ifield: InfField[A]): M[S, A]
+
+  def nOfVars[S <: DBMState, A](m: M[S, A]): Int
 }
-
-// // Provide some default implementations for DBMs over a field.
-// trait FieldDBM[M[_]] extends DifferenceBoundMatrix[M] {
-
-//   override type PosetConstraint[A] = InfField[A]
-//   override def compare[A](x: M[A], y: M[A])(implicit evidence: PosetConstraint[A]): Option[Ordering] = {
-//     val m: List[Option[Ordering]] = toList(combine(evidence.compare _)(x, y))
-//     Applicative[Option].sequence(m) match {
-//       case None => None
-//       case Some(list) =>
-//         (list.forall(_ == LT()), list.forall(_ == EQ()), list.forall(_ == GT())) match {
-//           case (true, _, _) => Some(LT())
-//           case (_, true, _) => Some(EQ())
-//           case (_, _, true) => Some (GT())
-//           case _ => None
-//         }
-//     }
-//   }
-
-//   override type LatticeConstraint[A] = InfField[A]
-//   override def union[A](x: M[A], y: M[A])(implicit evidence: LatticeConstraint[A]): M[A] =
-//     combine(evidence.max)(x, y)
-//   override def intersection[A](x: M[A], y: M[A])(implicit evidence: InfField[A]): M[A] =
-//     combine(evidence.min)(x, y)
-
-// }
