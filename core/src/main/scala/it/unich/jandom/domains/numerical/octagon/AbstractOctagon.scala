@@ -28,8 +28,47 @@ case class AbstractOctagon[M[_]](dbm: M[Double], e: DifferenceBoundMatrix[M]) {
   def top = new AbstractOctagon(e.topDBM[Double], e: DifferenceBoundMatrix[M])
   def bottom = new AbstractOctagon(e.bottomDBM[Double], e: DifferenceBoundMatrix[M])
 
-  def toInterval: BoxDoubleDomain#Property = ???
-  def fromInterval(box: BoxDoubleDomain#Property): AbstractOctagon[M] = ???
+  def projectInterval(i: VarIndex, closed: M[Double]): (Double, Double) = {
+    if e.isBottomDBM(closed) { // TODO: add check
+      (Double.PositiveInfinity, Double.NegativeInfinity)
+    } else {
+      (- e.get(2 * i - 1, 2 * i)(closed) / 2, e.get(2 * i, 2 * i - 1)(closed) / 2)
+    }
+  }
+
+  private def createInterval(
+    low: Array[Double],
+    high: Array[Double],
+    isEmpty: Boolean)
+      : BoxDoubleDomain#Property = {
+    val dom: BoxDoubleDomain = BoxDoubleDomain(false)
+    new dom.Property(low, high, isEmpty)
+  }
+
+  def toInterval: BoxDoubleDomain#Property = {
+    val closed = e.strongClosure(dbm)
+    val l: List[(Double, Double)] =
+      (0 until e.nOfVars(dbm)).map(i => projectInterval(i, closed)).toList
+    val (low, high) = l.unzip
+    createInterval(low.toArray, high.toArray, false)
+  }
+
+  private def fromFun[A](d: Int, f: (Int, Int) => A): M[A] = ???
+
+  private def forSomeVar(vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
+    squash(vars.map(p).toList)
+
+  def fromInterval(box: BoxDoubleDomain#Property): AbstractOctagon[M] = {
+    val chooser = forSomeVar(0 until dimension)
+    new AbstractOctagon(fromFun(box.dimension, (i, j) => {
+      (chooser(k => i == 2 * k && j == 2 * k - 1),
+        chooser(k => j == 2 * k && i == 2 * k - 1)) match {
+        case (Some(k), _) => 2 * box.asPair(k)._2
+        case (None, Some(k)) => - 2 * box.asPair(k)._1
+        case (None, None) => Double.PositiveInfinity
+      }
+    }), e)
+  }
 
   private def forceOption[A](o: Option[A]): A = o match {
     case Some(x) => x
@@ -214,7 +253,7 @@ case class AbstractOctagon[M[_]](dbm: M[Double], e: DifferenceBoundMatrix[M]) {
       case Some(DoubleExact(other, Negative, const)) =>
         doubleNegativeExactAssignment(v, other, const.toDouble) andThen
           e.incrementalClosure[Double](v)
-      case None => ???
+      case None => thruIntervals(v, lf, ???)
     }
     new AbstractOctagon(f(dbm), e)
   }
