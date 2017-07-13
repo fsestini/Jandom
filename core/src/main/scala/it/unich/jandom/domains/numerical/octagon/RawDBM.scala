@@ -13,7 +13,7 @@ trait RawDBM[M[_]] extends Matrix[M] {
 
   // The list on indices is passed when using decomposed DBMs.
 
-  def nOfVars: Int
+  def nOfVars[A](m: M[A]): Int
 
   def denseStrongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
   def denseStrongClosure[A](m: M[A], indices: Seq[Int])(implicit e: InfField[A]): ClosureRes[A]
