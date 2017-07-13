@@ -56,6 +56,9 @@ class BoxDoubleDomain(val overReals: Boolean) extends NumericalDomain {
 
     def domain = BoxDoubleDomain.this
 
+    // TEMP?
+    def asPair(n: Int): (Double, Double) = (low(n), high(n))
+
     /**
      * This checks whether the box is normalized. This should always be the case. A box is normalized when
      * the lower and higher bounds are of the same length, and either
