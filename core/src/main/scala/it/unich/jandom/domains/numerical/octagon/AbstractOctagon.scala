@@ -214,14 +214,6 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     doubleNegativeZeroAssignment(v, other) andThen
       singlePositiveExactAssignment(v, const)
 
-  private def sumVar(v: VarIndex, coeff: Rational)(lf: LinearForm)
-      (implicit r: Ring[VarIndex]): LinearForm = {
-    val sss: Seq[Rational] =
-      (0 to lf.dimension).map(x => if (x == r.+(v,1)) coeff else Rational(0))
-    val vlf: LinearForm = new DenseLinearForm(sss)
-    lf + vlf
-  }
-
   private def varLf(v: VarIndex, dimension: Int): LinearForm = {
     val sss: Seq[Rational] =
       (0 to dimension).map(x => if (x == v.i + 1) Rational(1) else Rational(0))
