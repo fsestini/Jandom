@@ -7,9 +7,9 @@ import scala.language.higherKinds
   */
 
 sealed trait Ordering
-object GT extends Ordering
-object LT extends Ordering
-object EQ extends Ordering
+case object GT extends Ordering
+case object LT extends Ordering
+case object EQ extends Ordering
 
 trait Poset [P] {
   def compare(x: P, y: P): Option[Ordering]
