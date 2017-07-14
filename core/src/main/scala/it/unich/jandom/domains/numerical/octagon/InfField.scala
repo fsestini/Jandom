@@ -33,7 +33,7 @@ object InfField {
     def ==(a: Double, b: Double): Boolean = a == b
     def !=(a: Double, b: Double): Boolean = a != b
     def /(a: Double, b: Double): Double = a / b
-    def pow(a: Double, b: Double): Double = pow(a, b)
+    def pow(a: Double, b: Double): Double = math.pow(a, b)
 
     override def max(x: Double, y: Double): Double = math.max(x, y)
     override def min(x: Double, y: Double): Double = math.min(x, y)
