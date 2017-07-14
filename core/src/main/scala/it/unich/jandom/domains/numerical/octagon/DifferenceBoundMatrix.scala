@@ -13,7 +13,7 @@ case class VarIndex(i: Int)
 // Trait of Difference Bound Matrices, indexed by the closure state
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
-trait DifferenceBoundMatrix[M[DBMState, _]] {
+trait DifferenceBoundMatrix[M[_, _]] {
 
   def get[A](i: Int, j: Int)(m: M[DBMState, A]): Option[A]
   def update[A](f: (Int, Int) => A)(m: M[DBMState, A]): M[DBMState, A]
