@@ -11,12 +11,6 @@ case class NonClosed() extends DBMState
 // Distinguish integers used as variable indices
 case class VarIndex(i: Int)
 
-object VarIndexIsARing {
-  implicit val varIndexIsARing = new Ring[VarIndex] {
-
-  }
-}
-
 // Trait of Difference Bound Matrices, indexed by the closure state
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
