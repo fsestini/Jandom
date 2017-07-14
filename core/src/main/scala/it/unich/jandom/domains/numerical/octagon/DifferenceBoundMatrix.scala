@@ -38,6 +38,12 @@ trait DifferenceBoundMatrix[M[DBMState, _]] {
   def dbmIntersection[A](m1: M[DBMState, A], m2: M[DBMState, A])
       (implicit ifield: InfField[A]): M[DBMState, A]
 
+  /////////////////////////////////////////////////////////////////////////////
+
+  // I feel it should be possible to come up with a more elementary and
+  // fine-grained closure state-preserving operation in terms of which all of
+  // these closure state-preserving operations can be encoded externally.
+
   // flip a variable, i.e. interpret v := - v
   // this operation preserves the closure state
   def flipVar[S <: DBMState, A](v: VarIndex)
@@ -48,5 +54,10 @@ trait DifferenceBoundMatrix[M[DBMState, _]] {
   def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)
     (m: M[S, A])(implicit ifield: InfField[A]): M[S, A]
 
-  def nOfVars[S <: DBMState, A](m: M[S, A]): Int
+  // forget operator preserves strong closure
+  def forget[S <: DBMState, A](v: VarIndex)(m: M[S, A]): M[S, A]
+
+  //////////////////////////////////////////////////////////////////////////////
+
+  def nOfVars[A](m: M[DBMState, A]): Int
 }
