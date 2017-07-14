@@ -17,23 +17,22 @@ import breeze.math.Ring
   *
   * NOTE: We enforce that the dbm that is used to create the abstract octagon
   *       is *closed*. Hence we do not need to close it every time we perform
-  *       some operation, and we need to close it after every operation.
+  *       some operation, but we need to ensure that it gets closed after any
+  *       operation, if we want to construct a new abstract octagon.
   */
 case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
   def dimension: Int = e.nOfVars(dbm)
 
   def join(other: AbstractOctagon[M])
-    (implicit lc: e.LatticeConstraint[Double]): AbstractOctagon[M] =
+    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
     new AbstractOctagon(e.dbmUnion(dbm, other.dbm), e)
 
   def meet(other: AbstractOctagon[M])
-    (implicit lc: e.LatticeConstraint[Double]): AbstractOctagon[M] =
+    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
     new AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm)), e)
 
-  def forget(): AbstractOctagon[M] = ???
-  def forget(vi: VarIndex): AbstractOctagon[M] = ???
-  def forgetDBM(vi: VarIndex, m: M[DBMState, Double]): M[DBMState, Double] = ???
-    // strongly close m, then apply forget operator
+  def forget(vi: VarIndex): AbstractOctagon[M] =
+    new AbstractOctagon(e.forget(vi)(dbm), e)
 
   def top = new AbstractOctagon(e.topDBM[Double], e: DifferenceBoundMatrix[M])
   def bottom = new AbstractOctagon(e.bottomDBM[Double], e: DifferenceBoundMatrix[M])
@@ -63,7 +62,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def toInterval: BoxDoubleDomain#Property = {
     val closed = e.strongClosure(dbm)
     val l: List[(Double, Double)] =
-      (0 until e.nOfVars(dbm)).map(i => projectInterval(i, closed)).toList
+      (0 until e.nOfVars(dbm))
+        .map(i => projectInterval(VarIndex(i), closed)).toList
     val (low, high) = l.unzip
     createInterval(low.toArray, high.toArray, false)
   }
@@ -130,7 +130,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     val f: (Int, Int) => Double = (i, j) =>
       if (i == 2 * v.i - 1 && j == 2 * v.i) -2 * const else
         if (i == 2 * v.i && j == 2 * v.i - 1) 2 * const else
-          forceOption(e.get(i, j)(forgetDBM(v, dbm)))
+          forceOption(e.get(i, j)(e.forget(v)(dbm)))
     e.update(f)(dbm)
   }
 
@@ -167,7 +167,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
         (i == 2 * v && j == 2 * other)
       if (g1) (- const) else
         if (g2) const else
-          forceOption(e.get(i, j)(forgetDBM(vi, e.strongClosure(dbm))))
+          forceOption(e.get(i, j)(e.forget(vi)(e.strongClosure(dbm))))
     }
     e.update(f)(dbm)
   }
@@ -222,10 +222,9 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     lf + vlf
   }
 
-  private def varLf(v: VarIndex, dimension: Int)
-      (implicit r: Ring[VarIndex]): LinearForm = {
+  private def varLf(v: VarIndex, dimension: Int): LinearForm = {
     val sss: Seq[Rational] =
-      (0 to dimension).map(x => if (x == r.+(v,1)) Rational(1) else Rational(0))
+      (0 to dimension).map(x => if (x == v.i + 1) Rational(1) else Rational(0))
     new DenseLinearForm(sss)
   }
 
@@ -247,20 +246,20 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
         val p = lfAsInterval(vi, lf)
         - 2 * math.max(p _1, p _2)
       } else {
-        val g1: Int => Boolean = other =>
-        (v != other) && ((i == 2 * other - 1 && j == 2 * v - 1) ||
-          (i == 2 * v && j == 2 * other))
-        val g2: Int => Boolean = other =>
-        (v != other) && ((i == 2 * other && j == 2 * v - 1) ||
-          (i == 2 * v && j == 2 * other - 1))
-        val g3: Int => Boolean = other =>
-        (v != other) && ((i == 2 * v - 1 && j == 2 * other - 1) ||
-          (i == 2 * other && j == 2 * v))
-        val g4: Int => Boolean = other =>
-        (v != other) && ((i == 2 * other - 1 && j == 2 * v) ||
-          (i == 2 * v - 1 && j == 2 * other))
+        val g1: VarIndex => Boolean = other =>
+        (v != other) && ((i == 2 * other.i - 1 && j == 2 * v - 1) ||
+          (i == 2 * v && j == 2 * other.i))
+        val g2: VarIndex => Boolean = other =>
+        (v != other) && ((i == 2 * other.i && j == 2 * v - 1) ||
+          (i == 2 * v && j == 2 * other.i - 1))
+        val g3: VarIndex => Boolean = other =>
+        (v != other) && ((i == 2 * v - 1 && j == 2 * other.i - 1) ||
+          (i == 2 * other.i && j == 2 * v))
+        val g4: VarIndex => Boolean = other =>
+        (v != other) && ((i == 2 * other.i - 1 && j == 2 * v) ||
+          (i == 2 * v - 1 && j == 2 * other.i))
 
-        val chooser = forSomeVar(0 until dimension) _
+        val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
         val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
           case (Some(other), _, _, _) => {
             val p = lfAsInterval(vi, lf - varLf(other, dimension))
@@ -292,18 +291,20 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[M] = {
     val f: M[Closed, Double] => M[Closed, Double] = decideLinearForm(v, lf) match {
       case Some(ConstExact(const)) =>
-        singleConstantExactAssignment(v, const.toDouble) // require closure
+        singleConstantExactAssignment(v, const.toDouble) _ andThen
+          e.incrementalClosure(v)
       case Some(SingleExact(Positive, const)) =>
         singlePositiveExactAssignment(v, const.toDouble)
       case Some(SingleExact(Negative, const)) =>
         singleNegativeExactAssignment(v, const.toDouble)
       case Some(DoubleExact(other, Positive, const)) =>
         doublePositiveExactAssignment(v, other, const.toDouble) _ andThen
-          e.incrementalClosure[DBMState, Double](v)
+          e.incrementalClosure(v)
       case Some(DoubleExact(other, Negative, const)) =>
         doubleNegativeExactAssignment(v, other, const.toDouble) andThen
           e.incrementalClosure[Double](v)
-      case None => thruIntervals(v, lf, ???) // should close
+      case None => thruIntervals(v, lf, dimension) _ andThen
+        e.incrementalClosure(v)
     }
     new AbstractOctagon(f(dbm), e)
   }
