@@ -2,7 +2,6 @@ package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
 import scala.language.higherKinds
-import breeze.math.Ring
 
 sealed trait DBMState
 case class Closed() extends DBMState
