@@ -100,8 +100,8 @@ case class BottomDBM[M[_], A]() extends FastDBM[M, A] { }
 
 object FastDBMTypeclasses {
 
-  def fastDBMIsDBM[M[_]](implicit e: Matrix[M])
-  : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] = ???
+  // def fastDBMIsDBM[M[_]](implicit e: Matrix[M])
+  // : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] = ???
 //    new DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] {
 //
 //      def strongClosure[A](m: FastDBM[M, A])(implicit evidence: InfField[A]): FastDBM[M, A] = ???
