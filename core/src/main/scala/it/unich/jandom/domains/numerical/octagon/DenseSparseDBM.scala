@@ -2,6 +2,8 @@ package it.unich.jandom.domains.numerical.octagon
 
 import scala.language.higherKinds
 
+case class NNI(nni: Int)
+
 // This trait describes DBM matrices that can be used as building blocks in the
 // implementation of the "fast" version of abstract octagons.
 
@@ -25,26 +27,31 @@ import scala.language.higherKinds
 
 // Pack all these operations in a trait, to allow for multiple implementations
 // (for ex., full vs. Apron-style half matrices, or parallel stuff, or w/e)
-trait RawDBM[M[_]] extends Matrix[M] {
+trait DenseSparseDBM[M[_]] {
 
   // All closures return the number of non-infinite values in the matrix,
   // and the independent components of the matrix.
-  type VarIndex = Int // Maybe change?
-  type ClosureRes[A] = (M[A], Int, List[List[VarIndex]])
+  // If closing produces an unsolvable set of constraints, None is returned.
+  type ClosureRes[A] = Option[(M[A], NNI, List[List[VarIndex]])]
 
-  // The list on indices is passed when using decomposed DBMs.
+  // The DBM must be aware of the variables that has under control.
+  // We need actual indices. The dimension is not enough as the matrix could
+  // be a submatrix, as in the decomposed case.
+  def varIndices[A](m: M[A]): Seq[VarIndex]
 
-  def nOfVars[A](m: M[A]): Int
+  // closure (incremental or not) may be dense or sparse
+  def strongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
+  def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): ClosureRes[A]
 
-  def denseStrongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
-  def denseStrongClosure[A](m: M[A], indices: Seq[Int])(implicit e: InfField[A]): ClosureRes[A]
-  def sparseStrongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
-  def sparseStrongClosure[A](m: M[A], indices: Seq[Int])(implicit e: InfField[A]): ClosureRes[A]
+  def forget[A](v: VarIndex)(m: M[A]): M[A]
 
-  def denseIncrementalClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
-  def sparseIncrementalClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
+  //////////////////////////////////////////////////////////////////////////////
+
+  def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
+  def pour[A](source: M[A])(dest: M[A]): M[A]
 
   // Utility to combine two matrices only on a subset of elements
   def combine[A, B, C](f: (A, B) => C,
     xScope: Seq[Int], yScope: Seq[Int])(ma: M[A], mb: M[B]): M[C]
+
 }
