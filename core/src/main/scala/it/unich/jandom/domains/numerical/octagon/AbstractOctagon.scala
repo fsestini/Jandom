@@ -96,6 +96,152 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     case None => throw new IllegalArgumentException()
   }
 
+  //////////////////////// BOOL TESTS //////////////////////////////////////////
+
+  /**
+   * Computes intersection with `lf != 0`.
+   *
+   * Amounts to identity as Mine06 does not give a better abstraction
+   * than id
+   */
+  def linearDisequality (lf: LinearForm) = this
+
+  /**
+   * Intersection with the half-plane `lf <= 0`.
+   *
+   * Computed according to Mine06; particularly, 5 cases for an exact
+   * abstraction are given, otherwise the intersection is computed by
+   * fallback on intervals.
+   *
+   * The cases given in Mine06 fig 20 are as follows:
+   *
+   *  1. ({ V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l, j=2l-1
+   *  2. ({-V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l-1, j=2l
+   *  3. ({V_l - V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i=2k-1, j=2l-1
+   *                                                     or i=2l, j=2k
+   *  4. ({V_l + V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k, j = 2l - 1
+   *                                                     or i = 2l, j = 2k - 1
+   *  5. ({-V_l - V_k + c <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k - 1, j = 2l
+   *                                                     or i = 2l - 1, j = 2k
+   *  6. Fallback on interval-based abstraction
+   *
+   * Notes:
+   *  - [a,b] in Mine06 replaced by c, we don't do range assignments
+   *  - j0, i0 replaced by k, l for readability
+   *  - Always m_ij if not specified
+   */
+  def linearInequality (lf: LinearForm) = {
+    sealed class AbstractTest
+    case class Fallback() extends AbstractTest
+    case class Case1Test(val vl : Int, val c : Rational) extends AbstractTest
+    case class Case2Test(val vl : Int, val c : Rational) extends AbstractTest
+    case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
+    case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
+    case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
+    /**
+      * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
+      */
+    def decodeTest (lf : LinearForm) : AbstractTest =
+      if ( !lf.homcoeffs.exists { !List(1,-1).contains(_) }
+        | lf.homcoeffs.size > 2) {
+        Fallback()
+        // Mine06 fig 20 does not give an exact abstraction for > 2
+        // coeffs or coeffs != 1, -1
+      } else if (lf.coeffs.size == 0) {
+        throw new IllegalArgumentException("???")
+        // Surely 0+0+...+0<=0?
+        // TODO: perhaps this is a legit use case, consider removing
+      } else {
+        val c = lf.known
+        if (lf.homcoeffs.size == 1) {
+          // Cases 1, 2
+          val vl = lf.pairs.head
+          if (vl._2 == 1)
+            Case1Test (vl._1, c)
+          else {
+            assert(vl._2 == -1)
+            Case2Test (vl._1, c)
+          }
+        } else if (lf.homcoeffs.size == 2) {
+          if (lf.homcoeffs.exists(_ == 1)) {
+            // Cases 3, 4
+            val vl = lf.pairs.filter(_._2 == 1).head
+            val vk = lf.pairs.diff(List(vl)).head
+            if (vk._2 == -1)
+              Case3Test (vl._1, vk._1, c)
+            else
+              Case4Test (vl._1, vk._1, c)
+          } else {
+            // Case 5
+            val vl = lf.pairs.head
+            val vk = lf.pairs.diff(List(vl)).head
+            Case5Test (vl._1, vk._1, c)
+          }
+        } else {
+          // TODO: temporary, eventually remove
+          throw new RuntimeException("If you got here my logic is broken, sorry...")
+        }
+      }
+
+    val t : AbstractTest = decodeTest(lf)
+    t match {
+      case Fallback() => {
+        // TODO Implement optimizations in mine06 p 41
+        // When e has an arbitrary form, it is always possible to fall
+        // back to the test transfer function in the interval domain:
+        // { e <=  ? }(m) =d= (Oct . { e <= o ? } . Int)(m) \cap m
+        val lh = fromInterval(toInterval.linearInequality(lf))
+        new AbstractOctagon(e.strongClosure(e.dbmIntersection(lh.dbm, dbm)), e)
+      }
+      case _ => {
+        val f = t match {
+          case Case1Test(vl, c) => {
+            (i : Int, j : Int) =>
+            if (i == 2*vl & j == 2*vl - 1)
+              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case2Test(vl, c) => {
+            (i : Int, j : Int) =>
+            if (i == 2*vl-1& j == 2*vl)
+              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case3Test(vl, vk, c) => {
+            (i : Int, j : Int) =>
+            if ((i == 2*vk-1 & j == 2*vl-1)
+              | (i == 2*vk & j == 2*vl)
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case4Test(vl, vk, c) => {
+            (i : Int, j : Int) =>
+            if ((i == 2*vk & j == 2*vl-1)
+              | (i == 2*vl & j == 2*vk-1)
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case5Test(vl, vk, c) => {
+            (i : Int, j : Int) =>
+            if ((i == 2*vk-1 & j == 2*vl)
+              | (i == 2*vl-1 & j == 2*vk)
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+        }
+        e.update(f)(dbm)
+      }
+    }
+  }
+
   //////////////////////// ASSIGNMENTS /////////////////////////////////////////
 
   // There are only two assignment forms which have an exact abstraction in the
