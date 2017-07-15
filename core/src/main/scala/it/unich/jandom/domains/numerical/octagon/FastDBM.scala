@@ -4,6 +4,8 @@ import breeze.numerics.pow
 import scala.language.higherKinds
 
 import scalaz.{Applicative, Apply, Monoid}
+import scalaz.std.Option._
+import scalaz.std.List._
 
 /**
   * Created by fsestini on 7/10/17.
@@ -72,9 +74,32 @@ import scalaz.{Applicative, Apply, Monoid}
 // quadratic worst case complexity, so we only perform it by piggybacking on
 // the closure operator. We also use closure computations as switching points.
 
+object CFDBMInstance {
+  def instance[M[_]]: DifferenceBoundMatrix[
+    ({ type T[S, A] = CFastDBM[M, S, A] })#T] = ???
+}
+
+sealed trait CFastDBM[M[_], _, A]
+case class CFast[M[_], A](m: FastDBM[M, A])
+  extends CFastDBM[M, Closed, A]
+case class NCFast[M[_], A](m: FastDBM[M, A])
+  extends CFastDBM[M, NonClosed, A]
+
+object Lol {
+
+  def fastDBM[M[_], A, S <: DBMState](m: CFastDBM[M, S, A]): FastDBM[M, A] = m match {
+    case CFast(m) => m
+    case NCFast(m) => m
+  }
+
+  def nuffDecomposed(is: Seq[Seq[VarIndex]]): Boolean = ???
+  def nuffSparse(is: NNI): Boolean = ???
+
+}
+
 sealed trait FastDBM[M[_], A]
-case class DenseDBM[M[_], A](m: M[A], rdbm: RawDBM[M]) extends FastDBM[M, A] { }
-case class SparseDBM[M[_], A](m: M[A], rdbm: RawDBM[M]) extends FastDBM[M, A] { }
+case class DenseDBM[M[_], A](m: M[A], rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] { }
+case class SparseDBM[M[_], A](m: M[A], rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] { }
 
 // We store the independent components as a linked list of linked lists of
 // variable indices.
@@ -88,9 +113,30 @@ case class SparseDBM[M[_], A](m: M[A], rdbm: RawDBM[M]) extends FastDBM[M, A] { 
 
 // NNI for decomposed DBMs is computed as the sum of its submatrices' NNI.
 case class DecomposedDBM[M[_], A](completeDBM: M[A],
-                                  indepComponents: List[List[Int]],
-                                  evidence: RawDBM[M])
-  extends FastDBM[M, A] { }
+                                  indepComponents: Seq[Seq[VarIndex]],
+                                  rdbm: DenseSparseDBM[M])
+    extends FastDBM[M, A] {
+
+  def decStrongClosure(m: DecomposedDBM[M, A])
+      (implicit ifield: InfField[A]): CFastDBM[M, Closed, A] = {
+    val subs = indepComponents.map(seq => rdbm.extract(seq)(completeDBM))
+    val closedSubs = subs.map(m => rdbm.strongClosure(m))
+    val actualClosedSubs = Applicative[Option].sequence(closedSubs)
+    val (newM, newNNI, newIs) = closedSubs.foldRight((completeDBM, 0, indepComponents))(
+      (x, y) => for {
+        (sub, NNI(nni), _) <- x
+        (full, fullNNI, is) <- y
+      } yield (rdbm.pour(sub)(full), nni + fullNNI, is)
+      )
+      // (x, y) => (x, y) match {
+      //   case ((sub, NNI(nni), _), (full, fullNNI, is)) =>
+      //     (rdbm.pour(sub)(full), nni + fullNNI, is)
+      // })
+    val actualNewIndepComponents = ???
+    (DecomposedDBM[M, A](newM, newIs, rdbm), NNI(newNNI), newIs)
+  }
+
+}
 
 // The Top type can be seen as a degenerate case of the decomposed one with
 // an empty set of independent components. Thus, we can reuse the operators of
@@ -99,6 +145,41 @@ case class TopDBM[M[_], A]() extends FastDBM[M, A] { }
 case class BottomDBM[M[_], A]() extends FastDBM[M, A] { }
 
 object FastDBMTypeclasses {
+
+  def cloFastDBM[M[_]](implicit e: DenseSparseDBM[M]): DifferenceBoundMatrix[
+    ({type L[S, A] = CFastDBM[M, S, A]})#L] = new DifferenceBoundMatrix[({type L[S, A] = CFastDBM[M, S, A]})#L] {
+
+    def incrementalClosure[A](v: VarIndex)(m: CFastDBM[M, DBMState, A])(implicit evidence: InfField[A]): CFastDBM[M, Closed, A] = ???
+
+    def strongClosure[A](m: CFastDBM[M, DBMState, A])(implicit e: InfField[A]): CFastDBM[M, Closed, A] =
+      Lol.fastDBM(m) match {
+        case DenseDBM(dbm, rdbm) => CFast(???)
+        case SparseDBM(dbm, rdbm) => CFast(???)
+        case DecomposedDBM(dbm, ic, rdbm) => CFast(???)
+      }
+
+    def forget[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A]): CFastDBM[M, S, A] = ???
+
+    def nOfVars[A](m: CFastDBM[M, DBMState, A]): Int = ???
+
+    def get[A](i: Int, j: Int)(m: CFastDBM[M, DBMState, A]): Option[A] = ???
+
+    def dbmIntersection[A](m1: CFastDBM[M, DBMState, A], m2: CFastDBM[M, DBMState, A])(implicit ifield: InfField[A]): CFastDBM[M, DBMState, A] = ???
+
+    def flipVar[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+
+    def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, S, A], m2: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+
+    def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+
+    def bottomDBM[A]: CFastDBM[M, Closed, A] = CFast(BottomDBM())
+    def topDBM[A]: CFastDBM[M, Closed, A] = CFast(TopDBM())
+    def isBottomDBM[A](m: CFastDBM[M, DBMState, A]): Boolean =
+      Lol.fastDBM(m) match {
+        case BottomDBM() => true
+        case _ => false
+      }
+  }
 
   // def fastDBMIsDBM[M[_]](implicit e: Matrix[M])
   // : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] = ???
