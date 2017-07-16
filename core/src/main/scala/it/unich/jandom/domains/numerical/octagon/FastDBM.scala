@@ -4,8 +4,8 @@ import breeze.numerics.pow
 import scala.language.higherKinds
 
 import scalaz.{Applicative, Apply, Monoid}
-import scalaz.std.Option._
-import scalaz.std.List._
+import scalaz.std.option._
+import scalaz.std.list._
 
 /**
   * Created by fsestini on 7/10/17.
