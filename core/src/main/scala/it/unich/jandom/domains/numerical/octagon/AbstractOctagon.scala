@@ -187,12 +187,44 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => {
-        // TODO Implement optimizations in mine06 p 41
-        // When e has an arbitrary form, it is always possible to fall
-        // back to the test transfer function in the interval domain:
-        // { e <=  ? }(m) =d= (Oct . { e <= o ? } . Int)(m) \cap m
         val lh = fromInterval(toInterval.linearInequality(lf))
-        new AbstractOctagon(e.strongClosure(e.dbmIntersection(lh.dbm, dbm)), e)
+        def g (i : Int, j : Int) : Double =
+          if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
+            val interval = this.toInterval
+            2*(interval.maximize(LinearForm.v(i/2) - lf).doubleValue())
+          } else if (i == j-1 & j%2 == 0 & j/2 <= lf.dimension) { // Case 2 with j/2 = j0
+            val interval = this.toInterval
+            2*(interval.maximize(LinearForm.v(j/2) - lf).doubleValue())
+          } else if ((i%2 == 1 & j%2 == 1 & i != j & (i+1)/2 <= lf.dimension & (j+1)/2 <= lf.dimension)
+                     // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
+                    |(i%2 == 0 & j%2 == 0 & i != j & i/2 <= lf.dimension & j/2 < lf.dimension)
+                     // Case 3b, i/2 = i0, j/2 = j0
+                    ) {
+            val interval = this.toInterval
+            val j0 = (j+1)/2
+            val i0 = (i+1)/2
+            2*(interval.maximize(LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
+          } else if (i%2 == 0 & j%2 == 1 & j != i-1 & (i/2) <= lf.dimension & (j+1)/2 <= lf.dimension) {
+            // Case 4, i0 = i/2, j0 = j+1/2
+            val interval = this.toInterval
+            val j0 = (j+1)/2
+            val i0 = i/2
+            2*(interval.maximize(LinearForm.v(j0) + LinearForm.v(i0) - lf).doubleValue())
+          } else if (i%2 == 1 & j%2 == 0 & i != j-1  & (j/2) <= lf.dimension & (i+1)/2 <= lf.dimension) {
+            // Case 5, j0 = j, i0 = (i+1)/2
+            val interval = this.toInterval
+            val j0 = j/2
+            val i0 = (i+1)/2
+            2*(interval.maximize(- LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
+          } else {
+            // id case
+            e.get(i,j)(dbm).get
+          }
+        val f = (i : Int, j : Int) => math.min(
+          e.get(i,j)(dbm).get,
+          g(i,j)
+        )
+        e.update(f)(dbm)
       }
       case et : ExactTest => {
         val f = et match {
