@@ -7,29 +7,21 @@ import scala.language.higherKinds
 // For test purposes only.
 case class FunMatrix[A](fun: (Int, Int) => A, dimension: Int) {
 
-  def update(i: Int, j: Int, x: A): FunMatrix[A] =
-    update((ii,jj) => if ((ii,jj) == (i, j)) x else fun(i,j))
+  def update(i: Int, j: Int, x: A): FunMatrix[A] = {
+    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    update((ii, jj) => if ((ii, jj) == (i, j)) x else fun(i, j))
+  }
 
   def update(updater: (Int, Int) => A): FunMatrix[A] =
     new FunMatrix(updater, dimension)
 
-  def apply(i: Int, j: Int): Option[A] =
-    (1 <= i, i <= dimension, 1 <= j, j <= dimension) match {
-      case (true, true, true, true) => Some(fun(i, j))
-      case _ => None
-    }
+  def apply(i: Int, j: Int): A = {
+    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    fun(i, j)
+  }
 
-  def combine[B, C](other: FunMatrix[B], f: (A, B) => C): FunMatrix[C] = {
-    val newFun: (Int, Int) => C = (i: Int, j: Int) => {
-      val res = for {
-        x <- this(i, j)
-        y <- other(i, j)
-      } yield f(x, y)
-      res match {
-        case Some(r) => r
-        case None => throw new IllegalArgumentException()
-      }
-    }
+  def combine[B, C](that: FunMatrix[B], f: (A, B) => C): FunMatrix[C] = {
+    val newFun: (Int, Int) => C = (i, j) => f(this(i, j), that(i, j))
     new FunMatrix[C](newFun, dimension)
   }
 
@@ -43,8 +35,8 @@ case class FunMatrix[A](fun: (Int, Int) => A, dimension: Int) {
 
   def toList: List[A] = {
     val indexes: List[(Int, Int)] = (for {
-      x <- 1 to dimension
-      y <- 1 to dimension
+      x <- 0 until dimension
+      y <- 0 until dimension
     } yield (x, y)).toList
     for ((i, j) <- indexes) yield fun(i, j)
   }
@@ -59,7 +51,7 @@ object FunMatrixMatrixInstance {
       m.update(i, j, x)
     def update[A](updater: (Int, Int) => A)(m: FunMatrix[A]): FunMatrix[A] =
       m.update(updater)
-    def get[A](i: Int, j: Int)(m: FunMatrix[A]): Option[A] = m(i, j)
+    def get[A](i: Int, j: Int)(m: FunMatrix[A]): A = m(i, j)
     def foldMap[A, B](fa: FunMatrix[A])(f: (A) => B)(implicit F: Monoid[B]): B =
       fa.toList.map(f).fold(F.zero)((x, y) => F.append(x, y))
 

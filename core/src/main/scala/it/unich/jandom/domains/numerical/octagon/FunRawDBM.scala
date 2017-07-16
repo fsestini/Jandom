@@ -22,27 +22,31 @@ object FunDBMIsRawDBM {
     private def cloTransform[A](k: Int)(m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
 
       val f: (Int, Int) => A = (i: Int, j: Int) => {
-        val l: List[Option[A]] = List(
+        val l: List[A] = List(
           get(i,j)(m),
-          Apply[Option].apply2(get(i, 2 * k - 1)(m), get(2 * k - 1, j)(m))(ifield.+),
-          Apply[Option].apply2(get(i, 2 * k)(m), get(2 * k, j)(m))(ifield.+),
-          Apply[Option].apply2(
+          ifield.+(
             get(i, 2 * k - 1)(m),
-            Apply[Option].apply2(
-              get(2 * k - 1, 2 * k)(m),
-              get(2 * k, j)(m))(ifield.+)
-          )(ifield.+),
-          Apply[Option].apply2(
+            get(2 * k - 1, j)(m)
+          ),
+          ifield.+(
             get(i, 2 * k)(m),
-            Apply[Option].apply2(
+            get(2 * k, j)(m)
+          ),
+          ifield.+(
+            get(i, 2 * k - 1)(m),
+            ifield.+(
+              get(2 * k - 1, 2 * k)(m),
+              get(2 * k, j)(m))
+          ),
+          ifield.+(
+            get(i, 2 * k)(m),
+            ifield.+(
               get(2 * k, 2 * k - 1)(m),
-              get(2 * k - 1, j)(m))(ifield.+)
-          )(ifield.+)
+              get(2 * k - 1, j)(m))
+          )
         )
-        Applicative[Option].sequence(l) match {
-          case Some(resList) => resList.fold(ifield.infinity)(ifield.min)
-          case None => throw new IllegalArgumentException()
-        }
+
+        l.fold(ifield.infinity)(ifield.min)
       }
       update(f)(m)
     }
@@ -57,15 +61,10 @@ object FunDBMIsRawDBM {
 
     private def strengthen[A](m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
       val updater: (Int, Int) => A = (i: Int, j: Int) => {
-        val o = for {
-          a <- get(i, j)(m)
-          b <- get(i, signed(i))(m)
-          c <- get(signed(j), j)(m)
-        } yield ifield.min(a, ifield.half(ifield.+(b, c)))
-        o match {
-          case Some(r) => r
-          case None => throw new IllegalArgumentException()
-        }
+        val a = get(i, j)(m)
+        val b = get(i, signed(i))(m)
+        val c = get(signed(j), j)(m)
+        ifield.min(a, ifield.half(ifield.+(b, c)))
       }
       update(updater)(m)
     }
@@ -107,7 +106,7 @@ object FunDBMIsRawDBM {
     def update[A](updater: (Int, Int) => A)(m: FunRawDBM[A]): FunRawDBM[A] =
       m match { case FunRawDBM(n, mx) => FunRawDBM(n, e.update(updater)(mx)) }
 
-    def get[A](i: Int, j: Int)(m: FunRawDBM[A]): Option[A] =
+    def get[A](i: Int, j: Int)(m: FunRawDBM[A]): A =
       m match { case FunRawDBM(n, mx) => e.get(i, j)(mx) }
 
     def foldMap[A, B](fa: FunRawDBM[A])(f: (A) => B)(implicit F: Monoid[B]): B =
