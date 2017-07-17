@@ -34,8 +34,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def forget(vi: VarIndex): AbstractOctagon[M] =
     new AbstractOctagon(e.forget(vi)(dbm), e)
 
-  def top = new AbstractOctagon(e.topDBM[Double], e: DifferenceBoundMatrix[M])
-  def bottom = new AbstractOctagon(e.bottomDBM[Double], e: DifferenceBoundMatrix[M])
+  def top = new AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
+  def bottom = new AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
     if (e.isBottomDBM(closed)) {
