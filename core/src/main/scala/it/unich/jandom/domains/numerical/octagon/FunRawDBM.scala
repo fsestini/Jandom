@@ -17,7 +17,8 @@ object FunRawDBM {
 
 object FunDBMIsRawDBM {
 
-  def funDBMIsRawDBM(implicit e: Matrix[FunMatrix]): RawDBM[FunRawDBM] = new RawDBM[FunRawDBM] {
+  def funDBMIsRawDBM(implicit e: Matrix[FunMatrix]): DenseSparseDBM[FunRawDBM] =
+    new DenseSparseDBM[FunRawDBM] {
 
     private def cloTransform[A](k: Int)(m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
 
@@ -71,35 +72,6 @@ object FunDBMIsRawDBM {
 
     private def signed(i: Int): Int = if (i % 2 != 0) i + 1 else i - 1
 
-    def nOfVars[A](m: FunRawDBM[A]): VarIndex =
-      m match { case FunRawDBM(n, _) => n }
-
-    def denseStrongClosure[A](m: FunRawDBM[A])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) =
-      (strengthen(close(m)), ???, ???)
-
-    def denseStrongClosure[A](m: FunRawDBM[A], indices: Seq[VarIndex])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) = ???
-
-    def sparseStrongClosure[A](m: FunRawDBM[A])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) = ???
-
-    def sparseStrongClosure[A](m: FunRawDBM[A], indices: Seq[VarIndex])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) = ???
-
-    def denseIncrementalClosure[A](m: FunRawDBM[A])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) = ???
-
-    def sparseIncrementalClosure[A](m: FunRawDBM[A])(implicit e: InfField[A])
-    : (FunRawDBM[A], VarIndex, List[List[VarIndex]]) = ???
-
-    def combine[A, B, C](f: (A, B) => C, xScope: Seq[VarIndex], yScope: Seq[VarIndex])(ma: FunRawDBM[A], mb: FunRawDBM[B]): FunRawDBM[C] = ???
-
-    def combine[A, B, C](f: (A, B) => C)(ma: FunRawDBM[A], mb: FunRawDBM[B]): FunRawDBM[C] =
-      (ma, mb) match {
-        case (FunRawDBM(n1, m1), FunRawDBM(n2, m2)) => FunRawDBM(n1, e.combine(f)(m1, m2))
-      }
-
     def update[A](i: Int, j: Int, x: A)(m: FunRawDBM[A]): FunRawDBM[A] =
       m match { case FunRawDBM(n, mx) => FunRawDBM(n, e.update(i, j, x)(mx)) }
 
@@ -114,6 +86,13 @@ object FunDBMIsRawDBM {
 
     def foldRight[A, B](fa: FunRawDBM[A], z: => B)(f: (A, => B) => B): B =
       fa match { case FunRawDBM(n, mx) => e.foldRight(mx, z)(f) }
+
+    def extract[A](is: Seq[it.unich.jandom.domains.numerical.octagon.VarIndex])(m: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A]): it.unich.jandom.domains.numerical.octagon.FunRawDBM[A] = ???
+    def forget[A](v: it.unich.jandom.domains.numerical.octagon.VarIndex)(m: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A]): it.unich.jandom.domains.numerical.octagon.FunRawDBM[A] = ???
+    def incrementalClosure[A](v: it.unich.jandom.domains.numerical.octagon.VarIndex)(m: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A])(implicit e: it.unich.jandom.domains.numerical.octagon.InfField[A]): Option[(it.unich.jandom.domains.numerical.octagon.FunRawDBM[A], it.unich.jandom.domains.numerical.octagon.NNI, List[List[it.unich.jandom.domains.numerical.octagon.VarIndex]])] = ???
+    def pour[A](source: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A])(dest: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A]): it.unich.jandom.domains.numerical.octagon.FunRawDBM[A] = ???
+    def strongClosure[A](m: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A])(implicit e: it.unich.jandom.domains.numerical.octagon.InfField[A]): Option[(it.unich.jandom.domains.numerical.octagon.FunRawDBM[A], it.unich.jandom.domains.numerical.octagon.NNI, List[List[it.unich.jandom.domains.numerical.octagon.VarIndex]])] = ???
+    def varIndices[A](m: it.unich.jandom.domains.numerical.octagon.FunRawDBM[A]): Seq[it.unich.jandom.domains.numerical.octagon.VarIndex] = ???
 
   }
 }
