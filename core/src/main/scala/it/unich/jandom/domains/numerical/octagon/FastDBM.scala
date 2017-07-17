@@ -80,10 +80,10 @@ object CFDBMInstance {
 }
 
 sealed trait CFastDBM[M[_], _, A]
-case class CFast[M[_], A](m: FastDBM[M, A])
-  extends CFastDBM[M, Closed, A]
-case class NCFast[M[_], A](m: FastDBM[M, A])
-  extends CFastDBM[M, NonClosed, A]
+// Constructor of *closed* fast DBMs.
+case class CFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, Closed, A]
+// Constructor of *non-closed* fast DBMs.
+case class NCFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, NonClosed, A]
 
 object Lol {
 
