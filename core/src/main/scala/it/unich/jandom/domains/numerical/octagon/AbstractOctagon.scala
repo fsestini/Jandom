@@ -42,8 +42,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
       (Double.PositiveInfinity, Double.NegativeInfinity)
     } else {
       val o = v match { case VarIndex(i) => for {
-        p1 <- e.get(2 * i - 1, 2 * i)(closed)
-        p2 <- e.get(2 * i, 2 * i - 1)(closed)
+        p1 <- e.get(2 * i, 2 * i + 1)(closed)
+        p2 <- e.get(2 * i + 1, 2 * i)(closed)
       } yield (- p1 / 2, p2 / 2) }
       o match {
         case Some(pair) => pair
