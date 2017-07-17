@@ -155,8 +155,8 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
 // The Top type can be seen as a degenerate case of the decomposed one with
 // an empty set of independent components. Thus, we can reuse the operators of
 // the decomposed type.
-case class TopDBM[M[_], A]() extends FastDBM[M, A] { }
-case class BottomDBM[M[_], A]() extends FastDBM[M, A] { }
+case class TopDBM[M[_], A](nOfVars: Int) extends FastDBM[M, A] { }
+case class BottomDBM[M[_], A](nOfVars: Int) extends FastDBM[M, A] { }
 
 object FastDBMTypeclasses {
 
@@ -171,8 +171,8 @@ object FastDBMTypeclasses {
         case DenseDBM(dbm, rdbm) => CFast(???)
         case SparseDBM(dbm, rdbm) => CFast(???)
         case DecomposedDBM(dbm, ic, rdbm) => CFast(???)
-        case BottomDBM() => CFast(BottomDBM())
-        case TopDBM() => CFast(TopDBM())
+        case BottomDBM(n) => CFast(BottomDBM(n))
+        case TopDBM(n) => CFast(TopDBM(n))
       }
 
     def forget[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A]): CFastDBM[M, S, A] = ???
@@ -190,11 +190,11 @@ object FastDBMTypeclasses {
 
     def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
 
-    def bottomDBM[A]: CFastDBM[M, Closed, A] = CFast(BottomDBM())
-    def topDBM[A]: CFastDBM[M, Closed, A] = CFast(TopDBM())
+    def bottomDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(BottomDBM(nOfVars))
+    def topDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(TopDBM(nOfVars))
     def isBottomDBM[A](m: CFastDBM[M, DBMState, A]): Boolean =
       Lol.fastDBM(m) match {
-        case BottomDBM() => true
+        case BottomDBM(_) => true
         case _ => false
       }
   }
