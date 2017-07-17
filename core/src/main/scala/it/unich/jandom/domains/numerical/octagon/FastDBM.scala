@@ -147,7 +147,8 @@ case class BottomDBM[M[_], A]() extends FastDBM[M, A] { }
 object FastDBMTypeclasses {
 
   def cloFastDBM[M[_]](implicit e: DenseSparseDBM[M]): DifferenceBoundMatrix[
-    ({type L[S, A] = CFastDBM[M, S, A]})#L] = new DifferenceBoundMatrix[({type L[S, A] = CFastDBM[M, S, A]})#L] {
+    ({type L[S, A] = CFastDBM[M, S, A]})#L] =
+    new DifferenceBoundMatrix[({type L[S, A] = CFastDBM[M, S, A]})#L] {
 
     def incrementalClosure[A](v: VarIndex)(m: CFastDBM[M, DBMState, A])(implicit evidence: InfField[A]): CFastDBM[M, Closed, A] = ???
 
@@ -163,6 +164,7 @@ object FastDBMTypeclasses {
     def nOfVars[A](m: CFastDBM[M, DBMState, A]): Int = ???
 
     def get[A](i: Int, j: Int)(m: CFastDBM[M, DBMState, A]): Option[A] = ???
+    def update[A](f: (Int, Int) => A)(m: CFastDBM[M, DBMState, A]): CFastDBM[M, DBMState, A] = ???
 
     def dbmIntersection[A](m1: CFastDBM[M, DBMState, A], m2: CFastDBM[M, DBMState, A])(implicit ifield: InfField[A]): CFastDBM[M, DBMState, A] = ???
 
