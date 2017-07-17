@@ -11,5 +11,5 @@ class HalfMatrix[A] {
 }
 
 object HalfMatrixIsRawDBM {
-  implicit val halfMatrixIsRawDBM: RawDBM[HalfMatrix] = ???
+  implicit val halfMatrixIsRawDBM: DenseSparseDBM[HalfMatrix] = ???
 }
