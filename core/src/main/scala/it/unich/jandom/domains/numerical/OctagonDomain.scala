@@ -1,7 +1,7 @@
 package it.unich.jandom.domains.numerical
 import it.unich.jandom.domains.WideningDescription
 
-class OctagonDomain private () extends NumericalDomain {
+class OctagonDomain private[numerical] () extends NumericalDomain {
   val widenings = ???
 
   def apply(): Property = ???
