@@ -133,11 +133,12 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def linearInequality (lf: LinearForm) = {
     sealed abstract class AbstractTest
     case class Fallback() extends AbstractTest
-    case class Case1Test(val vl : Int, val c : Rational) extends AbstractTest
-    case class Case2Test(val vl : Int, val c : Rational) extends AbstractTest
-    case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
-    case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
-    case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends AbstractTest
+    sealed abstract class ExactTest extends AbstractTest
+    case class Case1Test(val vl : Int, val c : Rational) extends ExactTest
+    case class Case2Test(val vl : Int, val c : Rational) extends ExactTest
+    case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+    case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+    case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
     /**
       * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
       */
@@ -193,8 +194,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
         val lh = fromInterval(toInterval.linearInequality(lf))
         new AbstractOctagon(e.strongClosure(e.dbmIntersection(lh.dbm, dbm)), e)
       }
-      case _ => {
-        val f = t match {
+      case et : ExactTest => {
+        val f = et match {
           case Case1Test(vl, c) => {
             (i : Int, j : Int) =>
             if (i == 2*vl & j == 2*vl - 1)
