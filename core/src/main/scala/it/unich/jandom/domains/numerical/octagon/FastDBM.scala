@@ -92,7 +92,7 @@ object Lol {
     case NCFast(m) => m
   }
 
-  def nuffDecomposed(is: Seq[Seq[VarIndex]]): Boolean = ???
+  def nuffDecomposed(is: List[List[VarIndex]]): Boolean = ???
   def nuffSparse(is: NNI): Boolean = ???
 
 }
