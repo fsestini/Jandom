@@ -3,7 +3,7 @@ package it.unich.jandom.domains.numerical.octagon
 import breeze.numerics.pow
 import scala.language.higherKinds
 
-import scalaz.{Applicative, Apply, Monoid}
+import scalaz.{Applicative, Apply, Monoid, Traverse}
 import scalaz.std.option._
 import scalaz.std.list._
 
