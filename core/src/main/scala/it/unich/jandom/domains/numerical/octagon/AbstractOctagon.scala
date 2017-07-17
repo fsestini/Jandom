@@ -260,7 +260,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     lf.pairs.toList match {
       case Nil => Some(ConstExact(lf.known))
       case ((other, coeff) :: Nil) =>
-        (assignedVar == other, coeff == -1, coeff == 1) match {
+        (assignedVar.i == other, coeff == -1, coeff == 1) match {
           case (true, true, _) => Some(SingleExact(Negative, lf.known))
           case (true, _, true) => Some(SingleExact(Positive, lf.known))
           case (false, true, _) => Some(DoubleExact(VarIndex(other), Negative, lf.known))
