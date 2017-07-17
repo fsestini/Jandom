@@ -131,7 +131,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
    *  - Always m_ij if not specified
    */
   def linearInequality (lf: LinearForm) = {
-    sealed class AbstractTest
+    sealed abstract class AbstractTest
     case class Fallback() extends AbstractTest
     case class Case1Test(val vl : Int, val c : Rational) extends AbstractTest
     case class Case2Test(val vl : Int, val c : Rational) extends AbstractTest
