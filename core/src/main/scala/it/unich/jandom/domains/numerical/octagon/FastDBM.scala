@@ -171,6 +171,8 @@ object FastDBMTypeclasses {
         case DenseDBM(dbm, rdbm) => CFast(???)
         case SparseDBM(dbm, rdbm) => CFast(???)
         case DecomposedDBM(dbm, ic, rdbm) => CFast(???)
+        case BottomDBM() => CFast(BottomDBM())
+        case TopDBM() => CFast(TopDBM())
       }
 
     def forget[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A]): CFastDBM[M, S, A] = ???
