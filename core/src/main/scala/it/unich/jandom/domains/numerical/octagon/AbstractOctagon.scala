@@ -315,24 +315,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   // single exact assignments preserve strong closure
   def singlePositiveExactAssignment[S <: DBMState](v: VarIndex, const: Double)
-    (dbm: M[S, Double]) : M[S, Double] = {
-    e.addScalarOnVar(v, const)(dbm)
-    // CORRECT IMPLEMENTATION:
-    // val f: (Int, Int) => Double = (i, j) => {
-    //   val g1 = (i == 2 * v - 1 && j != 2 * v - 1 && j != 2 * v) ||
-    //            (j == 2 * v && i != 2 * v - 1 && i != 2 * v)
-    //   val g2 = (i != 2 * v - 1 && i != 2 * v && j == 2 * v - 1) ||
-    //            (j != 2 * v - 1 && j != 2 * v && i == 2 * v)
-    //   val g3 = i == 2 * v - 1 && j == 2 * v
-    //   val g4 = i == 2 * v && j == 2 * v - 1
-    //   if (g1) forceOption(e.get(i, j)(dbm)) - const else
-    //     if (g2) forceOption(e.get(i, j)(dbm)) + const else
-    //       if (g3) forceOption(e.get(i, j)(dbm)) - 2 * const else
-    //         if (g4) forceOption(e.get(i, j)(dbm)) + 2 * const else
-    //           forceOption(e.get(i, j)(dbm))
-    // }
-    // e.update(f)(dbm)
-  }
+    (dbm: M[S, Double]) : M[S, Double] = e.addScalarOnVar(v, const)(dbm)
 
   def doublePositiveExactAssignment(
     vi: VarIndex, vother: VarIndex, const: Double)
@@ -356,24 +339,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   // x := - x
   // this preserves strong closure
   def singleNegativeZeroAssignment[S <: DBMState](v: VarIndex)
-    (dbm: M[S, Double]): M[S, Double] = {
-    e.flipVar(v)(dbm)
-    // CORRECT IMPLEMENTATION:
-    // val f: (Int, Int) => Double = (i, j) => {
-    //   if (i == 2 * v - 1 || i == 2 * v) {
-    //     if (j == 2 * v - 1 || j == 2 * v)
-    //       forceOption(e.get(signed(i), signed(i))(dbm))
-    //     else
-    //       forceOption(e.get(signed(i), j)(dbm))
-    //   } else {
-    //     if (j == 2 * v - 1 || j == 2 * v)
-    //       forceOption(e.get(i, signed(j))(dbm))
-    //     else
-    //       forceOption(e.get(i, j)(dbm))
-    //   }
-    // }
-    // e.update(f)(dbm)
-  }
+    (dbm: M[S, Double]): M[S, Double] = e.flipVar(v)(dbm)
 
   // x := - y
   def doubleNegativeZeroAssignment(v: VarIndex, other: VarIndex)
