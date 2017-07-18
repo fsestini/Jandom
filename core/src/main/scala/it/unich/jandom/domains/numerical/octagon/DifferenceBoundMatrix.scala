@@ -25,9 +25,9 @@ trait DifferenceBoundMatrix[M[_, _]] {
     (implicit evidence: InfField[A]): M[Closed, A]
   def incrementalClosure[A](v: VarIndex)(m: M[DBMState, A])
     (implicit evidence: InfField[A]): M[Closed, A]
-  def bottomDBM[A](nOfVars : Int) : M[Closed, A]
   def isBottomDBM[A](m: M[DBMState, A]): Boolean
-  def topDBM[A](nOfVars : Int) : M[Closed, A]
+  def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
+  def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
 
   // dbm union preserves strong closure
   def dbmUnion[S <: DBMState, A](m1: M[S, A], m2: M[S, A])
