@@ -160,44 +160,44 @@ case class BottomDBM[M[_], A](nOfVars: Int) extends FastDBM[M, A] { }
 
 object FastDBMTypeclasses {
 
-  def cloFastDBM[M[_]](implicit e: DenseSparseDBM[M]): DifferenceBoundMatrix[
-    ({type L[S, A] = CFastDBM[M, S, A]})#L] =
-    new DifferenceBoundMatrix[({type L[S, A] = CFastDBM[M, S, A]})#L] {
-
-    def incrementalClosure[A](v: VarIndex)(m: CFastDBM[M, DBMState, A])(implicit evidence: InfField[A]): CFastDBM[M, Closed, A] = ???
-
-    def strongClosure[A](m: CFastDBM[M, DBMState, A])(implicit e: InfField[A]): CFastDBM[M, Closed, A] =
-      Lol.fastDBM(m) match {
-        case DenseDBM(dbm, rdbm) => CFast(???)
-        case SparseDBM(dbm, rdbm) => CFast(???)
-        case DecomposedDBM(dbm, ic, rdbm) => CFast(???)
-        case BottomDBM(n) => CFast(BottomDBM(n))
-        case TopDBM(n) => CFast(TopDBM(n))
-      }
-
-    def forget[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A]): CFastDBM[M, S, A] = ???
-
-    def nOfVars[A](m: CFastDBM[M, DBMState, A]): Int = ???
-
-    def get[A](i: Int, j: Int)(m: CFastDBM[M, DBMState, A]): Option[A] = ???
-    def update[A](f: (Int, Int) => A)(m: CFastDBM[M, DBMState, A]): CFastDBM[M, DBMState, A] = ???
-
-    def dbmIntersection[A](m1: CFastDBM[M, DBMState, A], m2: CFastDBM[M, DBMState, A])(implicit ifield: InfField[A]): CFastDBM[M, DBMState, A] = ???
-
-    def flipVar[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
-
-    def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, S, A], m2: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
-
-    def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
-
-    def bottomDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(BottomDBM(nOfVars))
-    def topDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(TopDBM(nOfVars))
-    def isBottomDBM[A](m: CFastDBM[M, DBMState, A]): Boolean =
-      Lol.fastDBM(m) match {
-        case BottomDBM(_) => true
-        case _ => false
-      }
-  }
+//  def cloFastDBM[M[_]](implicit e: DenseSparseDBM[M]): DifferenceBoundMatrix[
+//    ({type L[S, A] = CFastDBM[M, S, A]})#L] =
+//    new DifferenceBoundMatrix[({type L[S, A] = CFastDBM[M, S, A]})#L] {
+//
+//    def incrementalClosure[A](v: VarIndex)(m: CFastDBM[M, DBMState, A])(implicit evidence: InfField[A]): CFastDBM[M, Closed, A] = ???
+//
+//    def strongClosure[A](m: CFastDBM[M, DBMState, A])(implicit e: InfField[A]): CFastDBM[M, Closed, A] =
+//      Lol.fastDBM(m) match {
+//        case DenseDBM(dbm, rdbm) => CFast(???)
+//        case SparseDBM(dbm, rdbm) => CFast(???)
+//        case DecomposedDBM(dbm, ic, rdbm) => CFast(???)
+//        case BottomDBM(n) => CFast(BottomDBM(n))
+//        case TopDBM(n) => CFast(TopDBM(n))
+//      }
+//
+//    def forget[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A]): CFastDBM[M, S, A] = ???
+//
+//    def nOfVars[A](m: CFastDBM[M, DBMState, A]): Int = ???
+//
+//    def get[A](i: Int, j: Int)(m: CFastDBM[M, DBMState, A]): Option[A] = ???
+//    def update[A](f: (Int, Int) => A)(m: CFastDBM[M, DBMState, A]): CFastDBM[M, DBMState, A] = ???
+//
+//    def dbmIntersection[A](m1: CFastDBM[M, DBMState, A], m2: CFastDBM[M, DBMState, A])(implicit ifield: InfField[A]): CFastDBM[M, DBMState, A] = ???
+//
+//    def flipVar[S <: DBMState, A](v: VarIndex)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+//
+//    def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, S, A], m2: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+//
+//    def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)(m: CFastDBM[M, S, A])(implicit ifield: InfField[A]): CFastDBM[M, S, A] = ???
+//
+//    def bottomDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(BottomDBM(nOfVars))
+//    def topDBM[A](nOfVars: Int): CFastDBM[M, Closed, A] = CFast(TopDBM(nOfVars))
+//    def isBottomDBM[A](m: CFastDBM[M, DBMState, A]): Boolean =
+//      Lol.fastDBM(m) match {
+//        case BottomDBM(_) => true
+//        case _ => false
+//      }
+//  }
 
   // def fastDBMIsDBM[M[_]](implicit e: Matrix[M])
   // : DifferenceBoundMatrix[({type T[A] = FastDBM[M, A] })#T] = ???
