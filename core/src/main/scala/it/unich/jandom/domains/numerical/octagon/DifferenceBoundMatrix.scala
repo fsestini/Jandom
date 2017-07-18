@@ -56,7 +56,8 @@ trait DifferenceBoundMatrix[M[_, _]] {
     (m: M[S, A])(implicit ifield: InfField[A]): M[S, A]
 
   // forget operator preserves strong closure
-  def forget[S <: DBMState, A](v: VarIndex)(m: M[S, A]): M[S, A]
+  def forget[S <: DBMState, A](v: VarIndex)(m: M[S, A])
+                              (implicit ifield: InfField[A]): M[S, A]
 
   //////////////////////////////////////////////////////////////////////////////
 
