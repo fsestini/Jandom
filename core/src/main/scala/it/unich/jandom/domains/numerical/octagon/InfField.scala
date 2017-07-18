@@ -11,6 +11,7 @@ trait InfField[@specialized(Double) A] extends Field[A] with Poset[A] {
   def max(x: A, y: A): A
   def min(x: A, y: A): A
   def half(x: A): A
+  def double(x: A): A
 }
 
 object InfField {
@@ -38,6 +39,7 @@ object InfField {
     override def max(x: Double, y: Double): Double = math.max(x, y)
     override def min(x: Double, y: Double): Double = math.min(x, y)
     override def half(x: Double): Double = x / 2
+    override def double(x: Double): Double = x * 2
 
     def compare(x: Double, y: Double): Option[Ordering] =
       (x < y, x == y) match {
