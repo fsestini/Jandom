@@ -15,6 +15,7 @@ case class VarIndex(i: Int)
 // Most operators require the type of elements to be a ring.
 trait DifferenceBoundMatrix[M[_, _]] {
 
+  // Returns None is the DBM is bottom. Otherwise, Some(element).
   def get[A](i: Int, j: Int)(m: M[DBMState, A]): Option[A]
   def update[A](f: (Int, Int) => A)(m: M[DBMState, A]): M[DBMState, A]
 
