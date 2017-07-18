@@ -35,8 +35,9 @@ trait DifferenceBoundMatrix[M[_, _]] {
 
   // dbm intersection is exact regardless of the closure state of the inputs,
   // and it seldomly produces a strongly closed result.
-  def dbmIntersection[A](m1: M[DBMState, A], m2: M[DBMState, A])
-      (implicit ifield: InfField[A]): M[DBMState, A]
+  def dbmIntersection[A, S <: DBMState, T <: DBMState]
+  (m1: M[S, A], m2: M[T, A])
+  (implicit ifield: InfField[A]): M[W, A] forSome { type W <: DBMState }
 
   /////////////////////////////////////////////////////////////////////////////
 
