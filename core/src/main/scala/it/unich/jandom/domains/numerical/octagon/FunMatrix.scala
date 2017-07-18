@@ -57,6 +57,9 @@ object FunMatrixMatrixInstance {
 
     def foldRight[A, B](fa: FunMatrix[A], z: => B)(f: (A, => B) => B): B =
       fa.toList.foldRight(z)((x, y) => f(x, y))
+
+    def pure[A](dimension: Int, x: A): FunMatrix[A] =
+      new FunMatrix[A]((_, _) => x, dimension)
   }
 }
 
