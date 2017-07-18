@@ -38,17 +38,13 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def bottom = new AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
-    if (e.isBottomDBM(closed)) {
-      (Double.PositiveInfinity, Double.NegativeInfinity)
-    } else {
-      val o = v match { case VarIndex(i) => for {
-        p1 <- e.get(2 * i, 2 * i + 1)(closed)
-        p2 <- e.get(2 * i + 1, 2 * i)(closed)
-      } yield (- p1 / 2, p2 / 2) }
-      o match {
-        case Some(pair) => pair
-        case None => throw new IllegalArgumentException()
-      }
+    val maybeInterval: Option[(Double, Double)] = for {
+      p1 <- e.get(2 * v.i, 2 * v.i + 1)(closed)
+      p2 <- e.get(2 * v.i + 1, 2 * v.i)(closed)
+    } yield (- p1 / 2, p2 / 2)
+    maybeInterval match {
+      case Some(interval) => interval
+      case None => (Double.PositiveInfinity, Double.NegativeInfinity)
     }
   }
 
