@@ -53,6 +53,12 @@ object VecMatrixMatrixInstance {
 
     def foldRight[A, B](fa: VecMatrix[A], z: => B)(f: (A, => B) => B): B =
       fa.toList.foldRight(z)((x, y) => f(x, y))
+
+    def pure[A](dimension: Int, x: A): VecMatrix[A] = {
+      val newV: Vector[Vector[A]] = Vector.fill(dimension, dimension){ x }
+      new VecMatrix[A](newV, dimension)
+    }
+
   }
 }
 
