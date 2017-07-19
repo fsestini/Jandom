@@ -77,8 +77,15 @@ object FunDBMInstance {
       m.liftFromInner(me.update(f))
 
     def incrementalClosure[A](v: VarIndex)
-                             (m: FunDBM[DBMState, A])
-                             (implicit evidence: InfField[A]): FunDBM[Closed, A] = ???
+                             (dbm: FunDBM[DBMState, A])
+      (implicit evidence: InfField[A]): FunDBM[Closed, A] =
+      dbm.innerMatrix match {
+        case Some(m) =>
+          ClosedFunDBM(
+            dbm.noOfVariables,
+            BagnaraStrongClosure.incrementalClosure(dbm.noOfVariables, v)(m))
+        case None => BottomFunDBM(dbm.noOfVariables)
+      }
 
     def strongClosure[A](dbm: FunDBM[DBMState, A])
                         (implicit evidence: InfField[A]): FunDBM[Closed, A] =
@@ -224,6 +231,42 @@ object BagnaraStrongClosure {
               me.get(i, signed(i))(x),
               me.get(signed(j), j)(x)))
       }
+    x
+  }
+
+  def incrementalClosure[A](nOfVars:Int, vi: VarIndex)
+                           (dbm: FunMatrix[A])
+                           (implicit ifield: InfField[A]): FunMatrix[A] = {
+    val p: (Int, Int, Int) => Boolean = (k,i,j) => {
+      k == vi.i || k == signed(vi.i) ||
+      i == vi.i || i == signed(vi.i) ||
+      j == vi.i || j == signed(vi.i)
+    }
+    val p2: (Int, Int) => Boolean = (i,j) => {
+      i == vi.i || i == signed(vi.i) ||
+      j == vi.i || j == signed(vi.i)
+    }
+    var x = dbm
+    for (k <- 0 to 2 * nOfVars - 1)
+      for (i <- 0 to 2 * nOfVars - 1)
+        for (j <- 0 to 2 * nOfVars - 1)
+          if (p(k,i,j)) {
+            val newVal =
+              ifield.min(
+                me.get(i,j)(x),
+                ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
+            x = me.update(i, j, newVal)(x)
+          }
+
+    for (i <- 0 to 2 * nOfVars - 1)
+      for (j <- 0 to 2 * nOfVars - 1)
+        if (p2(i,j)) {
+          val newVal =
+            ifield.min(
+              me.get(i, j)(x),
+              ifield.+(me.get(i, signed(i))(x), me.get(signed(j), j)(x)))
+          x = me.update(i, j, newVal)(x)
+        }
     x
   }
 
