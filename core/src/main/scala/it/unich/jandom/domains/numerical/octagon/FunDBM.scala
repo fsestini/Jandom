@@ -86,7 +86,7 @@ object FunDBMInstance {
         case Some(m) =>
           ClosedFunDBM(
             dbm.noOfVariables,
-            FunDBMStrongClosure.strongClosure(m, dbm.noOfVariables))
+            BagnaraStrongClosure.strongClosure(dbm.noOfVariables)(m))
         case None => BottomFunDBM(dbm.noOfVariables)
       }
 
@@ -184,115 +184,47 @@ object FunDBMInstance {
   }
 }
 
-object FunDBMStrongClosure {
-  val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
+// This is the simplified strong closure algorithm from
+// Bagnata et al., Widening Operators for Weakly-Relational Numeric Abstractions.
+//
+// It is a classical Floyd-Warshall, followed by a single strong coherence step.
+//
+// for k = 0 to 2*n - 1
+//   for i = 0 to 2*n - 1
+//     for j = 0 to 2*n - 1
+//       m(i,j) = min( m(i,j), m(i,k) + m(k,j) )
+//
+// for i = 0 to 2*n - 1
+//   for j = 0 to 2*n - 1
+//     m(i,j) = min( m(i,j), m(i, signed(i)) + m(signed(j), j) / 2)
+object BagnaraStrongClosure {
+  private val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
 
-  private def cloTransform[A](k: Int)(m: FunMatrix[A])(implicit ifield: InfField[A]): FunMatrix[A] = {
+  private def signed(i: Int) = if (i % 2 == 0) i + 1 else i - 1
 
-    val f: (Int, Int) => A = (i: Int, j: Int) => {
-      val l: List[A] = List(
-        me.get(i,j)(m),
-        ifield.+(
-          me.get(i, 2 * k - 1)(m),
-          me.get(2 * k - 1, j)(m)
-        ),
-        ifield.+(
-          me.get(i, 2 * k)(m),
-          me.get(2 * k, j)(m)
-        ),
-        ifield.+(
-          me.get(i, 2 * k - 1)(m),
-          ifield.+(
-            me.get(2 * k - 1, 2 * k)(m),
-            me.get(2 * k, j)(m))
-        ),
-        ifield.+(
-          me.get(i, 2 * k)(m),
-          ifield.+(
-            me.get(2 * k, 2 * k - 1)(m),
-            me.get(2 * k - 1, j)(m))
-        )
-      )
+  def strongClosure[A](nOfVars: Int)(dbm: FunMatrix[A])
+                      (implicit ifield: InfField[A]): FunMatrix[A] = {
+    var x = dbm
+    for (k <- 0 to 2 * nOfVars - 1)
+      for (i <- 0 to 2 * nOfVars - 1)
+        for (j <- 0 to 2 * nOfVars - 1) {
+          val newVal =
+            ifield.min(
+              me.get(i,j)(x),
+              ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
+          x = me.update(i, j, newVal)(x)
+        }
 
-      l.fold(ifield.infinity)(ifield.min)
-    }
-    me.update(f)(m)
-  }
-
-  private def close[A](m: FunMatrix[A], nOfVars: Int)(implicit ifield: InfField[A]): FunMatrix[A] = {
-    var x = m
-    for (k <- 1 to nOfVars) {
-      x = cloTransform(k)(x)
-    }
+    for (i <- 0 to 2 * nOfVars - 1)
+      for (j <- 0 to 2 * nOfVars - 1) {
+        val newVal =
+          ifield.min(
+            me.get(i, j)(x),
+            ifield.+(
+              me.get(i, signed(i))(x),
+              me.get(signed(j), j)(x)))
+      }
     x
   }
-
-  private def signed(i: Int): Int = if (i % 2 != 0) i + 1 else i - 1
-
-  private def strengthen[A](m: FunMatrix[A])(implicit ifield: InfField[A]): FunMatrix[A] = {
-    val updater: (Int, Int) => A = (i: Int, j: Int) => {
-      val a = me.get(i, j)(m)
-      val b = me.get(i, signed(i))(m)
-      val c = me.get(signed(j), j)(m)
-      ifield.min(a, ifield.half(ifield.+(b, c)))
-    }
-    me.update(updater)(m)
-  }
-
-  def strongClosure[A](m: FunMatrix[A], nOfVars: Int)(implicit ifield: InfField[A]): FunMatrix[A] =
-    strengthen(close(m, nOfVars))
-
-  //   def funDBMIsRawDBM(implicit e: Matrix[FunMatrix]): DenseSparseDBM[FunRawDBM] =
-//     new DenseSparseDBM[FunRawDBM] {
-
-//     private def cloTransform[A](k: Int)(m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
-
-//       val f: (Int, Int) => A = (i: Int, j: Int) => {
-//         val l: List[A] = List(
-//           get(i,j)(m),
-//           ifield.+(
-//             get(i, 2 * k - 1)(m),
-//             get(2 * k - 1, j)(m)
-//           ),
-//           ifield.+(
-//             get(i, 2 * k)(m),
-//             get(2 * k, j)(m)
-//           ),
-//           ifield.+(
-//             get(i, 2 * k - 1)(m),
-//             ifield.+(
-//               get(2 * k - 1, 2 * k)(m),
-//               get(2 * k, j)(m))
-//           ),
-//           ifield.+(
-//             get(i, 2 * k)(m),
-//             ifield.+(
-//               get(2 * k, 2 * k - 1)(m),
-//               get(2 * k - 1, j)(m))
-//           )
-//         )
-
-//         l.fold(ifield.infinity)(ifield.min)
-//       }
-//       update(f)(m)
-//     }
-
-//     private def close[A](m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
-//       var x = m
-//       for (k <- 1 to m.nOfVars) {
-//         x = cloTransform(k)(x)
-//       }
-//       x
-//     }
-
-//     private def strengthen[A](m: FunRawDBM[A])(implicit ifield: InfField[A]): FunRawDBM[A] = {
-//       val updater: (Int, Int) => A = (i: Int, j: Int) => {
-//         val a = get(i, j)(m)
-//         val b = get(i, signed(i))(m)
-//         val c = get(signed(j), j)(m)
-//         ifield.min(a, ifield.half(ifield.+(b, c)))
-//       }
-//       update(updater)(m)
-//     }
 
 }
