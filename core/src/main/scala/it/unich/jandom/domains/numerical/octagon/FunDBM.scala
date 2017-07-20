@@ -90,14 +90,17 @@ object FunDBMInstance {
         case None => BottomFunDBM(dbm.noOfVariables)
       }
 
+    private def varPlus(v: VarIndex): Int = 2 * v.i
+    private def varMinus(v: VarIndex): Int = 2 * v.i + 1
+    private def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1
+
     def forget[S <: DBMState, A](vi: VarIndex)(m: FunDBM[S, A])
                                 (implicit ifield: InfField[A]): FunDBM[S, A] = {
-      val v = vi.i
       m.liftFromInner((inner) => {
         val f: (Int, Int) => A = (i, j) => {
-          if (i != 2 * v - 1 && i != 2 * v && j != 2 * v - 1 && j != 2 * v)
+          if (i != varPlus(vi) && i != varMinus(vi) && j != varPlus(vi) && j != varMinus(vi))
             me.get(i, j)(inner)
-          else if (i == j && (i == 2 * v - 1 || i == 2 * v))
+          else if (i == j && (i == varPlus(vi) || i == varMinus(vi)))
             ifield.zero
           else ifield.infinity
         }
@@ -128,20 +131,17 @@ object FunDBMInstance {
     def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = TopFunDBM(nOfVars, ifield.infinity)
     def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
 
-    private def signed(i: Int): Int = ???
-
     def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: FunDBM[S, A])
                                  (implicit ifield: InfField[A]): FunDBM[S, A] = {
-      val v = vi.i
       dbm.liftFromInner((inner) => {
         val f: (Int, Int) => A = (i, j) => {
-          if (i == 2 * v - 1 || i == 2 * v) {
-            if (j == 2 * v - 1 || j == 2 * v)
-              me.get(signed(i), signed(i))(inner)
+          if (i == varPlus(vi) || i == varMinus(vi)) {
+            if (j == varPlus(vi) || j == varMinus(vi))
+              me.get(signed(i), signed(j))(inner)
             else
               me.get(signed(i), j)(inner)
           } else {
-            if (j == 2 * v - 1 || j == 2 * v)
+            if (j == varPlus(vi) || j == varMinus(vi))
               me.get(i, signed(j))(inner)
             else
               me.get(i, j)(inner)
@@ -154,24 +154,22 @@ object FunDBMInstance {
     def dbmUnion[S <: DBMState, A](m1: FunDBM[S, A], m2: FunDBM[S, A])
                                   (implicit ifield: InfField[A]): FunDBM[S, A] = m1.union(m2)
 
-
     def addScalarOnVar[S <: DBMState, A](vi: VarIndex, const: A)
                                         (fundbm: FunDBM[S, A])
                                         (implicit ifield: InfField[A]): FunDBM[S, A] = {
-      val v = vi.i
       fundbm.liftFromInner((dbm) => {
         val f: (Int, Int) => A = (i, j) => {
-          val g1 = (i == 2 * v - 1 && j != 2 * v - 1 && j != 2 * v) ||
-                   (j == 2 * v && i != 2 * v - 1 && i != 2 * v)
-          val g2 = (i != 2 * v - 1 && i != 2 * v && j == 2 * v - 1) ||
-                   (j != 2 * v - 1 && j != 2 * v && i == 2 * v)
-          val g3 = i == 2 * v - 1 && j == 2 * v
-          val g4 = i == 2 * v && j == 2 * v - 1
+          val g1 = (i == varPlus(vi) && j != varPlus(vi) && j != varMinus(vi)) ||
+                   (j == varMinus(vi) && i != varPlus(vi) && i != varMinus(vi))
+          val g2 = (i != varPlus(vi) && i != varMinus(vi) && j == varPlus(vi)) ||
+                   (j != varPlus(vi) && j != varMinus(vi) && i == varMinus(vi))
+          val g3 = i == varPlus(vi) && j == varMinus(vi)
+          val g4 = i == varMinus(vi) && j == varPlus(vi)
           if (g1) ifield.-(me.get(i, j)(dbm), const) else
-            if (g2) ifield.+(me.get(i, j)(dbm), const) else
-              if (g3) ifield.-(me.get(i, j)(dbm), ifield.double(const)) else
-                if (g4) ifield.+(me.get(i, j)(dbm), ifield.double(const)) else
-                  me.get(i, j)(dbm)
+          if (g2) ifield.+(me.get(i, j)(dbm), const) else
+          if (g3) ifield.-(me.get(i, j)(dbm), ifield.double(const)) else
+          if (g4) ifield.+(me.get(i, j)(dbm), ifield.double(const)) else
+            me.get(i, j)(dbm)
         }
         me.update(f)(dbm)
       })
