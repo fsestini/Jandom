@@ -4,8 +4,6 @@ import it.unich.jandom.domains.numerical._
 
 import scala.language.higherKinds
 import scala.language.postfixOps
-import spire.math.Rational
-import breeze.math.Ring
 
 /**
   * Created by fsestini on 7/11/17.
