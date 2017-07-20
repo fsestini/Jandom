@@ -10,6 +10,12 @@ case class NonClosed() extends DBMState
 // Distinguish integers used as variable indices
 case class VarIndex(i: Int)
 
+object VarIndexOps {
+  def varPlus(v: VarIndex): Int = 2 * v.i
+  def varMinus(v: VarIndex): Int = 2 * v.i + 1
+  def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1
+}
+
 // Trait of Difference Bound Matrices, indexed by the closure state
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.

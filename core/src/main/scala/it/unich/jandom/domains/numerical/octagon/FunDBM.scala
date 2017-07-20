@@ -1,5 +1,7 @@
 package it.unich.jandom.domains.numerical.octagon
 
+import VarIndexOps._
+
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
   def liftFromInner(f: FunMatrix[A] => FunMatrix[A]): FunDBM[S, A]
@@ -89,10 +91,6 @@ object FunDBMInstance {
             BagnaraStrongClosure.strongClosure(dbm.noOfVariables)(m))
         case None => BottomFunDBM(dbm.noOfVariables)
       }
-
-    private def varPlus(v: VarIndex): Int = 2 * v.i
-    private def varMinus(v: VarIndex): Int = 2 * v.i + 1
-    private def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1
 
     def forget[S <: DBMState, A](vi: VarIndex)(m: FunDBM[S, A])
                                 (implicit ifield: InfField[A]): FunDBM[S, A] = {
