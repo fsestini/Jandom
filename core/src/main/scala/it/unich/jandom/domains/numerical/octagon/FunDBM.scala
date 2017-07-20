@@ -1,12 +1,5 @@
 package it.unich.jandom.domains.numerical.octagon
 
-import scalaz.{Applicative, Apply, Monoid}
-import scalaz.std.option._, scalaz.std.list._
-
-/**
-  * Created by fsestini on 7/13/17.
-  */
-
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
   def liftFromInner(f: FunMatrix[A] => FunMatrix[A]): FunDBM[S, A]
