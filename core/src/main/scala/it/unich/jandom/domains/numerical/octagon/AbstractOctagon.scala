@@ -4,6 +4,7 @@ import it.unich.jandom.domains.numerical._
 
 import scala.language.higherKinds
 import scala.language.postfixOps
+import VarIndexOps._
 
 /**
   * Created by fsestini on 7/11/17.
@@ -23,22 +24,22 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   def join(other: AbstractOctagon[M])
     (implicit ifield: InfField[Double]): AbstractOctagon[M] =
-    new AbstractOctagon(e.dbmUnion(dbm, other.dbm), e)
+    AbstractOctagon(e.dbmUnion(dbm, other.dbm), e)
 
   def meet(other: AbstractOctagon[M])
     (implicit ifield: InfField[Double]): AbstractOctagon[M] =
-    new AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm)), e)
+    AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm)), e)
 
   def forget(vi: VarIndex): AbstractOctagon[M] =
-    new AbstractOctagon(e.forget(vi)(dbm), e)
+    AbstractOctagon(e.forget(vi)(dbm), e)
 
-  def top = new AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
-  def bottom = new AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
+  def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
+  def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
     val maybeInterval: Option[(Double, Double)] = for {
-      p1 <- e.get(2 * v.i, 2 * v.i + 1)(closed)
-      p2 <- e.get(2 * v.i + 1, 2 * v.i)(closed)
+      p1 <- e.get(varPlus(v), varMinus(v))(closed)
+      p2 <- e.get(varMinus(v), varPlus(v))(closed)
     } yield (- p1 / 2, p2 / 2)
     maybeInterval match {
       case Some(interval) => interval
@@ -59,10 +60,11 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
       (0 until e.nOfVars(dbm))
         .map(i => projectInterval(VarIndex(i), closed)).toList
     val (low, high) = l.unzip
-    createInterval(low.toArray, high.toArray, false)
+    createInterval(low.toArray, high.toArray, isEmpty = false)
   }
 
-  private def fromFun[A](d: Int, f: (Int, Int) => A): M[DBMState, A] = ???
+  private def fromFun[A](d: Int, f: (Int, Int) => A)
+  : M[S, A] forSome { type S <: DBMState } = ???
 
   private def forSomeVar(
     vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
@@ -72,8 +74,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     val indices = (0 until dimension).map(x => VarIndex(x))
     val chooser = forSomeVar(indices) _
     val f: (Int, Int) => Double = (i, j) => {
-      val g1: VarIndex => Boolean = k => i == 2 * k.i && j == 2 * k.i - 1
-      val g2: VarIndex => Boolean = k => j == 2 * k.i && i == 2 * k.i - 1
+      val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
+      val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)
       (chooser(g1), chooser(g2)) match {
         case (Some(VarIndex(k)), _) => 2 * box.asPair(k)._2
         case (None, Some(VarIndex(k))) => - 2 * box.asPair(k)._1
@@ -82,7 +84,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     }
     // TODO not sure if we have to strongly close this...
     val newM: M[DBMState, Double] = fromFun(box.dimension, f)
-    new AbstractOctagon(e.strongClosure(newM), e)
+    AbstractOctagon(e.strongClosure(newM), e)
   }
 
   private def forceOption[A](o: Option[A]): A = o match {
@@ -301,8 +303,8 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def singleConstantExactAssignment(v: VarIndex, const: Double)
     (dbm: M[DBMState, Double]): M[DBMState, Double] = {
     val f: (Int, Int) => Double = (i, j) =>
-      if (i == 2 * v.i - 1 && j == 2 * v.i) -2 * const else
-        if (i == 2 * v.i && j == 2 * v.i - 1) 2 * const else
+      if (i == varPlus(v) && j == varMinus(v)) -2 * const else
+        if (i == varMinus(v) && j == varPlus(v)) 2 * const else
           forceOption(e.get(i, j)(e.forget(v)(dbm)))
     e.update(f)(dbm)
   }
@@ -314,21 +316,19 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def doublePositiveExactAssignment(
     vi: VarIndex, vother: VarIndex, const: Double)
     (dbm: M[DBMState, Double]): M[DBMState, Double] = {
-    val v = vi.i
-    val other = vother.i
+    // val v = vi.i
+    // val other = vother.i
     val f: (Int, Int) => Double = (i, j) => {
-      val g1 = (i == 2 * v - 1 && j == 2 * other - 1) ||
-        (i == 2 * other && j == 2 * v)
-      val g2 = (i == 2 * other - 1 && j == 2 * v - 1) ||
-        (i == 2 * v && j == 2 * other)
-      if (g1) (- const) else
+      val g1 = (i == varPlus(vi) && j == varPlus(vother)) ||
+               (i == varMinus(vother) && j == varMinus(vi))
+      val g2 = (i == varPlus(vother) && j == varPlus(vi)) ||
+               (i == varMinus(vi) && j == varMinus(vother))
+      if (g1) -const else
         if (g2) const else
           forceOption(e.get(i, j)(e.forget(vi)(e.strongClosure(dbm))))
     }
     e.update(f)(dbm)
   }
-
-  private def signed(i: Int): Int = ???
 
   // x := - x
   // this preserves strong closure
@@ -368,27 +368,27 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
     (dbm: M[Closed, Double]): M[DBMState, Double] = {
-    val v = vi.i
+    // val v = vi.i
     val f: (Int, Int) => Double = (i, j) => {
-      if (i == 2 * v && j == 2 * v - 1) {
+      if (i == varMinus(vi) && j == varPlus(vi)) {
         val p = lfAsInterval(vi, lf)
         2 * math.max(p _1, p _2)
-      } else if (i == 2 * v - 1 && j == 2 * v) {
+      } else if (i == varPlus(vi) && j == varMinus(vi)) {
         val p = lfAsInterval(vi, lf)
         - 2 * math.max(p _1, p _2)
       } else {
         val g1: VarIndex => Boolean = other =>
-        (v != other) && ((i == 2 * other.i - 1 && j == 2 * v - 1) ||
-          (i == 2 * v && j == 2 * other.i))
+        vi != other && ((i == varPlus(other) && j == varPlus(vi)) ||
+          (i == varMinus(vi) && j == varMinus(other)))
         val g2: VarIndex => Boolean = other =>
-        (v != other) && ((i == 2 * other.i && j == 2 * v - 1) ||
-          (i == 2 * v && j == 2 * other.i - 1))
+        vi != other && ((i == varMinus(other) && j == varPlus(vi)) ||
+          (i == varMinus(vi) && j == varPlus(other)))
         val g3: VarIndex => Boolean = other =>
-        (v != other) && ((i == 2 * v - 1 && j == 2 * other.i - 1) ||
-          (i == 2 * other.i && j == 2 * v))
+        vi != other && ((i == varPlus(vi) && j == varPlus(other)) ||
+          (i == varMinus(other) && j == varMinus(vi)))
         val g4: VarIndex => Boolean = other =>
-        (v != other) && ((i == 2 * other.i - 1 && j == 2 * v) ||
-          (i == 2 * v - 1 && j == 2 * other.i))
+        vi != other && ((i == varPlus(other) && j == varMinus(vi)) ||
+          (i == varPlus(vi) && j == varMinus(other)))
 
         val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
         val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
