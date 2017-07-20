@@ -205,9 +205,9 @@ object BagnaraStrongClosure {
   def strongClosure[A](nOfVars: Int)(dbm: FunMatrix[A])
                       (implicit ifield: InfField[A]): FunMatrix[A] = {
     var x = dbm
-    for (k <- 0 to 2 * nOfVars - 1)
-      for (i <- 0 to 2 * nOfVars - 1)
-        for (j <- 0 to 2 * nOfVars - 1) {
+    for (k <- 0 until 2 * nOfVars)
+      for (i <- 0 until 2 * nOfVars)
+        for (j <- 0 until 2 * nOfVars) {
           val newVal =
             ifield.min(
               me.get(i,j)(x),
@@ -215,8 +215,8 @@ object BagnaraStrongClosure {
           x = me.update(i, j, newVal)(x)
         }
 
-    for (i <- 0 to 2 * nOfVars - 1)
-      for (j <- 0 to 2 * nOfVars - 1) {
+    for (i <- 0 until 2 * nOfVars)
+      for (j <- 0 until 2 * nOfVars) {
         val newVal =
           ifield.min(
             me.get(i, j)(x),
@@ -240,9 +240,9 @@ object BagnaraStrongClosure {
       j == vi.i || j == signed(vi.i)
     }
     var x = dbm
-    for (k <- 0 to 2 * nOfVars - 1)
-      for (i <- 0 to 2 * nOfVars - 1)
-        for (j <- 0 to 2 * nOfVars - 1)
+    for (k <- 0 until 2 * nOfVars)
+      for (i <- 0 until 2 * nOfVars)
+        for (j <- 0 until 2 * nOfVars)
           if (p(k,i,j)) {
             val newVal =
               ifield.min(
@@ -251,8 +251,8 @@ object BagnaraStrongClosure {
             x = me.update(i, j, newVal)(x)
           }
 
-    for (i <- 0 to 2 * nOfVars - 1)
-      for (j <- 0 to 2 * nOfVars - 1)
+    for (i <- 0 until 2 * nOfVars)
+      for (j <- 0 until 2 * nOfVars)
         if (p2(i,j)) {
           val newVal =
             ifield.min(
