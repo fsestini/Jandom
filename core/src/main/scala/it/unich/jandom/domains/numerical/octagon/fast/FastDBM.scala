@@ -32,11 +32,6 @@ case class BottomFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
 
 object Lol {
 
-  def fastDBM[M[_], A, S <: DBMState](m: CFastDBM[M, S, A]): FastDBM[M, A] = m match {
-    case CFast(m) => m
-    case NCFast(m) => m
-  }
-
   def nuffDecomposed(is: List[List[VarIndex]]): Boolean = ???
   def nuffSparse(is: NNI): Boolean = ???
 
