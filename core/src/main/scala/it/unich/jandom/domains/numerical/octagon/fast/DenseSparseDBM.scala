@@ -1,5 +1,7 @@
 package it.unich.jandom.domains.numerical.octagon.fast
 
+import it.unich.jandom.domains.numerical.octagon.{InfField, VarIndex}
+
 import scala.language.higherKinds
 
 case class NNI(nni: Int)
