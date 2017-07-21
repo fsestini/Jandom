@@ -38,6 +38,11 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
   def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
 
+  def widening(other: AbstractOctagon[M]): AbstractOctagon[M] =
+    AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm)), e)
+  def narrowing(other: AbstractOctagon[M]): AbstractOctagon[M] =
+    AbstractOctagon(e.strongClosure(e.narrowing(dbm, other.dbm)), e)
+
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
     val maybeInterval: Option[(Double, Double)] = for {
       p1 <- e.get(varPlus(v), varMinus(v))(closed)
