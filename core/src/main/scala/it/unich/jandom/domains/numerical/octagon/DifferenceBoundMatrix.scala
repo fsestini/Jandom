@@ -31,6 +31,12 @@ trait DifferenceBoundMatrix[M[_, _]] {
     (implicit evidence: InfField[A]): M[Closed, A]
   def incrementalClosure[A](v: VarIndex)(m: M[DBMState, A])
     (implicit evidence: InfField[A]): M[Closed, A]
+  def widening[A, S <: DBMState, T <: DBMState]
+    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A])
+      : M[W, A] forSome { type W <: DBMState }
+  def narrowing[A, S <: DBMState, T <: DBMState]
+    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A])
+      : M[W, A] forSome { type W <: DBMState }
   def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
   def isBottomDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
   def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
