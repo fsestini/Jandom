@@ -19,11 +19,16 @@ object CFDBMInstance {
     ({ type T[S, A] = CFastDBM[M, S, A] })#T] = ???
 }
 
+// ADT of "closable" DBMs in their fast implementation from Vechev et al.
+// They are "closable" in the sense that they augment the ADT of fast DBMs with
+// the type-level capability of being indexed by their strong closure state.
 sealed trait CFastDBM[M[_], _, A]
 // Constructor of *closed* fast DBMs.
 case class CFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, Closed, A]
 // Constructor of *non-closed* fast DBMs.
 case class NCFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, NonClosed, A]
+case class TopFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
+case class BottomFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
 
 object Lol {
 
@@ -91,9 +96,3 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
     }
   }
 }
-
-// The Top type can be seen as a degenerate case of the decomposed one with
-// an empty set of independent components. Thus, we can reuse the operators of
-// the decomposed type.
-case class TopDBM[M[_], A](nOfVars: Int) extends FastDBM[M, A] { }
-case class BottomDBM[M[_], A](nOfVars: Int) extends FastDBM[M, A] { }
