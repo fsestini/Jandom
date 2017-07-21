@@ -1,4 +1,4 @@
-package it.unich.jandom.domains.numerical.octagon
+package it.unich.jandom.domains.numerical.octagon.fast
 
 /**
   * Created by fsestini on 7/11/17.

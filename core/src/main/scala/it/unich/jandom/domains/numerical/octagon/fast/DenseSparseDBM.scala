@@ -1,4 +1,4 @@
-package it.unich.jandom.domains.numerical.octagon
+package it.unich.jandom.domains.numerical.octagon.fast
 
 import scala.language.higherKinds
 
