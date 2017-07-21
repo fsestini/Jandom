@@ -177,6 +177,46 @@ object FunDBMInstance {
       case BottomFunDBM(_) => true
       case _ => false
     }
+
+    def widening[A, S <: DBMState, T <: DBMState]
+      (dbm1: FunDBM[S, A], dbm2: FunDBM[T, A])
+      (implicit ifield: InfField[A])
+      : FunDBM[W, A] forSome { type W <: DBMState } = {
+
+      require(dbm1.noOfVariables == dbm2.noOfVariables)
+
+      val m: Option[FunMatrix[A]] = for {
+        m1 <- dbm1.innerMatrix
+        m2 <- dbm2.innerMatrix
+      } yield me.combine((mij: A, nij: A) =>
+        ifield.compare(mij, nij) match {
+          case Some(GT) => mij
+          case _ => ifield.infinity
+        }
+      )(m1, m2)
+
+      m match {
+        case Some(matrix) => NonClosedFunDBM(dbm1.noOfVariables, matrix)
+        case None => BottomFunDBM(dbm1.noOfVariables)
+      }
+    }
+
+    def narrowing[A, S <: DBMState, T <: DBMState]
+      (dbm1: FunDBM[S, A], dbm2: FunDBM[T, A])
+      (implicit ifield: InfField[A])
+      : FunDBM[W, A] forSome { type W <: DBMState } = {
+
+      require(dbm1.noOfVariables == dbm2.noOfVariables)
+
+      val m = for {
+        m1 <- dbm1.innerMatrix
+        m2 <- dbm2.innerMatrix
+      } yield me.combine((mij: A, nij: A) => if (mij == ifield.infinity) nij else mij)(m1, m2)
+      m match {
+        case Some(matrix) => NonClosedFunDBM(dbm1.noOfVariables, matrix)
+        case None => BottomFunDBM(dbm1.noOfVariables)
+      }
+    }
   }
 }
 
