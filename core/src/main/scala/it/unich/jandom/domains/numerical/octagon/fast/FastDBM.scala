@@ -38,8 +38,17 @@ object Lol {
 }
 
 sealed trait FastDBM[M[_], A]
-case class DenseDBM[M[_], A](m: M[A], rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] { }
-case class SparseDBM[M[_], A](m: M[A], rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] { }
+
+// Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
+// dense or sparse.
+// Sparsity details, including when to switch between dense and sparse
+// representation, is supposed to be handled by the specific implementation of
+// the the DenseSparse trait/typeclass.
+// An even better thing to do (time permitting) could be to use a suitable
+// abstract trait of DBMs that does not talk about sparsity at all (who cares
+// if the implementations use a dense/sparse representation anyway, as long as
+// they provide the needed DBM-like operations?)
+case class FullDBM[M[_], A](dbm: M[A], dsdbm: DenseSparseDBM[M]) extends FastDBM[M, A]
 
 // We store the independent components as a linked list of linked lists of
 // variable indices.
