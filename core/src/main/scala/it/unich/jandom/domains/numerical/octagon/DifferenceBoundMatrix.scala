@@ -4,8 +4,8 @@ package it.unich.jandom.domains.numerical.octagon
 import scala.language.higherKinds
 
 sealed trait DBMState
-case class Closed() extends DBMState
-case class NonClosed() extends DBMState
+sealed trait Closed extends DBMState
+sealed trait NonClosed extends DBMState
 
 // Distinguish integers used as variable indices
 case class VarIndex(i: Int)
