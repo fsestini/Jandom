@@ -27,7 +27,7 @@ class HalfMatrix[A](private val vec: Vector[A], val dimension: Int) {
   }
   */
 
-  private def elementIndex(i: Int, j: Int): (Int, Int) =
+  private def elementIndex(i: Int, j: Int): Int =
     if (i < j)
       getIndex(j^1, i^1)
     else
