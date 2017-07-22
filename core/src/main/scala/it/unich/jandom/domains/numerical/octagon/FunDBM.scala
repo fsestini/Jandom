@@ -68,11 +68,11 @@ object FunDBMInstance {
   val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
 
   implicit val funDBM: DifferenceBoundMatrix[FunDBM] = new DifferenceBoundMatrix[FunDBM] {
-    def update[A](f: (Int, Int) => A)(m: FunDBM[DBMState, A]): FunDBM[DBMState, A] =
-      m.liftFromInner(me.update(f))
+    def update[S <: DBMState, A](f: (Int, Int) => A)(m: FunDBM[S, A]): ExistsM[A] =
+      mkExFun(m.liftFromInner(me.update(f)))
 
-    def incrementalClosure[A](v: VarIndex)
-                             (dbm: FunDBM[DBMState, A])
+    def incrementalClosure[S <: DBMState, A](v: VarIndex)
+                             (dbm: FunDBM[S, A])
       (implicit evidence: InfField[A]): FunDBM[Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
@@ -82,7 +82,7 @@ object FunDBMInstance {
         case None => BottomFunDBM(dbm.noOfVariables)
       }
 
-    def strongClosure[A](dbm: FunDBM[DBMState, A])
+    def strongClosure[S <: DBMState, A](dbm: FunDBM[S, A])
                         (implicit evidence: InfField[A]): FunDBM[Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
@@ -106,23 +106,28 @@ object FunDBMInstance {
       })
     }
 
-    def nOfVars[A](m: FunDBM[DBMState, A]): Int = m.noOfVariables
+    def nOfVars[S <: DBMState, A](m: FunDBM[S, A]): Int = m.noOfVariables
 
-    def get[A](i: Int, j: Int)(m: FunDBM[DBMState, A]): Option[A] =
+    def get[S <: DBMState, A](i: Int, j: Int)(m: FunDBM[S, A]): Option[A] =
       m.innerMatrix.map((mmm) => me.get(i, j)(mmm))
 
+//    final case class MkEx[S <: DBMState, M[_]](elem: M[S])
+//      extends ExistsDBM[M] { type State = S }
+
+    def mkExFun[S <: DBMState, A](funDBM: FunDBM[S, A]): ExistsM[A] =
+      MkEx[S, ({ type T[S] = FunDBM[S, A]})#T](funDBM)
+
     def dbmIntersection[A, S <: DBMState, T <: DBMState]
-    (m1: FunDBM[S, A], m2: FunDBM[T, A])
-    (implicit ifield: InfField[A])
-    : FunDBM[W, A] forSome { type W <: DBMState } = {
+      (m1: FunDBM[S, A], m2: FunDBM[T, A])
+      (implicit ifield: InfField[A]): ExistsM[A] = {
       require(m1.noOfVariables == m2.noOfVariables)
       val o = for {
         mm1 <- m1.innerMatrix
         mm2 <- m2.innerMatrix
       } yield NonClosedFunDBM(m1.noOfVariables, me.combine(ifield.min)(mm1, mm2))
       o match {
-        case Some(matrix) => matrix
-        case None => BottomFunDBM(m1.noOfVariables)
+        case Some(matrix) => mkExFun(matrix)
+        case None => mkExFun(BottomFunDBM(m1.noOfVariables))
       }
     }
 
@@ -180,8 +185,7 @@ object FunDBMInstance {
 
     def widening[A, S <: DBMState, T <: DBMState]
       (dbm1: FunDBM[S, A], dbm2: FunDBM[T, A])
-      (implicit ifield: InfField[A])
-      : FunDBM[W, A] forSome { type W <: DBMState } = {
+      (implicit ifield: InfField[A]): ExistsM[A] = {
 
       require(dbm1.noOfVariables == dbm2.noOfVariables)
 
@@ -196,15 +200,14 @@ object FunDBMInstance {
       )(m1, m2)
 
       m match {
-        case Some(matrix) => NonClosedFunDBM(dbm1.noOfVariables, matrix)
-        case None => BottomFunDBM(dbm1.noOfVariables)
+        case Some(matrix) => mkExFun(NonClosedFunDBM(dbm1.noOfVariables, matrix))
+        case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
       }
     }
 
     def narrowing[A, S <: DBMState, T <: DBMState]
       (dbm1: FunDBM[S, A], dbm2: FunDBM[T, A])
-      (implicit ifield: InfField[A])
-      : FunDBM[W, A] forSome { type W <: DBMState } = {
+      (implicit ifield: InfField[A]): ExistsM[A] = {
 
       require(dbm1.noOfVariables == dbm2.noOfVariables)
 
@@ -213,8 +216,8 @@ object FunDBMInstance {
         m2 <- dbm2.innerMatrix
       } yield me.combine((mij: A, nij: A) => if (mij == ifield.infinity) nij else mij)(m1, m2)
       m match {
-        case Some(matrix) => NonClosedFunDBM(dbm1.noOfVariables, matrix)
-        case None => BottomFunDBM(dbm1.noOfVariables)
+        case Some(matrix) => mkExFun(NonClosedFunDBM(dbm1.noOfVariables, matrix))
+        case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
       }
     }
   }
