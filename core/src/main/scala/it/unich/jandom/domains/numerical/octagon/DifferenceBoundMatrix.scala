@@ -29,22 +29,22 @@ object VarIndexOps {
 // Most operators require the type of elements to be a ring.
 trait DifferenceBoundMatrix[M[_, _]] {
 
+  type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
+
   // Returns None is the DBM is bottom. Otherwise, Some(element).
-  def get[A](i: Int, j: Int)(m: M[DBMState, A]): Option[A]
-  def update[A](f: (Int, Int) => A)(m: M[DBMState, A]): M[DBMState, A]
+  def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A]): Option[A]
+  def update[S <: DBMState, A](f: (Int, Int) => A)(m: M[S, A]): ExistsM[A]
 
   // strong closure and incremental closure are assumed to test for emptiness,
   // and return the bottom element in the positive case.
-  def strongClosure[A](m: M[DBMState, A])
+  def strongClosure[S <: DBMState, A](m: M[S, A])
     (implicit evidence: InfField[A]): M[Closed, A]
-  def incrementalClosure[A](v: VarIndex)(m: M[DBMState, A])
+  def incrementalClosure[S <: DBMState, A](v: VarIndex)(m: M[S, A])
     (implicit evidence: InfField[A]): M[Closed, A]
   def widening[A, S <: DBMState, T <: DBMState]
-    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A])
-      : M[W, A] forSome { type W <: DBMState }
+    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A]): ExistsM[A]
   def narrowing[A, S <: DBMState, T <: DBMState]
-    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A])
-      : M[W, A] forSome { type W <: DBMState }
+    (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A]): ExistsM[A]
   def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
   def isBottomDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
   def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
@@ -57,7 +57,7 @@ trait DifferenceBoundMatrix[M[_, _]] {
   // and it seldomly produces a strongly closed result.
   def dbmIntersection[A, S <: DBMState, T <: DBMState]
   (m1: M[S, A], m2: M[T, A])
-  (implicit ifield: InfField[A]): M[W, A] forSome { type W <: DBMState }
+  (implicit ifield: InfField[A]): ExistsM[A]
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -81,5 +81,5 @@ trait DifferenceBoundMatrix[M[_, _]] {
 
   //////////////////////////////////////////////////////////////////////////////
 
-  def nOfVars[A](m: M[DBMState, A]): Int
+  def nOfVars[S <: DBMState, A](m: M[S, A]): Int
 }
