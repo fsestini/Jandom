@@ -7,6 +7,14 @@ sealed trait DBMState
 sealed trait Closed extends DBMState
 sealed trait NonClosed extends DBMState
 
+sealed trait ExistsDBM[M[_]] {
+  type State <: DBMState
+  val elem: M[State]
+}
+
+final case class MkEx[S <: DBMState, M[_]](elem: M[S])
+  extends ExistsDBM[M] { type State = S }
+
 // Distinguish integers used as variable indices
 case class VarIndex(i: Int)
 
