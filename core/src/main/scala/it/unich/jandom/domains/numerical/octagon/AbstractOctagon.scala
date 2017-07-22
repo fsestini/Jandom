@@ -21,7 +21,8 @@ import breeze.math.Ring
   *       some operation, but we need to ensure that it gets closed after any
   *       operation, if we want to construct a new abstract octagon.
   */
-case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
+
+case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
   def dimension: Int = e.nOfVars(dbm)
 
   def join(other: AbstractOctagon[M])
@@ -30,7 +31,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   def meet(other: AbstractOctagon[M])
     (implicit ifield: InfField[Double]): AbstractOctagon[M] =
-    AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm)), e)
+    AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem), e)
 
   def forget(vi: VarIndex): AbstractOctagon[M] =
     AbstractOctagon(e.forget(vi)(dbm), e)
@@ -39,9 +40,10 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
 
   def widening(other: AbstractOctagon[M]): AbstractOctagon[M] =
-    AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm)), e)
+    AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm).elem), e)
+
   def narrowing(other: AbstractOctagon[M]): AbstractOctagon[M] =
-    AbstractOctagon(e.strongClosure(e.narrowing(dbm, other.dbm)), e)
+    AbstractOctagon(e.strongClosure(e.narrowing(dbm, other.dbm).elem), e)
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
     val maybeInterval: Option[(Double, Double)] = for {
@@ -71,7 +73,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   }
 
   private def fromFun[A](d: Int, f: (Int, Int) => A)
-  : M[S, A] forSome { type S <: DBMState } = ???
+  : ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
 
   private def forSomeVar(
     vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
@@ -90,8 +92,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
       }
     }
     // TODO not sure if we have to strongly close this...
-    val newM: M[DBMState, Double] = fromFun(box.dimension, f)
-    AbstractOctagon(e.strongClosure(newM), e)
+    AbstractOctagon(e.strongClosure(fromFun(box.dimension, f).elem), e)
   }
 
   private def forceOption[A](o: Option[A]): A = o match {
@@ -306,9 +307,12 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
       case _ => None
     }
 
+  type ExistsMDouble = ExistsDBM[({ type T[S] = M[S, Double]})#T]
 
-  def singleConstantExactAssignment(v: VarIndex, const: Double)
-    (dbm: M[DBMState, Double]): M[DBMState, Double] = {
+  def singleConstantExactAssignment[S <: DBMState]
+    (v: VarIndex, const: Double)
+    (dbm: M[S, Double]): ExistsMDouble = {
+
     val f: (Int, Int) => Double = (i, j) =>
       if (i == varPlus(v) && j == varMinus(v)) -2 * const else
         if (i == varMinus(v) && j == varPlus(v)) 2 * const else
@@ -317,14 +321,14 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
   }
 
   // single exact assignments preserve strong closure
-  def singlePositiveExactAssignment[S <: DBMState](v: VarIndex, const: Double)
+  def singlePositiveExactAssignment[S <: DBMState]
+    (v: VarIndex, const: Double)
     (dbm: M[S, Double]) : M[S, Double] = e.addScalarOnVar(v, const)(dbm)
 
-  def doublePositiveExactAssignment(
-    vi: VarIndex, vother: VarIndex, const: Double)
-    (dbm: M[DBMState, Double]): M[DBMState, Double] = {
-    // val v = vi.i
-    // val other = vother.i
+  def doublePositiveExactAssignment[S <: DBMState]
+    (vi: VarIndex, vother: VarIndex, const: Double)
+    (dbm: M[S, Double]): ExistsMDouble = {
+
     val f: (Int, Int) => Double = (i, j) => {
       val g1 = (i == varPlus(vi) && j == varPlus(vother)) ||
                (i == varMinus(vother) && j == varMinus(vi))
@@ -339,26 +343,33 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   // x := - x
   // this preserves strong closure
-  def singleNegativeZeroAssignment[S <: DBMState](v: VarIndex)
-    (dbm: M[S, Double]): M[S, Double] = e.flipVar(v)(dbm)
+  def singleNegativeZeroAssignment[S <: DBMState]
+    (v: VarIndex)(dbm: M[S, Double]): M[S, Double] = e.flipVar(v)(dbm)
+
+  type ExistsM[S] = M[S, Double]
 
   // x := - y
-  def doubleNegativeZeroAssignment(v: VarIndex, other: VarIndex)
-      : M[DBMState, Double] => M[DBMState, Double] =
-    doublePositiveExactAssignment(v, other, 0) _ andThen
-      singleNegativeZeroAssignment(v)
+  def doubleNegativeZeroAssignment[S <: DBMState]
+    (v: VarIndex, other: VarIndex)(dbm: M[S, Double]): ExistsMDouble = {
+    val m = doublePositiveExactAssignment(v, other, 0)(dbm)
+    val mm = singleNegativeZeroAssignment(v)(m.elem)
+    MkEx[m.State, ExistsM](mm)
+  }
 
   // x := - x + c
   def singleNegativeExactAssignment(v: VarIndex, const: Double)
-      (dbm: M[Closed, Double]): M[Closed, Double] =
+                                   (dbm: M[Closed, Double]): M[Closed, Double] =
     singlePositiveExactAssignment(v, const)(
       singleNegativeZeroAssignment(v)(dbm))
 
   // x := - y + c
-  def doubleNegativeExactAssignment(v: VarIndex, other: VarIndex, const: Double)
-      : M[DBMState, Double] => M[DBMState, Double] =
-    doubleNegativeZeroAssignment(v, other) andThen
-      singlePositiveExactAssignment(v, const)
+  def doubleNegativeExactAssignment[S <: DBMState]
+    (v: VarIndex, other: VarIndex, const: Double)
+    (dbm: M[S, Double]): ExistsMDouble = {
+    val m = doubleNegativeZeroAssignment(v, other)(dbm)
+    val mm = singlePositiveExactAssignment(v, const)(m.elem)
+    MkEx[m.State, ExistsM](mm)
+  }
 
   private def varLf(v: VarIndex, dimension: Int): LinearForm = {
     val sss: Seq[Rational] =
@@ -374,7 +385,7 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
     }
 
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
-    (dbm: M[Closed, Double]): M[DBMState, Double] = {
+    (dbm: M[Closed, Double]): ExistsMDouble = {
     // val v = vi.i
     val f: (Int, Int) => Double = (i, j) => {
       if (i == varMinus(vi) && j == varPlus(vi)) {
@@ -428,23 +439,23 @@ case class AbstractOctagon[M[+_, _]](dbm: M[Closed, Double], e: DifferenceBoundM
 
   def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[M] = {
     val f: M[Closed, Double] => M[Closed, Double] = decideLinearForm(v, lf) match {
-      case Some(ConstExact(const)) =>
-        singleConstantExactAssignment(v, const.toDouble) _ andThen
-          e.incrementalClosure(v)
+      case Some(ConstExact(const)) => (m) =>
+        e.incrementalClosure(v)(
+          singleConstantExactAssignment(v, const.toDouble)(m).elem)
       case Some(SingleExact(Positive, const)) =>
         singlePositiveExactAssignment(v, const.toDouble)
       case Some(SingleExact(Negative, const)) =>
         singleNegativeExactAssignment(v, const.toDouble)
-      case Some(DoubleExact(other, Positive, const)) =>
-        doublePositiveExactAssignment(v, other, const.toDouble) _ andThen
-          e.incrementalClosure(v)
-      case Some(DoubleExact(other, Negative, const)) =>
-        doubleNegativeExactAssignment(v, other, const.toDouble) andThen
-          e.incrementalClosure[Double](v)
-      case None => thruIntervals(v, lf, dimension) _ andThen
-        e.incrementalClosure(v)
+      case Some(DoubleExact(other, Positive, const)) => (matrix) =>
+        e.incrementalClosure(v)(
+          doublePositiveExactAssignment(v, other, const.toDouble)(matrix).elem)
+      case Some(DoubleExact(other, Negative, const)) => (matrix) =>
+        e.incrementalClosure(v)(
+          doubleNegativeExactAssignment(v, other, const.toDouble)(matrix).elem)
+      case None => (matrix) =>
+        e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix).elem)
     }
-    new AbstractOctagon(f(dbm), e)
+    AbstractOctagon(f(dbm), e)
   }
 
   // Evaluation of linear assignment using interval arithmetics.
