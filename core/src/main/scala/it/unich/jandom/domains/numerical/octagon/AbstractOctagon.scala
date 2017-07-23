@@ -471,6 +471,9 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   def nonDeterministicAssignment(n: Int): AbstractOctagon[M] =
     forget(VarIndex(n))
 
+  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[M] =
+    assignment(VarIndex(n), lf)
+
   def linearInequality(lf: LinearForm): AbstractOctagon[M] = {
     val ex = linearInequalityEx(lf)
     ex.elem match {
