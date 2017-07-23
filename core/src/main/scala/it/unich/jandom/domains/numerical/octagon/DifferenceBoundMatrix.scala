@@ -102,4 +102,7 @@ trait DifferenceBoundMatrix[M[_, _]]
   //////////////////////////////////////////////////////////////////////////////
 
   def nOfVars[S <: DBMState, A](m: M[S, A]): Int
+  def addVariable[S <: DBMState, A](dbm: M[S, A]): ExistsM[A]
+  def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: M[S, A]): ExistsM[A]
+  def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])(dbm: M[S, A]): ExistsM[A]
 }
