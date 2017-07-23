@@ -7,6 +7,8 @@ import scala.language.postfixOps
 import VarIndexOps._
 import VarIndexUtils._
 import spire.math.Rational
+import it.unich.jandom.utils.numberext.RationalExt
+import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
 
 /**
   * Created by fsestini on 7/11/17.
