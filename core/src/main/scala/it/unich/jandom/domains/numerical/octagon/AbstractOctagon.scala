@@ -528,6 +528,13 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   def delVariable(v: Int): AbstractOctagon[M] =
     fromExDBM(e.deleteVariable(VarIndex(v))(dbm))
 
+  def mapVariables(rho: Seq[Int]): AbstractOctagon[M] = {
+    def converted: VarIndex => Option[VarIndex] = (vi) =>
+      if (vi.i >= rho.length || rho(vi.i) == -1) None
+      else Some(VarIndex(rho(vi.i)))
+    fromExDBM(e.mapVariables(converted)(dbm))
+  }
+
   def isEmpty = isBottom
 
 }
