@@ -468,6 +468,9 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
 
+  def nonDeterministicAssignment(n: Int): AbstractOctagon[M] =
+    forget(VarIndex(n))
+
   def linearInequality(lf: LinearForm): AbstractOctagon[M] = {
     val ex = linearInequalityEx(lf)
     ex.elem match {
