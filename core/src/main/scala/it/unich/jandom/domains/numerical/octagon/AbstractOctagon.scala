@@ -520,4 +520,14 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
       AbstractOctagon(e.strongClosure(eDBM.elem), e)
   }
 
+  def addVariable(): AbstractOctagon[M] = fromExDBM(e.addVariable(dbm))
+
+  def isTop: Boolean = e.isTopDBM(dbm)
+  def isBottom: Boolean = e.isBottomDBM(dbm)
+
+  def delVariable(v: Int): AbstractOctagon[M] =
+    fromExDBM(e.deleteVariable(VarIndex(v))(dbm))
+
+  def isEmpty = isBottom
+
 }
