@@ -27,7 +27,8 @@ object VarIndexOps {
 // Trait of Difference Bound Matrices, indexed by the closure state
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
-trait DifferenceBoundMatrix[M[_, _]] {
+trait DifferenceBoundMatrix[M[_, _]]
+  extends CompleteLattice1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
 
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
 
