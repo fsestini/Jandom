@@ -483,4 +483,13 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     }
   }
 
+  // TODO: maybe there's a better option?
+  def minimize(lf: LinearForm): RationalExt = toInterval.minimize(lf)
+
+  // TODO: maybe there's a better option?
+  def maximize(lf: LinearForm): RationalExt = toInterval.maximize(lf)
+
+  // TODO: maybe there's a better option?
+  def frequency(lf: LinearForm): Option[Rational] = toInterval.frequency(lf)
+
 }
