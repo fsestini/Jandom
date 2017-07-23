@@ -19,6 +19,10 @@ final case class MkEx[S <: DBMState, M[_]](elem: M[S])
 case class VarIndex(i: Int)
 
 object VarIndexOps {
+  sealed trait OctaVarCoeff
+  object Positive extends OctaVarCoeff { }
+  object Negative extends OctaVarCoeff { }
+
   def varPlus(v: VarIndex): Int = 2 * v.i
   def varMinus(v: VarIndex): Int = 2 * v.i + 1
   def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1

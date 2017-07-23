@@ -461,9 +461,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   // Evaluation of linear assignment using interval arithmetics.
   def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 
-  sealed trait OctaVarCoeff
-  object Positive extends OctaVarCoeff { }
-  object Negative extends OctaVarCoeff { }
   sealed trait ExactLinearForm
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
