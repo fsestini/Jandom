@@ -29,12 +29,10 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
 
   def dimension: Int = e.nOfVars(dbm)
 
-  def join(other: AbstractOctagon[M])
-    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
-    AbstractOctagon(e.dbmUnion(dbm, other.dbm), e)
+  def union(other: AbstractOctagon[M]): AbstractOctagon[M] =
+    AbstractOctagon(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble), e)
 
-  def meet(other: AbstractOctagon[M])
-    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
+  def intersection(other: AbstractOctagon[M]): AbstractOctagon[M] =
     AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem), e)
 
   def forget(vi: VarIndex): AbstractOctagon[M] =
