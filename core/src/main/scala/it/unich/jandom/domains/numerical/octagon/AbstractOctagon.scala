@@ -537,4 +537,16 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
 
   def isEmpty = isBottom
 
+  def tryCompareTo[B >: AbstractOctagon[M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
+    that match {
+      case other: AbstractOctagon[M] => {
+        e.compare[Double](
+          MkEx[Closed, ExistsM](dbm),
+          MkEx[Closed, ExistsM](other.dbm)).map {
+          case EQ => 0
+          case LT => -1
+          case GT => 1
+        }
+      }
+    }
 }
