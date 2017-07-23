@@ -514,4 +514,10 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     cleanup(l)
   }
 
+  private def fromExDBM(eDBM: ExistsMDouble): AbstractOctagon[M] = eDBM match {
+    case closed: M[Closed, Double] => AbstractOctagon(closed, e)
+    case _: M[NonClosed, Double] =>
+      AbstractOctagon(e.strongClosure(eDBM.elem), e)
+  }
+
 }
