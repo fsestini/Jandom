@@ -24,7 +24,9 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
   *       operation, if we want to construct a new abstract octagon.
   */
 
-case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
+case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M])
+  extends NumericalProperty[AbstractOctagon[M]] {
+
   def dimension: Int = e.nOfVars(dbm)
 
   def join(other: AbstractOctagon[M])
