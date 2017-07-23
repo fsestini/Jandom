@@ -7,61 +7,61 @@ sealed trait FunDBM[S, A] {
   def liftFromInner(f: FunMatrix[A] => FunMatrix[A]): FunDBM[S, A]
   def union(other: FunDBM[S, A])(implicit infField: InfField[A]): FunDBM[S, A]
   val innerMatrix: Option[FunMatrix[A]]
-  val noOfVariables: Int
+  def noOfVariables: Int
 }
 
-case class ClosedFunDBM[A](nOfVars: Int, m: FunMatrix[A]) extends FunDBM[Closed, A] {
+case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
+  require (m.dimension % 2 == 0)
+  def noOfVariables : Int = (m.dimension / 2)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
-    ClosedFunDBM(nOfVars, f(m))
+    ClosedFunDBM(f(m))
 
   override def union(other: FunDBM[Closed, A])
                     (implicit infField: InfField[A]): FunDBM[Closed, A] = other match {
-    case ClosedFunDBM(n2, m2) => {
+    case ClosedFunDBM(m2) => {
       val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
-      require(nOfVars == n2)
-      ClosedFunDBM(nOfVars, me.combine(infField.max)(m, m2))
+      require(noOfVariables == other.noOfVariables)
+      ClosedFunDBM(me.combine(infField.max)(m, m2))
     }
-    case TopFunDBM(n2) => { require(nOfVars == n2) ; TopFunDBM(n2)(infField) }
-    case BottomFunDBM(n2) => { require(nOfVars == n2) ; this }
+    case TopFunDBM(n2) => { require(noOfVariables == other.noOfVariables) ; TopFunDBM(n2)(infField) }
+    case BottomFunDBM(n2) => { require(noOfVariables == other.noOfVariables) ; this }
   }
 
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
-  val noOfVariables: Int = nOfVars
 }
 
-case class NonClosedFunDBM[A](nOfVars: Int, m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
+case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
+  require (m.dimension % 2 == 0)
+  def noOfVariables : Int = (m.dimension / 2)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[NonClosed, A] =
-    NonClosedFunDBM(nOfVars, f(m))
+    NonClosedFunDBM(f(m))
   def union(other: FunDBM[NonClosed, A])
            (implicit infField: InfField[A]): FunDBM[NonClosed, A] = other match {
-    case NonClosedFunDBM(n2, m2) => {
+    case NonClosedFunDBM(m2) => {
       val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
-      require(nOfVars == n2)
-      NonClosedFunDBM(nOfVars, me.combine(infField.max)(m, m2))
+      require(noOfVariables == other.noOfVariables)
+      NonClosedFunDBM(me.combine(infField.max)(m, m2))
     }
   }
 
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
-  val noOfVariables: Int = nOfVars
 }
 
-case class TopFunDBM[A](nOfVars: Int) (implicit ifield: InfField[A]) extends FunDBM[Closed, A] {
+case class TopFunDBM[A](noOfVariables: Int) (implicit ifield: InfField[A]) extends FunDBM[Closed, A] {
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
-    TopFunDBM[A](nOfVars)(ifield)
+    TopFunDBM[A](noOfVariables)(ifield)
   def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] = this
 
   val innerMatrix: Option[FunMatrix[A]] =
-    Some(FunMatrixMatrixInstance.funMatrixIsMatrix.pure(2 * nOfVars, ifield.infinity))
-  val noOfVariables: Int = nOfVars
+    Some(FunMatrixMatrixInstance.funMatrixIsMatrix.pure(2 * noOfVariables, ifield.infinity))
 }
 
-case class BottomFunDBM[A](nOfVars: Int) extends FunDBM[Closed, A] {
+case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
-    BottomFunDBM[A](nOfVars)
+    BottomFunDBM[A](noOfVariables)
   def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] = other
 
   val innerMatrix: Option[FunMatrix[A]] = None
-  val noOfVariables: Int = nOfVars
 }
 
 object FunDBMInstance {
@@ -77,7 +77,6 @@ object FunDBMInstance {
       dbm.innerMatrix match {
         case Some(m) =>
           ClosedFunDBM(
-            dbm.noOfVariables,
             BagnaraStrongClosure.incrementalClosure(dbm.noOfVariables, v)(m))
         case None => BottomFunDBM(dbm.noOfVariables)
       }
@@ -87,7 +86,6 @@ object FunDBMInstance {
       dbm.innerMatrix match {
         case Some(m) =>
           ClosedFunDBM(
-            dbm.noOfVariables,
             BagnaraStrongClosure.strongClosure(dbm.noOfVariables)(m))
         case None => BottomFunDBM(dbm.noOfVariables)
       }
@@ -124,7 +122,7 @@ object FunDBMInstance {
       val o = for {
         mm1 <- m1.innerMatrix
         mm2 <- m2.innerMatrix
-      } yield NonClosedFunDBM(m1.noOfVariables, me.combine(ifield.min)(mm1, mm2))
+      } yield NonClosedFunDBM(me.combine(ifield.min)(mm1, mm2))
       o match {
         case Some(matrix) => mkExFun(matrix)
         case None => mkExFun(BottomFunDBM(m1.noOfVariables))
@@ -200,7 +198,7 @@ object FunDBMInstance {
       )(m1, m2)
 
       m match {
-        case Some(matrix) => mkExFun(NonClosedFunDBM(dbm1.noOfVariables, matrix))
+        case Some(matrix) => mkExFun(NonClosedFunDBM(matrix))
         case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
       }
     }
@@ -216,7 +214,7 @@ object FunDBMInstance {
         m2 <- dbm2.innerMatrix
       } yield me.combine((mij: A, nij: A) => if (mij == ifield.infinity) nij else mij)(m1, m2)
       m match {
-        case Some(matrix) => mkExFun(NonClosedFunDBM(dbm1.noOfVariables, matrix))
+        case Some(matrix) => mkExFun(NonClosedFunDBM(matrix))
         case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
       }
     }
