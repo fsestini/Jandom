@@ -136,7 +136,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
    *  - j0, i0 replaced by k, l for readability
    *  - Always m_ij if not specified
    */
-  def linearInequality (lf: LinearForm) = {
+  def linearInequalityEx (lf: LinearForm): ExistsMDouble = {
     sealed abstract class AbstractTest
     case class Fallback() extends AbstractTest
     sealed abstract class ExactTest extends AbstractTest
@@ -467,5 +467,14 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+
+  def linearInequality(lf: LinearForm): AbstractOctagon[M] = {
+    val ex = linearInequalityEx(lf)
+    ex.elem match {
+      case closed: M[Closed, Double] => AbstractOctagon(closed, e)
+      case _: M[NonClosed, Double] =>
+        AbstractOctagon(e.strongClosure(ex.elem), e)
+    }
+  }
 
 }
