@@ -443,9 +443,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
 }
 
 object AbstractOctagon {
-  private def fromFun[M[_,_]](d: Int, f: (Int, Int) => Double)
-  : ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
-
   private def forSomeVar(
     vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
     (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
@@ -463,7 +460,6 @@ object AbstractOctagon {
         case (None, None) => Double.PositiveInfinity
       }
     }
-    // TODO not sure if we have to strongly close this...
-    AbstractOctagon(e.strongClosure(fromFun(box.dimension, f).elem), e)
+    AbstractOctagon(e.fromFun(box.dimension, f), e)
   }
 }

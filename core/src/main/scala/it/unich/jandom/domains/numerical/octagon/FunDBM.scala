@@ -131,7 +131,8 @@ object FunDBMInstance {
 
     def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = TopFunDBM(nOfVars)(ifield)
     def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
-
+    def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): FunDBM[Closed, A] =
+      strongClosure(NonClosedFunDBM(FunMatrix[A](f, d)))
     def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: FunDBM[S, A])
                                  (implicit ifield: InfField[A]): FunDBM[S, A] = {
       dbm.liftFromInner((inner) => {

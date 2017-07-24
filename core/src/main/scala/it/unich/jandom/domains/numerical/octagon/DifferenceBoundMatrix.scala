@@ -48,6 +48,7 @@ trait DifferenceBoundMatrix[M[_, _]] {
   def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
   def isBottomDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
   def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
+  def fromFun[A] (d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]) : M[Closed, A]
 
   // dbm union preserves strong closure
   def dbmUnion[S <: DBMState, A](m1: M[S, A], m2: M[S, A])
