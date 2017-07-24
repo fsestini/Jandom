@@ -77,7 +77,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
 
   private def forSomeVar(
     vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
-    squash(vars.map(x => if (p(x)) Some(x) else None).toList)
+    (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
 
   def fromInterval(box: BoxDoubleDomain#Property): AbstractOctagon[M] = {
     val indices = (0 until dimension).map(x => VarIndex(x))
@@ -376,13 +376,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
       (0 to dimension).map(x => if (x == v.i + 1) Rational(1) else Rational(0))
     new DenseLinearForm(sss)
   }
-
-  private def squash[A](l: List[Option[A]]): Option[A] =
-    l match {
-      case Nil => None
-      case (Some(x) :: xs) => Some(x)
-      case (None :: xs) => squash(xs)
-    }
 
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
     (dbm: M[Closed, Double]): ExistsMDouble = {
