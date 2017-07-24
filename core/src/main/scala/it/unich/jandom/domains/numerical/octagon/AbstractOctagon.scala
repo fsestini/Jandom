@@ -23,6 +23,8 @@ import breeze.math.Ring
   */
 
 case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
+  import AbstractOctagon._
+
   def dimension: Int = e.nOfVars(dbm)
 
   def join(other: AbstractOctagon[M])
@@ -70,29 +72,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
         .map(i => projectInterval(VarIndex(i), closed)).toList
     val (low, high) = l.unzip
     createInterval(low.toArray, high.toArray, isEmpty = false)
-  }
-
-  private def fromFun[A](d: Int, f: (Int, Int) => A)
-  : ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
-
-  private def forSomeVar(
-    vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
-    (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
-
-  def fromInterval(box: BoxDoubleDomain#Property): AbstractOctagon[M] = {
-    val indices = (0 until dimension).map(x => VarIndex(x))
-    val chooser = forSomeVar(indices) _
-    val f: (Int, Int) => Double = (i, j) => {
-      val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
-      val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)
-      (chooser(g1), chooser(g2)) match {
-        case (Some(VarIndex(k)), _) => 2 * box.asPair(k)._2
-        case (None, Some(VarIndex(k))) => - 2 * box.asPair(k)._1
-        case (None, None) => Double.PositiveInfinity
-      }
-    }
-    // TODO not sure if we have to strongly close this...
-    AbstractOctagon(e.strongClosure(fromFun(box.dimension, f).elem), e)
   }
 
   private def forceOption[A](o: Option[A]): A = o match {
@@ -191,7 +170,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => {
-        val lh = fromInterval(toInterval.linearInequality(lf))
+        val lh = fromInterval[M](toInterval.linearInequality(lf), e)
         def g (i : Int, j : Int) : Double =
           if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
             val interval = this.toInterval
@@ -461,5 +440,30 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+}
 
+object AbstractOctagon {
+  private def fromFun[M[_,_]](d: Int, f: (Int, Int) => Double)
+  : ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
+
+  private def forSomeVar(
+    vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
+    (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
+
+  def fromInterval[M[_,_]] (box: BoxDoubleDomain#Property, e: DifferenceBoundMatrix[M]): AbstractOctagon[M] = {
+    require (box.low.size == box.high.size)
+    val indices = (0 until box.high.size).map(x => VarIndex(x))
+    val chooser = forSomeVar(indices) _
+    val f: (Int, Int) => Double = (i, j) => {
+      val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
+      val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)
+      (chooser(g1), chooser(g2)) match {
+        case (Some(VarIndex(k)), _) => 2 * box.asPair(k)._2
+        case (None, Some(VarIndex(k))) => - 2 * box.asPair(k)._1
+        case (None, None) => Double.PositiveInfinity
+      }
+    }
+    // TODO not sure if we have to strongly close this...
+    AbstractOctagon(e.strongClosure(fromFun(box.dimension, f).elem), e)
+  }
 }
