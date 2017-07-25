@@ -460,6 +460,6 @@ object AbstractOctagon {
         case (None, None) => Double.PositiveInfinity
       }
     }
-    AbstractOctagon(e.fromFun(box.dimension, f), e)
+    AbstractOctagon(e.fromFun(box.dimension*2, f), e)
   }
 }
