@@ -9,4 +9,4 @@ target/
 .settings/
 .idea/
 .cache-*
-
+.ensime_cache
