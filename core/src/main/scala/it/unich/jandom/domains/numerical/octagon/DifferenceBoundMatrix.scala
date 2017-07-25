@@ -2,6 +2,7 @@ package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
 import scala.language.higherKinds
+import it.unich.jandom.domains.numerical._
 
 sealed trait DBMState
 sealed trait Closed extends DBMState
@@ -22,6 +23,14 @@ object VarIndexOps {
   def varPlus(v: VarIndex): Int = 2 * v.i
   def varMinus(v: VarIndex): Int = 2 * v.i + 1
   def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1
+}
+
+object VarIndexUtils {
+  def forSomeVar(
+    vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
+    (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
+  // Evaluation of linear assignment using interval arithmetics.
+  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
 // Trait of Difference Bound Matrices, indexed by the closure state
