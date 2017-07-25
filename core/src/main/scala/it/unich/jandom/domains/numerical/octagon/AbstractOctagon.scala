@@ -7,7 +7,6 @@ import scala.language.postfixOps
 import VarIndexOps._
 import VarIndexUtils._
 import spire.math.Rational
-import breeze.math.Ring
 
 /**
   * Created by fsestini on 7/11/17.
