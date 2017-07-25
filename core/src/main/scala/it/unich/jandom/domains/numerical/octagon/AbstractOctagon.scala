@@ -514,6 +514,10 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     cleanup(l)
   }
 
+  def isPolyhedral: Boolean = true
+
+  type Domain = OctagonDomain
+
   private def fromExDBM(eDBM: ExistsMDouble): AbstractOctagon[M] = eDBM match {
     case closed: M[Closed, Double] => AbstractOctagon(closed, e)
     case _: M[NonClosed, Double] =>
