@@ -492,6 +492,12 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   // TODO: maybe there's a better option?
   def frequency(lf: LinearForm): Option[Rational] = toInterval.frequency(lf)
 
+  def cleanup[A](l: List[Option[A]]): List[A] = l match {
+    case Nil => Nil
+    case Some(x) :: xs => x :: cleanup(xs)
+    case None :: xs => cleanup(xs)
+  }
+
   // Every octagonal constraint in a strongly closed DBM defines a half-space
   // that actually touches the octagon. [Mine06]
   def constraints: Seq[LinearForm] = {
@@ -504,12 +510,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
         .map((c) => mapConstraint(temp)(c))
         .flatMap((c) => constrToLf(dimension)(c)))
         .toList
-
-    def cleanup[A](l: List[Option[A]]): List[A] = l match {
-      case Nil => Nil
-      case Some(x) :: xs => x :: cleanup(xs)
-      case None :: xs => cleanup(xs)
-    }
 
     cleanup(l)
   }
