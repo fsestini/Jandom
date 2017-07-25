@@ -391,10 +391,10 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     // val v = vi.i
     val f: (Int, Int) => Double = (i, j) => {
       if (i == varMinus(vi) && j == varPlus(vi)) {
-        val p = lfAsInterval(vi, lf)
+        val p = toInterval.linearEvaluation(lf)
         2 * math.max(p _1, p _2)
       } else if (i == varPlus(vi) && j == varMinus(vi)) {
-        val p = lfAsInterval(vi, lf)
+        val p = toInterval.linearEvaluation(lf)
         - 2 * math.max(p _1, p _2)
       } else {
         val g1: VarIndex => Boolean = other =>
@@ -413,19 +413,19 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
         val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
         val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
           case (Some(other), _, _, _) => {
-            val p = lfAsInterval(vi, lf - varLf(other, dimension))
+            val p = toInterval.linearEvaluation(lf - varLf(other, dimension))
             Some(math.max(p _1, p _2))
           }
           case (_, Some(other), _, _) => {
-            val p = lfAsInterval(vi, lf + varLf(other, dimension))
+            val p = toInterval.linearEvaluation(lf + varLf(other, dimension))
             Some(math.max(p _1, p _2))
           }
           case (_, _, Some(other), _) => {
-            val p = lfAsInterval(vi, varLf(other, dimension) - lf)
+            val p = toInterval.linearEvaluation(varLf(other, dimension) - lf)
             Some(math.max(p _1, p _2))
           }
           case (_, _, _, Some(other)) => {
-            val p = lfAsInterval(vi, - lf - varLf(other, dimension))
+            val p = toInterval.linearEvaluation(- lf - varLf(other, dimension))
             Some(math.max(p _1, p _2))
           }
           case _ => None
@@ -459,9 +459,6 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     }
     AbstractOctagon(f(dbm), e)
   }
-
-  // Evaluation of linear assignment using interval arithmetics.
-  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 
   sealed trait ExactLinearForm
   case class ConstExact(const: Rational) extends ExactLinearForm
