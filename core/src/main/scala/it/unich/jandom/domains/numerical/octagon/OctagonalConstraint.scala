@@ -20,9 +20,32 @@ object OctagonalConstraint {
         List.range(0, dimension).map(VarIndex).map((vi) => zeroIfNone(f(vi))))
   }
 
-  case class OctaConstraint[A](v1: VarIndex, coeff1: OctaVarCoeff,
+  trait OctaConstraint[A]
+  case class SingleConstraint[A](v: VarIndex, coeff: OctaVarCoeff,
+                                 const: A, ifield: InfField[A])
+    extends OctaConstraint[A]
+  // The tacitly assume that v1 != v2
+  case class DoubleConstraint[A](v1: VarIndex, coeff1: OctaVarCoeff,
                                v2: VarIndex, coeff2: OctaVarCoeff,
                                const: A, ifield: InfField[A])
+    extends OctaConstraint[A]
+
+  // TODO: Quite naive... We may want to avoid printing equivalent constraints,
+  // TODO: like x - y <= c and - y + x <= c
+  def prettyConstraint[A](p: A => String, vars: Seq[String])
+                         (constr: OctaConstraint[A]): String =
+    constr match {
+      case SingleConstraint(v, coeff, const, ifield) => coeff match {
+        case Positive => "v" + vars(v) + " <= " + p(const)
+        case Negative => "-v" + vars(v) + " <= " + p(const)
+      }
+      case DoubleConstraint(v1, c1, v2, c2, c, ifield) => (c1, c2) match {
+        case (Positive, Positive) => "v" + vars(v1) + " -" + vars(v2) + " <= " + p(c)
+        case (Positive, Negative) => "v" + vars(v1) + " +" + vars(v2) + " <= " + p(c)
+        case (Negative, Positive) => "-v" + vars(v1) + " -" + vars(v2) + " <= " + p(c)
+        case (Negative, Negative) => "-v" + vars(v1) + " +" + vars(v2) + " <= " + p(c)
+      }
+    }
 
   def mapConstraint[A, B](f: A => B)
                          (c: OctaConstraint[A])
