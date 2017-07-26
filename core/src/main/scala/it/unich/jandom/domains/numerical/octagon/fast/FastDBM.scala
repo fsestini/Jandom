@@ -96,3 +96,5 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
     }
   }
 }
+
+case class BottomDBM[M[_], A]() extends FastDBM[M, A]
