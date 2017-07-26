@@ -47,6 +47,10 @@ object VarIndexUtils {
   def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
+sealed trait DBMIxed[M[_,_], A]
+case class CIxed[M[_,_], A](x: M[Closed, A]) extends DBMIxed[M, A]
+case class NCIxed[M[_,_], A](x: M[NonClosed, A]) extends DBMIxed[M, A]
+
 // Trait of Difference Bound Matrices, indexed by the closure state
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
@@ -54,6 +58,8 @@ trait DifferenceBoundMatrix[M[_, _]]
   extends CompleteLattice1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
 
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
+
+  def decideState[S <: DBMState, A](dbm: M[S, A]): DBMIxed[M, A]
 
   // Returns None is the DBM is bottom. Otherwise, Some(element).
   def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A])
