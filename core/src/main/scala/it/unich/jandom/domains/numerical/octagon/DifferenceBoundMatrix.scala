@@ -26,7 +26,7 @@ object VarIndexOps {
   object Positive extends OctaVarCoeff { }
   object Negative extends OctaVarCoeff { }
 
-  def vcAsNumeral[A](c: OctaVarCoeff)(implicit ifield: InfField[A]): A = c match {
+  def vcAsNumeral[A](c: OctaVarCoeff)(implicit ifield: Field[A]): A = c match {
     case Positive => ifield.one
     case Negative => ifield.inverse(ifield.one)
   }
