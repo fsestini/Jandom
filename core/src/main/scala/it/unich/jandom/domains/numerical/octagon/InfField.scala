@@ -6,7 +6,7 @@ import breeze.math.{Field, Ring}
 /**
   * Created by fsestini on 7/10/17.
   */
-trait InfField[@specialized(Double) A] extends Field[A] with Poset[A] {
+trait InfField[@specialized(Double) A] extends Field[A] with Toset[A] {
   def infinity: A
   def max(x: A, y: A): A
   def min(x: A, y: A): A
@@ -41,11 +41,11 @@ object InfField {
     override def half(x: Double): Double = x / 2
     override def double(x: Double): Double = x * 2
 
-    def compare(x: Double, y: Double): Option[Ordering] =
+    def compare(x: Double, y: Double): Ordering =
       (x < y, x == y) match {
-        case (true, _) => Some(LT)
-        case (_, true) => Some(EQ)
-        case _ => Some(GT)
+        case (true, _) => LT
+        case (_, true) => EQ
+        case _ => GT
     }
   }
 }
