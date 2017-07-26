@@ -41,6 +41,8 @@ trait DenseSparseDBM[M[_]] {
   // be a submatrix, as in the decomposed case.
   def varIndices[A](m: M[A]): Seq[VarIndex]
 
+  def update[A](f: (Int, Int) => A)(m: M[A]): M[A]
+
   // closure (incremental or not) may be dense or sparse
   def strongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
   def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): ClosureRes[A]
@@ -51,6 +53,8 @@ trait DenseSparseDBM[M[_]] {
 
   def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
   def pour[A](source: M[A])(dest: M[A]): M[A]
+
+  def nOfVars[A](m: M[A]): Int
 
   // // Utility to combine two matrices only on a subset of elements
   // def combine[A, B, C](f: (A, B) => C,

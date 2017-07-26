@@ -18,8 +18,31 @@ object CFDBMInstance {
   def instance[M[_]] =
     new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, S, A] })#T] {
 
-      def update[S <: DBMState, A](f: (Int, Int) => A)(m: CFastDBM[M, S, A]): ExistsM[A] =
-        ???
+      def update[S <: DBMState, A](f: (Int, Int) => A)(m: CFastDBM[M, S, A]): ExistsM[A] = {
+
+        def aux(m: FastDBM[M, A]): ExistsM[A] = m match {
+          case FullDBM(dbm, dsdbm) =>
+            mkExFun(NCFast(FullDBM(dsdbm.update(f)(dbm), dsdbm)))
+          case DecomposedDBM(completeDBM, indepComponents, rdbm) =>
+            val matrices = indepComponents.map(rdbm.extract(_)(completeDBM))
+            val updatedMatrices = matrices.map(rdbm.update(f)(_))
+            val newMat = updatedMatrices.foldRight(completeDBM)((mat, submat) =>
+              rdbm.pour(submat)(mat)
+            )
+            val newComp = for (i <- 0 until rdbm.nOfVars(completeDBM))
+                            yield VarIndex(i)
+            mkExFun(NCFast(DecomposedDBM(newMat, Seq(newComp.toSeq), rdbm)))
+          case BottomDBM() => mkExFun(NCFast(m))
+        }
+
+        m match {
+          case BottomFast(nOfVars) => mkExFun(BottomFast(nOfVars))
+          case TopFast(nOfVars) => ??? // missing evidence DBM[M]
+          case CFast(dbm) => aux(dbm)
+          case NCFast(dbm) => aux(dbm)
+        }
+
+      }
 
       def incrementalClosure[S <: DBMState, A](v: VarIndex)
                                (dbm: CFastDBM[M, S, A])
