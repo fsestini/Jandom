@@ -96,6 +96,9 @@ object CFDBMInstance {
         (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
         (implicit ifield: InfField[A]): ExistsM[A] =
         ???
+
+      def mkExFun[S <: DBMState, A](fastDBM: CFastDBM[M, S, A]): ExistsM[A] =
+        MkEx[S, ({ type T[S] = CFastDBM[M, S, A]})#T](fastDBM)
     }
 }
 
