@@ -15,6 +15,10 @@ trait Poset [P] {
   def compare(x: P, y: P): Option[Ordering]
 }
 
+trait Toset [T] {
+  def compare(x: T, y: T): Ordering
+}
+
 trait Poset1[P[_]] {
   type PosetConstraint[_]
   def compare[A](x: P[A], y: P[A])(implicit evidence: PosetConstraint[A]): Option[Ordering]
