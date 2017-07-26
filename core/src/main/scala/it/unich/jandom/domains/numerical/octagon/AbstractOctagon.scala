@@ -471,14 +471,11 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[M] =
     assignment(VarIndex(n), lf)
 
-  def linearInequality(lf: LinearForm): AbstractOctagon[M] = {
-    val ex = linearInequalityEx(lf)
-    ex.elem match {
-      case closed: M[Closed, Double] => AbstractOctagon(closed, e)
-      case _: M[NonClosed, Double] =>
-        AbstractOctagon(e.strongClosure(ex.elem), e)
+  def linearInequality(lf: LinearForm): AbstractOctagon[M] =
+    e.decideState(linearInequalityEx(lf).elem) match {
+      case CIxed(closed) => AbstractOctagon(closed, e)
+      case NCIxed(nc) => AbstractOctagon(e.strongClosure(nc), e)
     }
-  }
 
   // TODO: maybe there's a better option?
   def minimize(lf: LinearForm): RationalExt = toInterval.minimize(lf)
