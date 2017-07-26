@@ -51,8 +51,10 @@ object OctagonalConstraint {
                          (c: OctaConstraint[A])
                          (implicit ifield: InfField[B]): OctaConstraint[B] =
     c match {
-      case OctaConstraint(v1, c1, v2, c2, c, e) =>
-        OctaConstraint(v1, c1, v2, c2, f(c), ifield)
+      case SingleConstraint(v, coeff, const, e) =>
+        SingleConstraint(v, coeff, f(const), ifield)
+      case DoubleConstraint(v1, c1, v2, c2, c, e) =>
+        DoubleConstraint(v1, c1, v2, c2, f(c), ifield)
     }
 
   def octaConstrAt[S <: DBMState, A, M[_, _]](i: Int, j: Int, dbm: M[S, A])
