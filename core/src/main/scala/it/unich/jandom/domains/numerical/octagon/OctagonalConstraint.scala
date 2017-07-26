@@ -83,28 +83,26 @@ object OctagonalConstraint {
     }
 
   def constrToLf(dimension: Int)
-                (constr: OctaConstraint[RationalExt]): Option[LinearForm] = {
-    constr match {
-      case OctaConstraint(v1, c1, v2, c2, c, ifield) => {
-        val rc1 = vcAsNumeral(c1)
-        val rc2 = vcAsNumeral(c2)
+                (constr: OctaConstraint[RationalExt]): Option[LinearForm] =
 
-        if (c < RationalExt.PositiveInfinity)
+    constr match {
+      case SingleConstraint(v, coeff, const, ifield) =>
+        if (const < RationalExt.PositiveInfinity) {
+          Some(buildLF({
+            case ConstPos => Some(- const.value)
+            case VarPos(vv) => if (v == vv) Some(vcAsNumeral(coeff)) else None
+          }, dimension))
+        } else None
+      case DoubleConstraint(v1, c1, v2, c2, c, ifield) =>
+        if (c < RationalExt.PositiveInfinity) {
           Some(buildLF({
             case ConstPos => Some(- c.value)
-            case VarPos(v) => if (v1 == v2) {
-              val csum = rc1 + rc2
-              if (csum == 0) None else
-                Some(- (c.value / csum))
-            } else {
-              if (v == v1) Some(rc1)
-              else if (v == v2) Some(rc2)
+            case VarPos(v) =>
+              if (v == v1) Some(vcAsNumeral[Rational](c1))
+              else if (v == v2) Some(- vcAsNumeral[Rational](c2))
               else None
-            }
           }, dimension))
-        else None
-      }
+        } else None
     }
-  }
 
 }
