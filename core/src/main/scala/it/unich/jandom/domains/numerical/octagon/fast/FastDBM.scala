@@ -15,8 +15,65 @@ import scalaz.std.list._
 // the closure operator. We also use closure computations as switching points.
 
 object CFDBMInstance {
-  def instance[M[_]]: DifferenceBoundMatrix[
-    ({ type T[S, A] = CFastDBM[M, S, A] })#T] = ???
+  def instance[M[_]] =
+    new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, S, A] })#T] {
+
+      def update[S <: DBMState, A](f: (Int, Int) => A)(m: CFastDBM[M, S, A]): ExistsM[A] =
+        ???
+
+      def incrementalClosure[S <: DBMState, A](v: VarIndex)
+                               (dbm: CFastDBM[M, S, A])
+        (implicit evidence: InfField[A]): CFastDBM[M, Closed, A] =
+        ???
+
+      def strongClosure[S <: DBMState, A](dbm: CFastDBM[M, S, A])
+                          (implicit evidence: InfField[A]): CFastDBM[M, Closed, A] =
+        ???
+
+      def forget[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
+                                  (implicit ifield: InfField[A]): CFastDBM[M, S, A] = 
+        ???
+
+      def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = ???
+
+      def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A]): Option[A] =
+        ???
+
+      def dbmIntersection[A, R <: DBMState, S <: DBMState]
+        (m1: CFastDBM[M, R, A], m2: CFastDBM[M, S, A])
+        (implicit ifield: InfField[A]): ExistsM[A] = 
+        ???
+
+      def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] = ???
+      def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] = ???
+      def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+        ???
+      def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: CFastDBM[M, S, A])
+                                   (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
+        ???
+
+      def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, S, A], m2: CFastDBM[M, S, A])
+                                    (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
+        ???
+
+      def addScalarOnVar[S <: DBMState, A](vi: VarIndex, const: A)
+                                          (fundbm: CFastDBM[M, S, A])
+                                          (implicit ifield: InfField[A]): CFastDBM[M, S, A] = 
+        ???
+
+      def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, S, A]): Boolean =
+        ???
+
+      def widening[A, R <: DBMState, S <: DBMState]
+        (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
+        (implicit ifield: InfField[A]): ExistsM[A] =
+        ???
+
+      def narrowing[A, R <: DBMState, S <: DBMState]
+        (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
+        (implicit ifield: InfField[A]): ExistsM[A] =
+        ???
+    }
 }
 
 // ADT of "closable" DBMs in their fast implementation from Vechev et al.
