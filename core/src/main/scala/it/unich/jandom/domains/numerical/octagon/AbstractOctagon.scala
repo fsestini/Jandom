@@ -533,6 +533,14 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     fromExDBM(e.mapVariables(converted)(dbm))
   }
 
+  def mkString(vars: Seq[String]): String = {
+    val sss: IndexedSeq[Option[String]] = for {
+      i <- 0 until 2 * e.nOfVars(dbm)
+      j <- 0 until 2 * e.nOfVars(dbm)
+    } yield octaConstrAt(i, j, dbm).map(prettyConstraint(_.toString, vars))
+    cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
+  }
+
   def isEmpty = isBottom
 
   def tryCompareTo[B >: AbstractOctagon[M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
