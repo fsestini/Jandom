@@ -57,12 +57,29 @@ object OctagonalConstraint {
         DoubleConstraint(v1, c1, v2, c2, f(c), ifield)
     }
 
-  def octaConstrAt[S <: DBMState, A, M[_, _]](i: Int, j: Int, dbm: M[S, A])
-                                    (implicit ifield: InfField[A],
-                                     e: DifferenceBoundMatrix[M]): Option[OctaConstraint[A]] =
+  def octaConstrAt[S <: DBMState, A, M[_, _]]
+    (i: Int, j: Int, dbm: M[S, A])
+    (implicit ifield: InfField[A], e: DifferenceBoundMatrix[M]): Option[OctaConstraint[A]] =
+
     (toIndexAndCoeff(i), toIndexAndCoeff(j)) match {
       case ((v1, c1), (v2, c2)) =>
-        e.get(i, j)(dbm).map((c) => OctaConstraint(v1, c1, v2, c2, c, ifield))
+        e.get(i, j)(dbm).flatMap((c) => {
+          val rc1: A = vcAsNumeral[A](c1)
+          val rc2: A = vcAsNumeral[A](c2)
+
+          if (c != RationalExt.PositiveInfinity) {
+            if (v1 == v2) {
+              val csum = ifield.-(rc1, rc2)
+
+              ifield.compare(csum, ifield.zero) match {
+                case EQ => None
+                case GT => Some(SingleConstraint(v1, Positive, ifield./(c, csum), ifield))
+                case LT => Some(SingleConstraint(v1, Negative, ifield./(c, ifield.inverse(csum)), ifield))
+              }
+
+            } else Some(DoubleConstraint(v1, c1, v2, c2, c, ifield))
+          } else None
+        })
     }
 
   def constrToLf(dimension: Int)
