@@ -2,6 +2,7 @@ package it.unich.jandom.domains.numerical.octagon
 
 import breeze.linalg.norm
 import breeze.math.{Field, Ring}
+import it.unich.jandom.utils.numberext.RationalExt
 
 /**
   * Created by fsestini on 7/10/17.
@@ -47,5 +48,28 @@ object InfField {
         case (_, true) => EQ
         case _ => GT
     }
+  }
+
+  implicit object ifieldRationalExt extends InfField[RationalExt] {
+    def infinity: RationalExt = RationalExt.PositiveInfinity
+    def max(x: RationalExt, y: RationalExt): RationalExt = x.max(y)
+    def min(x: RationalExt, y: RationalExt): RationalExt = x.min(y)
+    def half(x: RationalExt): RationalExt = x / 2
+    def double(x: RationalExt): RationalExt = x * 2
+    def /(a: RationalExt, b: RationalExt): RationalExt = a / b
+    def pow(a: RationalExt, b: RationalExt): RationalExt = ???
+    def -(a: RationalExt, b: RationalExt): RationalExt = a - b
+    def %(a: RationalExt, b: RationalExt): RationalExt = ???
+    implicit val normImpl: norm.Impl[RationalExt, Double] = new norm.Impl[RationalExt, Double] {
+      def apply(v: RationalExt): Double = v.abs.toDouble
+    }
+    def compare(x: RationalExt, y: RationalExt): Ordering =
+      if (x == y) EQ else if (x < y) LT else GT
+    def zero: RationalExt = 0
+    def one: RationalExt = 1
+    def +(a: RationalExt, b: RationalExt): RationalExt = a + b
+    def *(a: RationalExt, b: RationalExt): RationalExt = a * b
+    def ==(a: RationalExt, b: RationalExt): Boolean = a == b
+    def !=(a: RationalExt, b: RationalExt): Boolean = a != b
   }
 }
