@@ -5,6 +5,7 @@ import it.unich.jandom.domains.numerical.octagon.VarIndexOps.OctaVarCoeff
 import it.unich.jandom.utils.numberext.RationalExt
 import it.unich.jandom.domains.numerical.octagon.VarIndexOps._
 import spire.math.Rational
+import InfField._
 
 object OctagonalConstraint {
 
