@@ -52,7 +52,8 @@ trait DifferenceBoundMatrix[M[_, _]]
 
   // Returns None is the DBM is bottom. Otherwise, Some(element).
   def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A]): Option[A]
-  def update[S <: DBMState, A](f: (Int, Int) => A)(m: M[S, A]): ExistsM[A]
+  def update[S <: DBMState, A](f: (Int, Int) => A)(m: M[S, A])
+                              (implicit ifield: InfField[A]): ExistsM[A]
 
   // strong closure and incremental closure are assumed to test for emptiness,
   // and return the bottom element in the positive case.
@@ -65,7 +66,7 @@ trait DifferenceBoundMatrix[M[_, _]]
   def narrowing[A, S <: DBMState, T <: DBMState]
     (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A]): ExistsM[A]
   def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
-  def isTopDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
+  def isTopDBM[A, S <: DBMState](dbm: M[S, A])(implicit ifield: InfField[A]): Boolean
   def isBottomDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
   def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
 
