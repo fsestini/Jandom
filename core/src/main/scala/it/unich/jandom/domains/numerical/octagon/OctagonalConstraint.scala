@@ -36,14 +36,14 @@ object OctagonalConstraint {
                          (constr: OctaConstraint[A]): String =
     constr match {
       case SingleConstraint(v, coeff, const, ifield) => coeff match {
-        case Positive => "v" + vars(v) + " <= " + p(const)
-        case Negative => "-v" + vars(v) + " <= " + p(const)
+        case Positive => "v" + vars(v.i) + " <= " + p(const)
+        case Negative => "-v" + vars(v.i) + " <= " + p(const)
       }
       case DoubleConstraint(v1, c1, v2, c2, c, ifield) => (c1, c2) match {
-        case (Positive, Positive) => "v" + vars(v1) + " -" + vars(v2) + " <= " + p(c)
-        case (Positive, Negative) => "v" + vars(v1) + " +" + vars(v2) + " <= " + p(c)
-        case (Negative, Positive) => "-v" + vars(v1) + " -" + vars(v2) + " <= " + p(c)
-        case (Negative, Negative) => "-v" + vars(v1) + " +" + vars(v2) + " <= " + p(c)
+        case (Positive, Positive) => "v" + vars(v1.i) + " -" + vars(v2.i) + " <= " + p(c)
+        case (Positive, Negative) => "v" + vars(v1.i) + " +" + vars(v2.i) + " <= " + p(c)
+        case (Negative, Positive) => "-v" + vars(v1.i) + " -" + vars(v2.i) + " <= " + p(c)
+        case (Negative, Negative) => "-v" + vars(v1.i) + " +" + vars(v2.i) + " <= " + p(c)
       }
     }
 
