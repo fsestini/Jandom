@@ -100,8 +100,12 @@ object CFDBMInstance {
         (implicit ifield: InfField[A]): ExistsM[A] = 
         ???
 
-      def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] = ???
-      def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] = ???
+      def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+        TopFast(nOfVars)
+
+      def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+        BottomFast(nOfVars)
+
       def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
         ???
       def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: CFastDBM[M, S, A])
