@@ -4,7 +4,7 @@ import VarIndexOps._
 
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
-  def liftFromInner(f: FunMatrix[A] => FunMatrix[A]): FunDBM[S, A]
+  def liftFromInner(f: FunMatrix[A] => FunMatrix[A])(implicit ifield: InfField[A]): FunDBM[S, A]
   def union(other: FunDBM[S, A])(implicit infField: InfField[A]): FunDBM[S, A]
   val innerMatrix: Option[FunMatrix[A]]
   def noOfVariables: Int
@@ -13,7 +13,8 @@ sealed trait FunDBM[S, A] {
 case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
   require (m.dimension % 2 == 0)
   def noOfVariables : Int = (m.dimension / 2)
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
+  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
+                            (implicit ifield: InfField[A]): FunDBM[Closed, A] =
     ClosedFunDBM(f(m))
 
   override def union(other: FunDBM[Closed, A])
@@ -33,7 +34,8 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
 case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
   require (m.dimension % 2 == 0)
   def noOfVariables : Int = (m.dimension / 2)
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[NonClosed, A] =
+  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
+                            (implicit ifield: InfField[A]): FunDBM[NonClosed, A] =
     NonClosedFunDBM(f(m))
   def union(other: FunDBM[NonClosed, A])
            (implicit infField: InfField[A]): FunDBM[NonClosed, A] = other match {
