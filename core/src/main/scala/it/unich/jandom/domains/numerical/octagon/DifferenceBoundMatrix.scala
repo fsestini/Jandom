@@ -1,6 +1,8 @@
 package it.unich.jandom.domains.numerical.octagon
 // import scalaz.{Applicative, Monoid}
 
+import breeze.math.Field
+
 import scala.language.higherKinds
 
 sealed trait DBMState
