@@ -44,7 +44,7 @@ case class NCIxed[M[_,_], A](x: M[NonClosed, A]) extends DBMIxed[M, A]
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
 trait DifferenceBoundMatrix[M[_, _]]
-  extends CompleteLattice1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
+  extends Poset1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
 
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
 
