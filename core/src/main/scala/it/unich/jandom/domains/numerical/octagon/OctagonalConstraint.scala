@@ -1,6 +1,6 @@
 package it.unich.jandom.domains.numerical.octagon
 
-import it.unich.jandom.domains.numerical.LinearForm
+import it.unich.jandom.domains.numerical.{DenseLinearForm, LinearForm}
 import it.unich.jandom.domains.numerical.octagon.VarIndexOps.OctaVarCoeff
 import it.unich.jandom.utils.numberext.RationalExt
 import it.unich.jandom.domains.numerical.octagon.VarIndexOps._
@@ -15,7 +15,7 @@ object OctagonalConstraint {
   def buildLF(f: LFPosition => Option[Rational], dimension: Int): LinearForm = {
     def zeroIfNone(x : Option[Rational]): Rational =
       x match { case None => 0 ; case Some(y) => y }
-    LinearForm(
+    DenseLinearForm(
       zeroIfNone(f(ConstPos)) ::
         List.range(0, dimension).map(VarIndex).map((vi) => zeroIfNone(f(VarPos(vi)))))
   }
