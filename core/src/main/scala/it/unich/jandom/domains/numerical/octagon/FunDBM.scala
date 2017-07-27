@@ -6,6 +6,7 @@ import VarIndexOps._
 sealed trait FunDBM[S, A] {
   def liftFromInner(f: FunMatrix[A] => FunMatrix[A])(implicit ifield: InfField[A]): FunDBM[S, A]
   def union(other: FunDBM[S, A])(implicit infField: InfField[A]): FunDBM[S, A]
+  def decideState: DBMIxed[FunDBM, A]
   val innerMatrix: Option[FunMatrix[A]]
   def noOfVariables: Int
 }
