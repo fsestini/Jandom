@@ -221,6 +221,9 @@ object FunDBMInstance {
         case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
       }
     }
+
+    def decideState[S <: DBMState, A](dbm: FunDBM[S, A]): DBMIxed[FunDBM, A] =
+      dbm.decideState
   }
 }
 
