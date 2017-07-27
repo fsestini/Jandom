@@ -195,7 +195,7 @@ object FunDBMInstance {
         m2 <- dbm2.innerMatrix
       } yield me.combine((mij: A, nij: A) =>
         ifield.compare(mij, nij) match {
-          case Some(GT) => mij
+          case GT => mij
           case _ => ifield.infinity
         }
       )(m1, m2)
