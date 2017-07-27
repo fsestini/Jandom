@@ -230,6 +230,15 @@ object FunDBMInstance {
 
     def decideState[S <: DBMState, A](dbm: FunDBM[S, A]): DBMIxed[FunDBM, A] =
       dbm.decideState
+
+    def isTopDBM[A, S <: DBMState](dbm: FunDBM[S, A])
+                                  (implicit ifield: InfField[A]): Boolean =
+      dbm.innerMatrix match {
+        case Some(m) =>
+          me.toList(m)
+            .foldRight(true)((el, b) => el == ifield.infinity && b)
+        case None => false
+      }
   }
 }
 
