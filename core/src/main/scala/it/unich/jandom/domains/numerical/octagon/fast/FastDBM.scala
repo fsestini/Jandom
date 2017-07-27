@@ -32,7 +32,6 @@ object CFDBMInstance {
             val newComp = for (i <- 0 until rdbm.nOfVars(completeDBM))
                             yield VarIndex(i)
             mkExFun(NCFast(DecomposedDBM(newMat, Seq(newComp.toSeq), rdbm)))
-          case BottomDBM() => mkExFun(NCFast(m))
         }
 
         m match {
@@ -78,8 +77,6 @@ object CFDBMInstance {
                 val res = if (i == j) ifield.zero else ifield.infinity
                 Some(res)
             }
-          case BottomDBM() =>
-            None
         }
 
         m match {
@@ -216,5 +213,3 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
     }
   }
 }
-
-case class BottomDBM[M[_], A]() extends FastDBM[M, A]
