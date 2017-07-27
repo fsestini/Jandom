@@ -106,7 +106,8 @@ object FunDBMInstance {
 
     def nOfVars[S <: DBMState, A](m: FunDBM[S, A]): Int = m.noOfVariables
 
-    def get[S <: DBMState, A](i: Int, j: Int)(m: FunDBM[S, A]): Option[A] =
+    def get[S <: DBMState, A](i: Int, j: Int)(m: FunDBM[S, A])
+                             (implicit ifield: InfField[A]): Option[A] =
       m.innerMatrix.map((mmm) => me.get(i, j)(mmm))
 
 //    final case class MkEx[S <: DBMState, M[_]](elem: M[S])

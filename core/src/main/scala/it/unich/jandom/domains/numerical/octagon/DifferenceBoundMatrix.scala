@@ -41,7 +41,8 @@ trait DifferenceBoundMatrix[M[_, _]] {
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
 
   // Returns None is the DBM is bottom. Otherwise, Some(element).
-  def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A]): Option[A]
+  def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A])
+                           (implicit ifield: InfField[A]): Option[A]
   def update[S <: DBMState, A](f: (Int, Int) => A)(m: M[S, A]): ExistsM[A]
 
   // strong closure and incremental closure are assumed to test for emptiness,

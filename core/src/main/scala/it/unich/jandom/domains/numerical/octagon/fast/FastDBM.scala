@@ -59,7 +59,8 @@ object CFDBMInstance {
 
       def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = ???
 
-      def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A]): Option[A] = {
+      def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A])
+                               (implicit ifield: InfField[A]): Option[A] = {
 
         def aux(m: FastDBM[M, A]): Option[A] = m match {
           case FullDBM(dbm, dsdbm) =>
