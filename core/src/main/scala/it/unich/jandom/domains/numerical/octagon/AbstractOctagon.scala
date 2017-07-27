@@ -543,6 +543,8 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
     cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
   }
 
+  def domain: this.Domain = ???
+
   def isEmpty = isBottom
 
   def tryCompareTo[B >: AbstractOctagon[M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
