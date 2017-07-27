@@ -17,7 +17,7 @@ object OctagonalConstraint {
       x match { case None => 0 ; case Some(y) => y }
     LinearForm(
       zeroIfNone(f(ConstPos)) ::
-        List.range(0, dimension).map(VarIndex).map((vi) => zeroIfNone(f(vi))))
+        List.range(0, dimension).map(VarIndex).map((vi) => zeroIfNone(f(VarPos(vi)))))
   }
 
   trait OctaConstraint[A]
