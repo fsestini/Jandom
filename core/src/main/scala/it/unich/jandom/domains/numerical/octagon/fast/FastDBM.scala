@@ -218,6 +218,23 @@ object Utils {
       case BottomFast(n) => n
     }
 
+  def fastInnerMatrix[M[_], S <: DBMState, A](fdbm: FastDBM[M, A]): M[A] =
+    fdbm match {
+      case FullDBM(m: M[A], _) => m
+      case DecomposedDBM(m: M[A], _, _) => m
+    }
+
+  def cfastInnerMatrix[M[_], S <: DBMState, A]
+    (cfdbm: CFastDBM[M, S, A])(implicit ds: DenseSparseDBM[M], ifield: InfField[A]): Option[M[A]] = {
+
+    cfdbm match {
+      case CFast(m: FastDBM[M, A]) => Some(fastInnerMatrix(m))
+      case NCFast(m: FastDBM[M, A]) => Some(fastInnerMatrix(m))
+      case TopFast(n) => Some(ds.pure(ifield.infinity))
+      case BottomFast(_) => None
+    }
+  }
+
 }
 
 object Lol {
