@@ -51,6 +51,8 @@ trait DenseSparseDBM[M[_]] {
 
   def forget[A](v: VarIndex)(m: M[A]): M[A]
 
+  def flipVar[A](v: VarIndex)(m: M[A]): M[A]
+
   //////////////////////////////////////////////////////////////////////////////
 
   def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
