@@ -4,7 +4,7 @@ import VarIndexOps._
 
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
-  def liftFromInner(f: FunMatrix[A] => FunMatrix[A]): FunDBM[S, A]
+  def liftFromInner(f: FunMatrix[A] => FunMatrix[A])(implicit ifield: InfField[A]): FunDBM[S, A]
   def union(other: FunDBM[S, A])(implicit infField: InfField[A]): FunDBM[S, A]
   val innerMatrix: Option[FunMatrix[A]]
   def noOfVariables: Int
