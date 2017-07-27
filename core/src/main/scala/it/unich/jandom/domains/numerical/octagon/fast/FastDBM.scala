@@ -143,9 +143,38 @@ object CFDBMInstance {
         ???
 
       def addScalarOnVar[S <: DBMState, A](vi: VarIndex, const: A)
-                                          (fundbm: CFastDBM[M, S, A])
-                                          (implicit ifield: InfField[A]): CFastDBM[M, S, A] = 
-        ???
+                                          (m: CFastDBM[M, S, A])
+                                          (implicit ifield: InfField[A]): CFastDBM[M, S, A] = {
+
+        def aux(m: FastDBM[M, A]): FastDBM[M, A] = m match {
+          case FullDBM(dbm, dsdbm) =>
+            FullDBM(dsdbm.addScalarOnVar(vi, const)(dbm), dsdbm)
+          case DecomposedDBM(completeDBM, indepComponents, rdbm) =>
+            val comp = indepComponents.find(c => {
+                c.contains(vi)
+              })
+            comp match {
+              case Some(c) =>
+                val subMat = rdbm.extract(c)(completeDBM)
+                val updated = rdbm.addScalarOnVar(vi, const)(subMat)
+                val newMat = rdbm.pour(subMat)(completeDBM)
+                DecomposedDBM(newMat, indepComponents, rdbm)
+              case None =>
+                m
+            }
+        }
+
+        m match {
+          case BottomFast(nOfVars) =>
+            m
+          case TopFast(nOfVars) =>
+            m
+          case CFast(dbm) =>
+            CFast(aux(dbm))
+          case NCFast(dbm) =>
+            NCFast(aux(dbm))
+        }
+      }
 
       def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, S, A]): Boolean =
         ???
