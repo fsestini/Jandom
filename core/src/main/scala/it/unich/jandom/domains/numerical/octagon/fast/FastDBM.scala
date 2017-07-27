@@ -15,7 +15,7 @@ import scalaz.std.list._
 // the closure operator. We also use closure computations as switching points.
 
 object CFDBMInstance {
-  def instance[M[_]] =
+  def instance[M[_]](implicit ds: DenseSparseDBM[M]) =
     new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, S, A] })#T] {
 
       def update[S <: DBMState, A](f: (Int, Int) => A)(m: CFastDBM[M, S, A]): ExistsM[A] = {
