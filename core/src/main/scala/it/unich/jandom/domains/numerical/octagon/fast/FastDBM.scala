@@ -189,8 +189,6 @@ object CFDBMInstance {
         (implicit ifield: InfField[A]): ExistsM[A] =
         ???
 
-      def mkExFun[S <: DBMState, A](fastDBM: CFastDBM[M, S, A]): ExistsM[A] =
-        MkEx[S, ({ type T[S] = CFastDBM[M, S, A]})#T](fastDBM)
     }
 }
 
@@ -204,6 +202,14 @@ case class CFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, Closed, A]
 case class NCFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, NonClosed, A]
 case class TopFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
 case class BottomFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
+
+object Utils {
+
+  def packEx[M[_], S <: DBMState, A](fastDBM: CFastDBM[M, S, A])
+  : ExistsDBM[({ type T[W] = CFastDBM[M, W, A]})#T] =
+    MkEx[S, ({ type T[S] = CFastDBM[M, S, A]})#T](fastDBM)
+
+}
 
 object Lol {
 
