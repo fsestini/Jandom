@@ -239,6 +239,29 @@ object FunDBMInstance {
             .foldRight(true)((el, b) => el == ifield.infinity && b)
         case None => false
       }
+
+    def addVariable[S <: DBMState, A](dbm: FunDBM[S, A])
+                                     (implicit ifield: InfField[A]): FunDBM[S, A] =
+      dbm.liftFromInner((m) => {
+        FunMatrix((i, j) => {
+          if (i < dbm.noOfVariables * 2 && j < dbm.noOfVariables * 2)
+            m(i, j)
+          else ifield.infinity
+        }, dbm.noOfVariables + 1)
+      })
+
+    // Proved with pen and paper that shuffling variables around preserves
+    // closure state.
+    def mapVariables[S <: DBMState, A](f: (VarIndex) => Option[VarIndex])
+                                      (dbm: FunDBM[S, A])
+                                      (implicit ifield: InfField[A]): FunDBM[S, A] =
+      dbm.liftFromInner(VarMapping.mapVariablesAux(f, dbm.noOfVariables))
+
+    def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: FunDBM[S, A])
+                                        (implicit ifield: InfField[A]): FunDBM[S, A] =
+      mapVariables((x : VarIndex) =>
+        if (x.i < v.i) Some(x) else
+        if (x.i == v.i) None else Some(VarIndex(x.i - 1)))(dbm)
   }
 }
 
