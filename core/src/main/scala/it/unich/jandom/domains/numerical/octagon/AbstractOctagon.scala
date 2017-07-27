@@ -518,19 +518,19 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
       case NCIxed(nclosed) => AbstractOctagon(e.strongClosure(nclosed), e)
     }
 
-  def addVariable(): AbstractOctagon[M] = fromExDBM(e.addVariable(dbm))
+  def addVariable(): AbstractOctagon[M] = AbstractOctagon(e.addVariable(dbm), e)
 
   def isTop: Boolean = e.isTopDBM(dbm)
   def isBottom: Boolean = e.isBottomDBM(dbm)
 
   def delVariable(v: Int): AbstractOctagon[M] =
-    fromExDBM(e.deleteVariable(VarIndex(v))(dbm))
+    AbstractOctagon(e.deleteVariable(VarIndex(v))(dbm), e)
 
   def mapVariables(rho: Seq[Int]): AbstractOctagon[M] = {
     def converted: VarIndex => Option[VarIndex] = (vi) =>
       if (vi.i >= rho.length || rho(vi.i) == -1) None
       else Some(VarIndex(rho(vi.i)))
-    fromExDBM(e.mapVariables(converted)(dbm))
+    AbstractOctagon(e.mapVariables(converted)(dbm), e)
   }
 
   def mkString(vars: Seq[String]): String = {
