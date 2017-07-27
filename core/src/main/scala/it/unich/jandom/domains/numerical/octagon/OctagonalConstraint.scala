@@ -90,7 +90,7 @@ object OctagonalConstraint {
         if (const < RationalExt.PositiveInfinity) {
           Some(buildLF({
             case ConstPos => Some(- const.value)
-            case VarPos(vv) => if (v == vv) Some(vcAsNumeral(coeff)) else None
+            case VarPos(vv) => if (v == vv) Some(vcAsNumeral[Rational](coeff)) else None
           }, dimension))
         } else None
       case DoubleConstraint(v1, c1, v2, c2, c, ifield) =>
