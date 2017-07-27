@@ -55,13 +55,14 @@ case class NCIxed[M[_,_], A](x: M[NonClosed, A]) extends DBMIxed[M, A]
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
 trait DifferenceBoundMatrix[M[_, _]]
-  extends CompleteLattice1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
+  extends Poset1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
 
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
 
   def decideState[S <: DBMState, A](dbm: M[S, A]): DBMIxed[M, A]
 
   // Returns None is the DBM is bottom. Otherwise, Some(element).
+
   def get[S <: DBMState, A](i: Int, j: Int)(m: M[S, A])
                            (implicit ifield: InfField[A]): Option[A]
   def update[S <: DBMState, A](f: (Int, Int) => A)(m: M[S, A])
