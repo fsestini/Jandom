@@ -228,7 +228,7 @@ object FunDBMInstance {
 }
 
 // This is the simplified strong closure algorithm from
-// Bagnata et al., Widening Operators for Weakly-Relational Numeric Abstractions.
+// Bagnara et al., Widening Operators for Weakly-Relational Numeric Abstractions.
 //
 // It is a classical Floyd-Warshall, followed by a single strong coherence step.
 //
