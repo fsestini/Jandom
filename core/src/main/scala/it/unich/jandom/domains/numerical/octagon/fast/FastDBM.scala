@@ -209,6 +209,15 @@ object Utils {
   : ExistsDBM[({ type T[W] = CFastDBM[M, W, A]})#T] =
     MkEx[S, ({ type T[S] = CFastDBM[M, S, A]})#T](fastDBM)
 
+  def nOfVars[M[_], S, A](dbm: CFastDBM[M, S, A])
+                         (implicit ds: DenseSparseDBM[M]): Int =
+    dbm match {
+      case CFast(m: FastDBM[M, A]) => ds.nOfVars(fastInnerMatrix(m))
+      case NCFast(m: FastDBM[M, A]) => ds.nOfVars(fastInnerMatrix(m))
+      case TopFast(n) => n
+      case BottomFast(n) => n
+    }
+
 }
 
 object Lol {
