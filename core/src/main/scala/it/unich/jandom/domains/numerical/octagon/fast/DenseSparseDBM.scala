@@ -36,6 +36,8 @@ trait DenseSparseDBM[M[_]] {
   // If closing produces an unsolvable set of constraints, None is returned.
   type ClosureRes[A] = Option[(M[A], NNI, List[List[VarIndex]])]
 
+  def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): Option[A]
+
   // The DBM must be aware of the variables that has under control.
   // We need actual indices. The dimension is not enough as the matrix could
   // be a submatrix, as in the decomposed case.

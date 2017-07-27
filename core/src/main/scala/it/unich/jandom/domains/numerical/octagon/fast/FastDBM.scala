@@ -59,8 +59,40 @@ object CFDBMInstance {
 
       def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = ???
 
-      def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A]): Option[A] =
-        ???
+      def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A]): Option[A] = {
+
+        def aux(m: FastDBM[M, A]): Option[A] = m match {
+          case FullDBM(dbm, dsdbm) =>
+            dsdbm.get(i, j)(dbm)
+          case DecomposedDBM(completeDBM, indepComponents, rdbm) =>
+            val vari = VarIndex(i/2)
+            val varj = VarIndex(j/2)
+            val comp = indepComponents.find(c => {
+                c.contains(vari) && c.contains(varj)
+              })
+            comp match {
+              case Some(_) => 
+                rdbm.get(i, j)(completeDBM)
+              case None =>
+                val res = if (i == j) ifield.zero else ifield.infinity
+                Some(res)
+            }
+          case BottomDBM() =>
+            None
+        }
+
+        m match {
+          case BottomFast(nOfVars) =>
+            None
+          case TopFast(nOfVars) =>
+            val res = if (i == j) ifield.zero else ifield.infinity
+            Some(res)
+          case CFast(dbm) =>
+            aux(dbm)
+          case NCFast(dbm) =>
+            aux(dbm)
+        }
+      }
 
       def dbmIntersection[A, R <: DBMState, S <: DBMState]
         (m1: CFastDBM[M, R, A], m2: CFastDBM[M, S, A])
