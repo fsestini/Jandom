@@ -500,7 +500,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
       (for {
         i <- 0 until e.nOfVars(dbm) * 2
         j <- 0 until e.nOfVars(dbm) * 2
-      } yield octaConstrAt(i, j, dbm)
+      } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
         .map((c) => mapConstraint(temp)(c))
         .flatMap((c) => constrToLf(dimension)(c)))
         .toList
@@ -537,7 +537,8 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
     val sss: IndexedSeq[Option[String]] = for {
       i <- 0 until 2 * e.nOfVars(dbm)
       j <- 0 until 2 * e.nOfVars(dbm)
-    } yield octaConstrAt(i, j, dbm).map(prettyConstraint(_.toString, vars))
+    } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
+      .map(prettyConstraint(_.toString, vars))
     cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
   }
 
