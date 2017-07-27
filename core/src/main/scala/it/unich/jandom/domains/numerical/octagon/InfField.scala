@@ -3,6 +3,7 @@ package it.unich.jandom.domains.numerical.octagon
 import breeze.linalg.norm
 import breeze.math.{Field, Ring}
 import it.unich.jandom.utils.numberext.RationalExt
+import spire.math.Rational
 
 /**
   * Created by fsestini on 7/10/17.
@@ -71,5 +72,23 @@ object InfField {
     def *(a: RationalExt, b: RationalExt): RationalExt = a * b
     def ==(a: RationalExt, b: RationalExt): Boolean = a == b
     def !=(a: RationalExt, b: RationalExt): Boolean = a != b
+  }
+
+  implicit object fieldRational extends Field[Rational] {
+    def /(a: Rational, b: Rational): Rational = a / b
+    def pow(a: Rational, b: Rational): Rational = ???
+    def -(a: Rational, b: Rational): Rational = a - b
+    def %(a: Rational, b: Rational): Rational = a % b
+
+    implicit val normImpl: norm.Impl[Rational, Double] = new norm.Impl[Rational, Double] {
+      def apply(v: Rational): Double = v.abs.toDouble
+    }
+
+    def zero: Rational = 0
+    def one: Rational = 1
+    def +(a: Rational, b: Rational): Rational = a + b
+    def *(a: Rational, b: Rational): Rational = a * b
+    def ==(a: Rational, b: Rational): Boolean = a == b
+    def !=(a: Rational, b: Rational): Boolean = a != b
   }
 }
