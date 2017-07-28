@@ -401,6 +401,46 @@ object Lol {
   def nuffSparse(d: Int, is: NNI): Boolean =
     1.0 - (is.nni / (2*d*d + 2*d)) >= sparseThreshold
 
+  def calculateComponents[M[_], A](dbm: FastDBM[M, A])
+                                   (implicit e: DenseSparseDBM[M],
+                                    ifield: InfField[A]): List[List[VarIndex]] = {
+    val innerMatrix = Utils.fastInnerMatrix(dbm)
+    def related(vi: VarIndex, vj: VarIndex): Boolean = {
+      import VarIndexOps._
+      Set(
+        (varPlus(vi), varPlus(vj)),
+        (varPlus(vi), varMinus(vj)),
+        (varMinus(vi), varPlus(vj)),
+        (varMinus(vi), varMinus(vj))
+      ).filter({ case (i, j) =>
+        i != j
+      }).exists({ case (i, j) =>
+        e.get(i, j)(innerMatrix) match {
+          case Some(v) => ifield.!=(v, ifield.infinity)
+          case None    => false
+        }
+      })
+    }
+
+    val nOfVars = e.nOfVars(innerMatrix)
+    val rels = for (i <- 0 until nOfVars;
+                    vi = VarIndex(i);
+                    j <- 0 until nOfVars;
+                    vj = VarIndex(j);
+                    if related(vi, vj))
+                  yield (vi, vj)
+
+    val indComps =
+      rels.foldLeft(Set[Set[VarIndex]]())({ case (comps, (vi, vj)) =>
+        val compI = comps.find(_.contains(vi)).getOrElse(Set())
+        val compJ = comps.find(_.contains(vj)).getOrElse(Set())
+        val newComp = Set(vi, vj) ++ compI ++ compJ
+        comps.filter(c => !c.contains(vi) && !c.contains(vj)) + newComp
+      })
+
+    indComps.map(_.toList).toList
+  }
+
 }
 
 sealed trait FastDBM[M[_], A] {
@@ -409,7 +449,8 @@ sealed trait FastDBM[M[_], A] {
   : CFastDBM[M, Closed, A] = {
 
     val dbm = Utils.fastInnerMatrix(this)
-    val indepComponents: List[List[VarIndex]] = ???
+    val indepComponents: List[List[VarIndex]] =
+          Lol.calculateComponents(this)
 
     val submatrices = indepComponents.map(seq => rdbm.extract(seq)(dbm))
     Applicative[Option].sequence(
