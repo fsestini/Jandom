@@ -24,7 +24,8 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
   *       operation, if we want to construct a new abstract octagon.
   */
 
-case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMatrix[M]) {
+case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
+                                    e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
   import AbstractOctagon._
   import DBMUtils._
 
@@ -383,7 +384,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
 }
 
 object AbstractOctagon {
-  def fromInterval[M[_,_]] (box: BoxDoubleDomain#Property, e: DifferenceBoundMatrix[M]): AbstractOctagon[M] = {
+  def fromInterval[M[_,_]] (box: BoxDoubleDomain#Property, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] }): AbstractOctagon[M] = {
     require (box.low.size == box.high.size)
     val indices = (0 until box.high.size).map(x => VarIndex(x))
     val chooser = forSomeVar(indices) _
