@@ -3,7 +3,9 @@ import it.unich.jandom.domains.WideningDescription
 import it.unich.jandom.domains.numerical.octagon._
 import scala.language.higherKinds
 
-class OctagonDomain[M[_,_]] private[numerical] () extends NumericalDomain {
+class OctagonDomain[M[_,_]] private[numerical] (
+  e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A]})
+    extends NumericalDomain {
 
   // Copied from BoxDoubleDomain.
   val widenings = Seq(WideningDescription.default[Property])
