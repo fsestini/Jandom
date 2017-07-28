@@ -267,6 +267,25 @@ object FunDBMInstance {
 
     type PosetConstraint[A] = InfField[A]
 
+    def compare[A](x: ExistsDBM[({ type Q[S] = FunDBM[S, A]})#Q],
+                   y: ExistsDBM[({ type Q[S] = FunDBM[S, A]})#Q])
+                  (implicit evidence: InfField[A]): Option[Ordering] = {
+      (x.elem.innerMatrix, y.elem.innerMatrix) match {
+        case (None, None) => Some(EQ)
+        case (Some(_), None) => None
+        case (None, Some(_)) => None
+        case (Some(m1), Some(m2)) => {
+          val l: List[Ordering] = me.combine(evidence.compare)(m1, m2).toList
+          (l.forall(_ == EQ), l.forall(_ == LT), l.forall(_ == GT)) match {
+            case (true, _, _) => Some(EQ)
+            case (_, true, _) => Some(LT)
+            case (_, _, true) => Some(GT)
+            case _ => None
+          }
+        }
+      }
+    }
+
   }
 }
 
