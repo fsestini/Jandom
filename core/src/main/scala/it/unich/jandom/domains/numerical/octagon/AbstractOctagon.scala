@@ -26,24 +26,23 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
 
 case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
                                     e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+  extends NumericalProperty[AbstractOctagon[M]] {
   import AbstractOctagon._
   import DBMUtils._
 
   def dimension: Int = e.nOfVars(dbm)
 
-  def join(other: AbstractOctagon[M])
-    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
-    AbstractOctagon(e.dbmUnion(dbm, other.dbm), e)
+  def union(other: AbstractOctagon[M]): AbstractOctagon[M] =
+    AbstractOctagon(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble), e)
 
-  def meet(other: AbstractOctagon[M])
-    (implicit ifield: InfField[Double]): AbstractOctagon[M] =
+  def intersection(other: AbstractOctagon[M]): AbstractOctagon[M] =
     AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem), e)
 
   def forget(vi: VarIndex): AbstractOctagon[M] =
     AbstractOctagon(e.forget(vi)(dbm), e)
 
-  def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
-  def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e: DifferenceBoundMatrix[M])
+  def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e)
+  def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e)
 
   def widening(other: AbstractOctagon[M]): AbstractOctagon[M] =
     AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm).elem), e)
@@ -111,8 +110,9 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
    *  - [a,b] in Mine06 replaced by c, we don't do range assignments
    *  - j0, i0 replaced by k, l for readability
    *  - Always m_ij if not specified
-   */
-  def linearInequality (lf: LinearForm) = {
+    */
+
+  def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
     sealed abstract class AbstractTest
     case class Fallback() extends AbstractTest
     sealed abstract class ExactTest extends AbstractTest
@@ -301,7 +301,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
         e.incrementalClosure(v)(
           doubleNegativeExactAssignment(v, other, const.toDouble)(matrix, e).elem)
       case None => (matrix) =>
-        e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix, e).elem)
+        e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix).elem)
     }
     AbstractOctagon(f(dbm), e)
   }
@@ -314,12 +314,101 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
 
+  def nonDeterministicAssignment(n: Int): AbstractOctagon[M] =
+    forget(VarIndex(n))
+
+  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[M] =
+    assignment(VarIndex(n), lf)
+
+  def linearInequality(lf: LinearForm): AbstractOctagon[M] =
+    e.decideState(linearInequalityEx(lf).elem) match {
+      case CIxed(closed) => AbstractOctagon(closed, e)
+      case NCIxed(nc) => AbstractOctagon(e.strongClosure(nc), e)
+    }
+
+  // TODO: maybe there's a better option?
+  def minimize(lf: LinearForm): RationalExt = toInterval.minimize(lf)
+
+  // TODO: maybe there's a better option?
+  def maximize(lf: LinearForm): RationalExt = toInterval.maximize(lf)
+
+  // TODO: maybe there's a better option?
+  def frequency(lf: LinearForm): Option[Rational] = toInterval.frequency(lf)
+
+  def cleanup[A](l: List[Option[A]]): List[A] = l match {
+    case Nil => Nil
+    case Some(x) :: xs => x :: cleanup(xs)
+    case None :: xs => cleanup(xs)
+  }
+
+  // Every octagonal constraint in a strongly closed DBM defines a half-space
+  // that actually touches the octagon. [Mine06]
+  def constraints: Seq[LinearForm] = {
+    def temp: Double => RationalExt = ???
+    val l: List[Option[LinearForm]] =
+      (for {
+        i <- 0 until e.nOfVars(dbm) * 2
+        j <- 0 until e.nOfVars(dbm) * 2
+      } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
+        .map((c) => mapConstraint(temp)(c))
+        .flatMap((c) => constrToLf(dimension)(c)))
+        .toList
+
+    cleanup(l)
+  }
+
+  def isPolyhedral: Boolean = true
+
+  type Domain = OctagonDomain
+
   private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[M] =
     e.decideState(eDBM.elem) match {
       case CIxed(closed) => AbstractOctagon(closed, e)
       case NCIxed(nclosed) => AbstractOctagon(e.strongClosure(nclosed), e)
     }
 
+  def addVariable(): AbstractOctagon[M] = fromExDBM(e.addVariable(dbm))
+
+  def isTop: Boolean = e.isTopDBM(dbm)
+  def isBottom: Boolean = e.isBottomDBM(dbm)
+
+  def delVariable(v: Int): AbstractOctagon[M] =
+    fromExDBM(e.deleteVariable(VarIndex(v))(dbm))
+
+  def mapVariables(rho: Seq[Int]): AbstractOctagon[M] = {
+    def converted: VarIndex => Option[VarIndex] = (vi) =>
+      if (vi.i >= rho.length || rho(vi.i) == -1) None
+      else Some(VarIndex(rho(vi.i)))
+    fromExDBM(e.mapVariables(converted)(dbm))
+  }
+
+  def mkString(vars: Seq[String]): String = {
+    val sss: IndexedSeq[Option[String]] = for {
+      i <- 0 until 2 * e.nOfVars(dbm)
+      j <- 0 until 2 * e.nOfVars(dbm)
+    } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
+      .map(prettyConstraint(_.toString, vars))
+    cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
+  }
+
+  def domain: this.Domain = ???
+
+  def isEmpty = isBottom
+
+  type ExistsM[S] = M[S, Double]
+
+  def tryCompareTo[B >: AbstractOctagon[M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
+    that match {
+      case other: AbstractOctagon[M] => {
+        e.compare[Double](
+          MkEx[Closed, ExistsM](dbm),
+          MkEx[Closed, ExistsM](other.dbm)).map {
+          case EQ => 0
+          case LT => -1
+          case GT => 1
+        }
+      }
+    }
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
     (dbm: M[Closed, Double]): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
     // val v = vi.i
