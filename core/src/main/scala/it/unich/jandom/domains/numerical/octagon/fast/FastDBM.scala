@@ -59,37 +59,12 @@ object CFDBMInstance {
       def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
         ???
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
-                                   (implicit ifield: InfField[A]): CFastDBM[M, S, A] = {
-
-        def aux(m: FastDBM[M, A]): FastDBM[M, A] = m match {
-          case FullDBM(dbm, dsdbm) =>
-            FullDBM(dsdbm.flipVar(vi)(dbm), dsdbm)
-          case DecomposedDBM(completeDBM, indepComponents, rdbm) =>
-            val comp = indepComponents.find(c => {
-                c.contains(vi)
-              })
-            comp match {
-              case Some(c) =>
-                val subMat = rdbm.extract(c)(completeDBM)
-                val updated = rdbm.flipVar(vi)(subMat)
-                val newMat = rdbm.pour(subMat)(completeDBM)
-                DecomposedDBM(newMat, indepComponents, rdbm)
-              case None =>
-                m
-            }
-        }
-
-        m match {
-          case BottomFast(nOfVars) =>
-            m
-          case TopFast(nOfVars) =>
-            m
-          case CFast(dbm) =>
-            CFast(aux(dbm))
-          case NCFast(dbm) =>
-            NCFast(aux(dbm))
-        }
-      }
+                                   (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
+        Utils.mapFastDBM[M, S, A](fast =>
+          Utils.mapInnerMatrix[M, A](inner =>
+            ds.flipVar(vi)(inner)
+          )(fast)
+        )(m)
 
       def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, S, A], m2: CFastDBM[M, S, A])
                                     (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
