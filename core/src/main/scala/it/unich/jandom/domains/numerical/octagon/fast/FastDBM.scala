@@ -212,6 +212,17 @@ object Utils {
       case None => packEx(BottomFast(nOfVars(dbm)))
     }
 
+  def mapFastDBM[M[_], S <: DBMState, A](f: FastDBM[M, A] => FastDBM[M, A])
+    (cfdbm: CFastDBM[M, S, A])(implicit ds: DenseSparseDBM[M], ifield: InfField[A]): CFastDBM[M, S, A] = {
+
+    cfdbm match {
+      case CFast(m: FastDBM[M, A]) => CFast(f(m))
+      case NCFast(m: FastDBM[M, A]) => NCFast(f(m))
+      case TopFast(n) => CFast(f(FullDBM(ds.pure(ifield.infinity), ds)))
+      case BottomFast(n) => BottomFast(n)
+    }
+  }
+
 }
 
 object Lol {
