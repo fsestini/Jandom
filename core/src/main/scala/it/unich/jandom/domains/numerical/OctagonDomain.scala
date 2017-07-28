@@ -8,9 +8,6 @@ class OctagonDomain[M[_,_]] private[numerical] () extends NumericalDomain {
   // Copied from BoxDoubleDomain.
   val widenings = Seq(WideningDescription.default[Property])
 
-  def apply(): Property = ???
-
-
   /**
     * @inheritdoc
     * @note @inheritdoc
