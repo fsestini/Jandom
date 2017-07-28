@@ -24,7 +24,5 @@ class OctagonDomain[M[_,_]] private[numerical] (
     */
   def bottom(dimension: Int): Property = AbstractOctagon(e.bottomDBM(dimension), e)
 
-  def mkString(vars: Seq[String]): String = ???
-
   type Property = AbstractOctagon[OctagonDomain[M], M]
 }
