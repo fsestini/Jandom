@@ -63,7 +63,7 @@ trait DenseSparseDBM[M[_]] {
 
   def nOfVars[A](m: M[A]): Int
 
-  def pure[A](x: A): M[A]
+  def pure[A](d: Int, x: A): M[A]
 
   // // Utility to combine two matrices only on a subset of elements
   // def combine[A, B, C](f: (A, B) => C,

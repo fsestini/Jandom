@@ -145,7 +145,7 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, A]) => Some(fastInnerMatrix(m))
       case NCFast(m: FastDBM[M, A]) => Some(fastInnerMatrix(m))
-      case TopFast(n) => Some(ds.pure(ifield.infinity))
+      case TopFast(n) => Some(ds.pure(n, ifield.infinity))
       case BottomFast(_) => None
     }
   }
@@ -172,7 +172,7 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, A]) => CFast(f(m))
       case NCFast(m: FastDBM[M, A]) => NCFast(f(m))
-      case TopFast(n) => CFast(f(FullDBM(ds.pure(ifield.infinity), ds)))
+      case TopFast(n) => CFast(f(FullDBM(ds.pure(n, ifield.infinity), ds)))
       case BottomFast(n) => BottomFast(n)
     }
   }
