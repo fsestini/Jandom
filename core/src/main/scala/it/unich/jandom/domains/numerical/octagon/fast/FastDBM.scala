@@ -343,10 +343,9 @@ object Lol {
 
 sealed trait FastDBM[M[_], A] {
   // Skeleton of strong closure for fast matrices.
-  def strongClosure(implicit ifield: InfField[A])
+  def strongClosure(implicit rdbm: DenseSparseDBM[M], ifield: InfField[A])
   : CFastDBM[M, Closed, A] = {
 
-    val rdbm: DenseSparseDBM[M] = ???
     val dbm = Utils.fastInnerMatrix(this)
     val indepComponents: List[List[VarIndex]] = ???
 
