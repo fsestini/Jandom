@@ -138,7 +138,12 @@ object CFDBMInstance {
         (implicit ifield: InfField[A]): ExistsM[A] =
         ???
 
-      def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): Boolean = ???
+      def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): Boolean =
+        dbm match {
+          case TopFast(_) => true
+          case _ => false
+        }
+
       def addVariable[S <: DBMState, A](dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = ???
       def decideState[S <: DBMState, A](dbm: CFastDBM[M,S,A]): DBMIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A] = ???
       def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = ???
