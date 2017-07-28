@@ -9,7 +9,7 @@ case class FunMatrix[A](fun: (Int, Int) => A, dimension: Int) {
 
   def update(i: Int, j: Int, x: A): FunMatrix[A] = {
     require(0 <= i && i < dimension && 0 <= j && j < dimension)
-    update((ii, jj) => if ((ii, jj) == (i, j)) x else fun(i, j))
+    update((ii, jj) => if (ii == i && jj == j) x else fun(ii, jj))
   }
 
   def update(updater: (Int, Int) => A): FunMatrix[A] =
