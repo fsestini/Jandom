@@ -46,6 +46,7 @@ trait DenseSparseDBM[M[_]] {
   def update[A](f: (Int, Int) => A)(m: M[A]): M[A]
 
   def dbmUnion[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
+  def dbmIntersection[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
 
   // closure (incremental or not) may be dense or sparse
   def strongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
