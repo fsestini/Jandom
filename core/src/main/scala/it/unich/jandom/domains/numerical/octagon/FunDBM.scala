@@ -14,7 +14,8 @@ sealed trait FunDBM[S, A] {
 case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
   require (m.dimension % 2 == 0)
   def noOfVariables : Int = (m.dimension / 2)
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
+  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
+                            (implicit ifield: InfField[A]): FunDBM[Closed, A] =
     ClosedFunDBM(f(m))
 
   override def union(other: FunDBM[Closed, A])
@@ -35,7 +36,8 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
 case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
   require (m.dimension % 2 == 0)
   def noOfVariables : Int = (m.dimension / 2)
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[NonClosed, A] =
+  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
+                            (implicit ifield: InfField[A]): FunDBM[NonClosed, A] =
     NonClosedFunDBM(f(m))
   def union(other: FunDBM[NonClosed, A])
            (implicit infField: InfField[A]): FunDBM[NonClosed, A] = other match {
@@ -48,21 +50,34 @@ case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
 
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
 
+  def decideState: DBMIxed[FunDBM, A] = NCIxed(this)
 }
 
 case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
-    BottomFunDBM[A](noOfVariables)
-  def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] = other
+  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
+                            (implicit ifield: InfField[A]): FunDBM[Closed, A] = {
+    val bogus: FunMatrix[A] =
+      FunMatrix((_, _) => ifield.infinity, noOfVariables * 2)
+    BottomFunDBM(f(bogus).dimension / 2)
+  }
+
+  def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] =
+    { require(noOfVariables == other.noOfVariables) ; other }
 
   val innerMatrix: Option[FunMatrix[A]] = None
+
+  def decideState: DBMIxed[FunDBM, A] = {
+    val dbm: FunDBM[Closed, A] = BottomFunDBM[A](noOfVariables)
+    CIxed(dbm)
+  }
 }
 
 object FunDBMInstance {
   val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
 
   implicit val funDBM: DifferenceBoundMatrix[FunDBM] = new DifferenceBoundMatrix[FunDBM] {
-    def update[S <: DBMState, A](f: (Int, Int) => A)(m: FunDBM[S, A])
+    def update[S <: DBMState, A](f: (Int, Int) => A)
+                                (m: FunDBM[S, A])
                                 (implicit ifield: InfField[A]): ExistsM[A] =
       mkExFun(m.liftFromInner(me.update(f)))
 
@@ -122,7 +137,9 @@ object FunDBMInstance {
       }
     }
 
-    def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = TopFunDBM(nOfVars)(ifield)
+    def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] =
+      ClosedFunDBM(FunMatrix((i, j) => ifield.infinity, nOfVars * 2))
+
     def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
     def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): FunDBM[Closed, A] =
       strongClosure(NonClosedFunDBM(FunMatrix[A](f, d)))
@@ -213,6 +230,9 @@ object FunDBMInstance {
       }
     }
 
+    def decideState[S <: DBMState, A](dbm: FunDBM[S, A]): DBMIxed[FunDBM, A] =
+      dbm.decideState
+
     def isTopDBM[A, S <: DBMState](dbm: FunDBM[S, A])
                                   (implicit ifield: InfField[A]): Boolean =
       dbm.innerMatrix match {
@@ -221,6 +241,32 @@ object FunDBMInstance {
             .foldRight(true)((el, b) => el == ifield.infinity && b)
         case None => false
       }
+
+    def addVariable[S <: DBMState, A](dbm: FunDBM[S, A])
+                                     (implicit ifield: InfField[A]): FunDBM[S, A] =
+      dbm.liftFromInner((m) => {
+        FunMatrix((i, j) => {
+          if (i < dbm.noOfVariables * 2 && j < dbm.noOfVariables * 2)
+            m(i, j)
+          else ifield.infinity
+        }, dbm.noOfVariables + 1)
+      })
+
+    // Proved with pen and paper that shuffling variables around preserves
+    // closure state.
+    def mapVariables[S <: DBMState, A](f: (VarIndex) => Option[VarIndex])
+                                      (dbm: FunDBM[S, A])
+                                      (implicit ifield: InfField[A]): FunDBM[S, A] =
+      dbm.liftFromInner(VarMapping.mapVariablesAux(f, dbm.noOfVariables))
+
+    def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: FunDBM[S, A])
+                                        (implicit ifield: InfField[A]): FunDBM[S, A] =
+      mapVariables((x : VarIndex) =>
+        if (x.i < v.i) Some(x) else
+        if (x.i == v.i) None else Some(VarIndex(x.i - 1)))(dbm)
+
+    type PosetConstraint[A] = InfField[A]
+
   }
 }
 
