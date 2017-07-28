@@ -269,7 +269,24 @@ object CFDBMInstance {
               )(dbm)
           }
 
-      def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])(dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = ???
+      def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])
+          (dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
+        case BottomFast(n) =>
+          val varIndeces = for (i <- 0 until n) yield VarIndex(i)
+          val newN = varIndeces.count(f(_).isDefined)
+          BottomFast(newN)
+        case TopFast(n) =>
+          val varIndeces = for (i <- 0 until n) yield VarIndex(i)
+          val newN = varIndeces.count(f(_).isDefined)
+          BottomFast(newN)
+        case m =>
+          Utils.mapFastDBM[M, S, A](fast =>
+            Utils.mapInnerMatrix[M, A](inner =>
+              ds.mapVariables(f)(inner)
+            )(fast)
+          )(dbm)
+      }
+
       def compare[A](x: ExistsM[A], y: ExistsM[A])(implicit pc: this.PosetConstraint[A]): Option[Ordering] = ???
     }
 }
