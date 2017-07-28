@@ -114,9 +114,6 @@ object FunDBMInstance {
                              (implicit ifield: InfField[A]): Option[A] =
       m.innerMatrix.map((mmm) => me.get(i, j)(mmm))
 
-//    final case class MkEx[S <: DBMState, M[_]](elem: M[S])
-//      extends ExistsDBM[M] { type State = S }
-
     def mkExFun[S <: DBMState, A](funDBM: FunDBM[S, A]): ExistsM[A] =
       MkEx[S, ({ type T[S] = FunDBM[S, A]})#T](funDBM)
 
