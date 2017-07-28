@@ -57,7 +57,8 @@ object CFDBMInstance {
         BottomFast(nOfVars)
 
       def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
-        ???
+        CFast(FullDBM(ds.update(f)(ds.pure(d, ifield.infinity)), ds))
+
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
                                    (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
         Utils.mapFastDBM[M, S, A](fast =>
