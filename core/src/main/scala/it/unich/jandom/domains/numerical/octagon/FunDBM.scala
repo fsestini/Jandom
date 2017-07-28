@@ -24,7 +24,6 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
       require(noOfVariables == other.noOfVariables)
       ClosedFunDBM(me.combine(infField.max)(m, m2))
     }
-    case TopFunDBM(n2) => { require(noOfVariables == other.noOfVariables) ; TopFunDBM(n2)(infField) }
     case BottomFunDBM(n2) => { require(noOfVariables == other.noOfVariables) ; this }
   }
 
@@ -48,15 +47,7 @@ case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
   }
 
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
-}
 
-case class TopFunDBM[A](noOfVariables: Int) (implicit ifield: InfField[A]) extends FunDBM[Closed, A] {
-  override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A]): FunDBM[Closed, A] =
-    TopFunDBM[A](noOfVariables)(ifield)
-  def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] = this
-
-  val innerMatrix: Option[FunMatrix[A]] =
-    Some(FunMatrixMatrixInstance.funMatrixIsMatrix.pure(2 * noOfVariables, ifield.infinity))
 }
 
 case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
