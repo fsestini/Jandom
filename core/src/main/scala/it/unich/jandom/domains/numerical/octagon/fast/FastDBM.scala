@@ -223,6 +223,8 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
                                   indepComponents: Seq[Seq[VarIndex]],
                                   rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] {
 
+  def toFull: FullDBM[M, A] = FullDBM(completeDBM, rdbm)
+
   // Skeleton of strong closure for decomposed matrices.
   def decStrongClosure(m: DecomposedDBM[M, A])
                       (implicit ifield: InfField[A])
