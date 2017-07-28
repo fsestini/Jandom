@@ -192,10 +192,12 @@ object FunDBMInstance {
       })
     }
 
-    def isBottomDBM[A, S <: DBMState](m: FunDBM[S, A]): Boolean = m match {
-      case BottomFunDBM(_) => true
-      case _ => false
-    }
+    def isBottomDBM[A, S <: DBMState](m: FunDBM[S, A])
+                                     (implicit ifield: InfField[A]): Boolean =
+      m match {
+        case BottomFunDBM(_) => true
+        case _ => false
+      }
 
     def widening[A, S <: DBMState, T <: DBMState]
       (dbm1: FunDBM[S, A], dbm2: FunDBM[T, A])

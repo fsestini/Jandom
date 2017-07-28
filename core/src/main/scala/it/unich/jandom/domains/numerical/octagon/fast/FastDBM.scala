@@ -32,7 +32,7 @@ object CFDBMInstance {
         ???
 
       def forget[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
-                                  (implicit ifield: InfField[A]): CFastDBM[M, S, A] = 
+                                  (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
         ???
 
       def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = nOfVars(m)
@@ -43,7 +43,7 @@ object CFDBMInstance {
 
       def dbmIntersection[A, R <: DBMState, S <: DBMState]
         (m1: CFastDBM[M, R, A], m2: CFastDBM[M, S, A])
-        (implicit ifield: InfField[A]): ExistsM[A] = 
+        (implicit ifield: InfField[A]): ExistsM[A] =
         ???
 
       def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
@@ -125,7 +125,8 @@ object CFDBMInstance {
         }
       }
 
-      def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, S, A]): Boolean =
+      def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, S, A])
+                                      (implicit ifield: InfField[A]): Boolean =
         ???
 
       def widening[A, R <: DBMState, S <: DBMState]

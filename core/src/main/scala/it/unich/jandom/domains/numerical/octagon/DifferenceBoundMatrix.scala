@@ -79,8 +79,10 @@ trait DifferenceBoundMatrix[M[_, _]]
   def narrowing[A, S <: DBMState, T <: DBMState]
     (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A]): ExistsM[A]
   def bottomDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
+
   def isTopDBM[A, S <: DBMState](dbm: M[S, A])(implicit ifield: InfField[A]): Boolean
-  def isBottomDBM[A, S <: DBMState](dbm: M[S, A]): Boolean
+  def isBottomDBM[A, S <: DBMState](dbm: M[S, A])(implicit ifield: InfField[A]): Boolean
+
   def topDBM[A](nOfVars : Int)(implicit ifield: InfField[A]) : M[Closed, A]
   def fromFun[A] (d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]) : M[Closed, A]
 
