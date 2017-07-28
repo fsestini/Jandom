@@ -24,30 +24,32 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
   *       operation, if we want to construct a new abstract octagon.
   */
 
-case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
-                                    e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
-  extends NumericalProperty[AbstractOctagon[M]] {
+case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
+  dbm: M[Closed, Double],
+  e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+    extends NumericalProperty[AbstractOctagon[D, M]] {
+
   import AbstractOctagon._
   import DBMUtils._
 
   def dimension: Int = e.nOfVars(dbm)
 
-  def union(other: AbstractOctagon[M]): AbstractOctagon[M] =
+  def union(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     AbstractOctagon(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble), e)
 
-  def intersection(other: AbstractOctagon[M]): AbstractOctagon[M] =
+  def intersection(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem), e)
 
-  def forget(vi: VarIndex): AbstractOctagon[M] =
+  def forget(vi: VarIndex): AbstractOctagon[D, M] =
     AbstractOctagon(e.forget(vi)(dbm), e)
 
   def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e)
   def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e)
 
-  def widening(other: AbstractOctagon[M]): AbstractOctagon[M] =
+  def widening(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm).elem), e)
 
-  def narrowing(other: AbstractOctagon[M]): AbstractOctagon[M] =
+  def narrowing(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     AbstractOctagon(e.strongClosure(e.narrowing(dbm, other.dbm).elem), e)
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
@@ -169,7 +171,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => {
-        val lh = fromInterval[M](toInterval.linearInequality(lf), e)
+        val lh = fromInterval[D, M](toInterval.linearInequality(lf), e)
         def g (i : Int, j : Int) : Double =
           if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
             val interval = this.toInterval
@@ -285,7 +287,7 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
       case _ => None
     }
 
-  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[M] = {
+  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = {
     val f: M[Closed, Double] => M[Closed, Double] = decideLinearForm(v, lf) match {
       case Some(ConstExact(const)) => (m) =>
         e.incrementalClosure(v)(
@@ -314,13 +316,13 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
 
-  def nonDeterministicAssignment(n: Int): AbstractOctagon[M] =
+  def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
     forget(VarIndex(n))
 
-  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[M] =
+  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[D, M] =
     assignment(VarIndex(n), lf)
 
-  def linearInequality(lf: LinearForm): AbstractOctagon[M] =
+  def linearInequality(lf: LinearForm): AbstractOctagon[D, M] =
     e.decideState(linearInequalityEx(lf).elem) match {
       case CIxed(closed) => AbstractOctagon(closed, e)
       case NCIxed(nc) => AbstractOctagon(e.strongClosure(nc), e)
@@ -359,23 +361,23 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
 
   def isPolyhedral: Boolean = true
 
-  type Domain = OctagonDomain
+  type Domain = D
 
-  private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[M] =
+  private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[D, M] =
     e.decideState(eDBM.elem) match {
       case CIxed(closed) => AbstractOctagon(closed, e)
       case NCIxed(nclosed) => AbstractOctagon(e.strongClosure(nclosed), e)
     }
 
-  def addVariable(): AbstractOctagon[M] = AbstractOctagon(e.addVariable(dbm), e)
+  def addVariable(): AbstractOctagon[D, M] = AbstractOctagon(e.addVariable(dbm), e)
 
   def isTop: Boolean = e.isTopDBM(dbm)
   def isBottom: Boolean = e.isBottomDBM(dbm)
 
-  def delVariable(v: Int): AbstractOctagon[M] =
+  def delVariable(v: Int): AbstractOctagon[D, M] =
     AbstractOctagon(e.deleteVariable(VarIndex(v))(dbm), e)
 
-  def mapVariables(rho: Seq[Int]): AbstractOctagon[M] = {
+  def mapVariables(rho: Seq[Int]): AbstractOctagon[D, M] = {
     def converted: VarIndex => Option[VarIndex] = (vi) =>
       if (vi.i >= rho.length || rho(vi.i) == -1) None
       else Some(VarIndex(rho(vi.i)))
@@ -397,9 +399,9 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
 
   type ExistsM[S] = M[S, Double]
 
-  def tryCompareTo[B >: AbstractOctagon[M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
+  def tryCompareTo[B >: AbstractOctagon[D, M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
     that match {
-      case other: AbstractOctagon[M] => {
+      case other: AbstractOctagon[D, M] => {
         e.compare[Double](
           MkEx[Closed, ExistsM](dbm),
           MkEx[Closed, ExistsM](other.dbm)).map {
@@ -473,7 +475,10 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double],
 }
 
 object AbstractOctagon {
-  def fromInterval[M[_,_]] (box: BoxDoubleDomain#Property, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] }): AbstractOctagon[M] = {
+  def fromInterval[D <: NumericalDomain, M[_,_]]
+    (box: BoxDoubleDomain#Property,
+      e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+      : AbstractOctagon[D, M] = {
     require (box.low.size == box.high.size)
     val indices = (0 until box.high.size).map(x => VarIndex(x))
     val chooser = forSomeVar(indices) _
