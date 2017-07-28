@@ -1,6 +1,6 @@
 package it.unich.jandom.domains.numerical.octagon.fast
 
-import it.unich.jandom.domains.numerical.octagon.{InfField, VarIndex}
+import it.unich.jandom.domains.numerical.octagon._
 
 import scala.language.higherKinds
 
@@ -60,6 +60,9 @@ trait DenseSparseDBM[M[_]] {
 
   def addVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
   def deleteVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
+  def mapVariables[A](f: VarIndex => Option[VarIndex])(m: M[A])
+                     (implicit ifield: InfField[A]): M[A]
+  def compare[A](m1: M[A], m2: M[A])(implicit ifield: InfField[A]): Option[Ordering]
 
   //////////////////////////////////////////////////////////////////////////////
 
