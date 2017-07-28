@@ -256,7 +256,18 @@ object CFDBMInstance {
               )(dbm)
           }
 
-      def decideState[S <: DBMState, A](dbm: CFastDBM[M,S,A]): DBMIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A] = ???
+      def decideState[S <: DBMState, A](dbm: CFastDBM[M,S,A]):
+          DBMIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A] =  dbm match {
+          case m @ BottomFast(_) =>
+            CIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A](m)
+          case m @ TopFast(_) =>
+            CIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A](m)
+          case m @ CFast(_) =>
+            CIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A](m)
+          case m @ NCFast(_) =>
+            NCIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A](m)
+        }
+
       def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
             case BottomFast(n) => BottomFast(n-1)
