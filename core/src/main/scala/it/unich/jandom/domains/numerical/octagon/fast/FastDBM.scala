@@ -320,6 +320,9 @@ sealed trait FastDBM[M[_], A] {
       case None => BottomFast(rdbm.varIndices(dbm).length)
     }
   }
+
+    def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
+    : CFastDBM[M, Closed, A] = ???
 }
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
