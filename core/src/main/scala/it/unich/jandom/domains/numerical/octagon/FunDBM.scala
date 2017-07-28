@@ -87,8 +87,10 @@ object FunDBMInstance {
       (implicit evidence: InfField[A]): FunDBM[Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
-          ClosedFunDBM(
-            BagnaraStrongClosure.incrementalClosure(dbm.noOfVariables, v)(m))
+          BagnaraStrongClosure.incrementalClosure(v)(m) match {
+            case Some(closed: FunMatrix[A]) => ClosedFunDBM(closed)
+            case None => BottomFunDBM(dbm.noOfVariables)
+          }
         case None => BottomFunDBM(dbm.noOfVariables)
       }
 
@@ -351,40 +353,29 @@ object BagnaraStrongClosure {
     nullCheck(strengthen(closed))
   }
 
-  def incrementalClosure[A](nOfVars:Int, vi: VarIndex)
-                           (dbm: FunMatrix[A])
-                           (implicit ifield: InfField[A]): FunMatrix[A] = {
-    val p: (Int, Int, Int) => Boolean = (k,i,j) => {
-      k == vi.i || k == signed(vi.i) ||
-      i == vi.i || i == signed(vi.i) ||
-      j == vi.i || j == signed(vi.i)
+  def incrementalClosure[A](vi: VarIndex)(dbm: FunMatrix[A])
+                           (implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
+    val p: ((Int, Int, Int)) => Boolean = {
+      case (k, i, j) =>
+        k == vi.i || k == signed(vi.i) ||
+          i == vi.i || i == signed(vi.i) ||
+          j == vi.i || j == signed(vi.i)
     }
-    val p2: (Int, Int) => Boolean = (i,j) => {
-      i == vi.i || i == signed(vi.i) ||
-      j == vi.i || j == signed(vi.i)
-    }
-    var x = dbm
-    for (k <- 0 until 2 * nOfVars)
-      for (i <- 0 until 2 * nOfVars)
-        for (j <- 0 until 2 * nOfVars)
-          if (p(k,i,j)) {
-            val newVal =
-              ifield.min(
-                me.get(i,j)(x),
-                ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
-            x = me.update(i, j, newVal)(x)
-          }
 
-    for (i <- 0 until 2 * nOfVars)
-      for (j <- 0 until 2 * nOfVars)
-        if (p2(i,j)) {
-          val newVal =
-            ifield.min(
-              me.get(i, j)(x),
-              ifield.+(me.get(i, signed(i))(x), me.get(signed(j), j)(x)))
-          x = me.update(i, j, newVal)(x)
-        }
-    x
+    val iclosed: FunMatrix[A] =
+      (for { k <- 0 until dbm.dimension ;
+             i <- 0 until dbm.dimension ;
+             j <- 0 until dbm.dimension } yield (k, i, j))
+        .filter(p)
+        .foldLeft(dbm)((x, triple) => triple match {
+          case (k, i, j) => {
+            val newVal =
+              ifield.min(me.get(i,j)(x), ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
+            me.update(i, j, newVal)(x)
+          }
+        })
+
+    nullCheck(strengthen(iclosed))
   }
 
 }
