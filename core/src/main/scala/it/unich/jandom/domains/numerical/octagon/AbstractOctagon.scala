@@ -333,19 +333,13 @@ object AbstractOctagon {
 object DBMUtils {
   type ExistsMDouble[M[_,_]] = ExistsDBM[({ type T[S] = M[S, Double]})#T]
 
-  private def forceOption[A](o: Option[A]): A = o match {
-    case Some(x) => x
-    case None => throw new IllegalArgumentException()
-  }
-
-
   def singleConstantExactAssignment[M[_,_], S <: DBMState]
     (v: VarIndex, const: Double)
     (dbm: M[S, Double], e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
     val f: (Int, Int) => Double = (i, j) =>
       if (i == varPlus(v) && j == varMinus(v)) -2 * const else
         if (i == varMinus(v) && j == varPlus(v)) 2 * const else
-          forceOption(e.get(i, j)(e.forget(v)(dbm)))
+          (e.get(i, j)(e.forget(v)(dbm))).get
     e.update(f)(dbm)
   }
 
@@ -365,7 +359,7 @@ object DBMUtils {
                (i == varMinus(vi) && j == varMinus(vother))
       if (g1) -const else
         if (g2) const else
-          forceOption(e.get(i, j)(e.forget(vi)(e.strongClosure(dbm))))
+          (e.get(i, j)(e.forget(vi)(e.strongClosure(dbm)))).get
     }
     e.update(f)(dbm)
   }
@@ -450,7 +444,7 @@ object DBMUtils {
         }
         r match {
           case Some(x) => x
-          case None => forceOption(e.get(i,j)(e.strongClosure(dbm)))
+          case None => (e.get(i,j)(e.strongClosure(dbm))).get
         }
       }
     }
