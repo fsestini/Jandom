@@ -333,9 +333,11 @@ object Utils {
 }
 
 object Lol {
+  val sparseThreshold = 0.5
 
-  def nuffDecomposed(is: List[List[VarIndex]]): Boolean = ???
-  def nuffSparse(d: Int, is: NNI): Boolean = ???
+  def nuffDecomposed(is: List[List[VarIndex]]): Boolean = is.size > 1
+  def nuffSparse(d: Int, is: NNI): Boolean =
+    1.0 - (is.nni / (2*d*d + 2*d)) >= sparseThreshold
 
 }
 
