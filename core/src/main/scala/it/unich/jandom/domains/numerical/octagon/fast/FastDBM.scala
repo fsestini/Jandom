@@ -257,7 +257,18 @@ object CFDBMInstance {
           }
 
       def decideState[S <: DBMState, A](dbm: CFastDBM[M,S,A]): DBMIxed[({ type T[W,B] = CFastDBM[M, W, B]})#T, A] = ???
-      def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = ???
+      def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,S,A])
+          (implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
+            case BottomFast(n) => BottomFast(n-1)
+            case TopFast(n) => TopFast(n-1)
+            case m =>
+              Utils.mapFastDBM[M, S, A](fast =>
+                Utils.mapInnerMatrix[M, A](inner =>
+                  ds.deleteVariable(inner)
+                )(fast)
+              )(dbm)
+          }
+
       def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])(dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = ???
       def compare[A](x: ExistsM[A], y: ExistsM[A])(implicit pc: this.PosetConstraint[A]): Option[Ordering] = ???
     }
