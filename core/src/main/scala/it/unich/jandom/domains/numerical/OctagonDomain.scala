@@ -15,14 +15,14 @@ class OctagonDomain[M[_,_]] private[numerical] (
     * @note @inheritdoc
     * @throws $ILLEGAL
     */
-  def top(dimension: Int): Property = AbstractOctagon(e.topDBM(dimension), e)
+  def top(dimension: Int): Property = AbstractOctagon(e.topDBM(dimension), this, e)
 
   /**
     * @inheritdoc
     * @note @inheritdoc
     * @throws $ILLEGAL
     */
-  def bottom(dimension: Int): Property = AbstractOctagon(e.bottomDBM(dimension), e)
+  def bottom(dimension: Int): Property = AbstractOctagon(e.bottomDBM(dimension), this, e)
 
   type Property = AbstractOctagon[OctagonDomain[M], M]
 }

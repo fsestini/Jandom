@@ -26,31 +26,33 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
 
 case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   dbm: M[Closed, Double],
-  e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+  d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
     extends NumericalProperty[AbstractOctagon[D, M]] {
 
   import AbstractOctagon._
   import DBMUtils._
 
+  private def withDBM(dbm: M[Closed, Double]): AbstractOctagon[D, M] =
+    AbstractOctagon(dbm, d, e)
+
   def dimension: Int = e.nOfVars(dbm)
 
   def union(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
-    AbstractOctagon(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble), e)
+    withDBM(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble))
 
   def intersection(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
-    AbstractOctagon(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem), e)
+    withDBM(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem))
 
-  def forget(vi: VarIndex): AbstractOctagon[D, M] =
-    AbstractOctagon(e.forget(vi)(dbm), e)
+  def forget(vi: VarIndex): AbstractOctagon[D, M] = withDBM(e.forget(vi)(dbm))
 
-  def top = AbstractOctagon(e.topDBM[Double](e.nOfVars(dbm)), e)
-  def bottom = AbstractOctagon(e.bottomDBM[Double](e.nOfVars(dbm)), e)
+  def top = withDBM(e.topDBM[Double](e.nOfVars(dbm)))
+  def bottom = withDBM(e.bottomDBM[Double](e.nOfVars(dbm)))
 
   def widening(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
-    AbstractOctagon(e.strongClosure(e.widening(dbm, other.dbm).elem), e)
+    withDBM(e.strongClosure(e.widening(dbm, other.dbm).elem))
 
   def narrowing(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
-    AbstractOctagon(e.strongClosure(e.narrowing(dbm, other.dbm).elem), e)
+    withDBM(e.strongClosure(e.narrowing(dbm, other.dbm).elem))
 
   def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
     val maybeInterval: Option[(Double, Double)] = for {
@@ -171,7 +173,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => {
-        val lh = fromInterval[D, M](toInterval.linearInequality(lf), e)
+        val lh = fromInterval[D, M](toInterval.linearInequality(lf), d, e)
         def g (i : Int, j : Int) : Double =
           if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
             val interval = this.toInterval
@@ -305,7 +307,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
       case None => (matrix) =>
         e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix).elem)
     }
-    AbstractOctagon(f(dbm), e)
+    withDBM(f(dbm))
   }
 
   sealed trait OctaVarCoeff
@@ -324,8 +326,8 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 
   def linearInequality(lf: LinearForm): AbstractOctagon[D, M] =
     e.decideState(linearInequalityEx(lf).elem) match {
-      case CIxed(closed) => AbstractOctagon(closed, e)
-      case NCIxed(nc) => AbstractOctagon(e.strongClosure(nc), e)
+      case CIxed(closed) => withDBM(closed)
+      case NCIxed(nc) => withDBM(e.strongClosure(nc))
     }
 
   // TODO: maybe there's a better option?
@@ -365,23 +367,23 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 
   private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[D, M] =
     e.decideState(eDBM.elem) match {
-      case CIxed(closed) => AbstractOctagon(closed, e)
-      case NCIxed(nclosed) => AbstractOctagon(e.strongClosure(nclosed), e)
+      case CIxed(closed) => withDBM(closed)
+      case NCIxed(nclosed) => withDBM(e.strongClosure(nclosed))
     }
 
-  def addVariable(): AbstractOctagon[D, M] = AbstractOctagon(e.addVariable(dbm), e)
+  def addVariable(): AbstractOctagon[D, M] = withDBM(e.addVariable(dbm))
 
   def isTop: Boolean = e.isTopDBM(dbm)
   def isBottom: Boolean = e.isBottomDBM(dbm)
 
   def delVariable(v: Int): AbstractOctagon[D, M] =
-    AbstractOctagon(e.deleteVariable(VarIndex(v))(dbm), e)
+    withDBM(e.deleteVariable(VarIndex(v))(dbm))
 
   def mapVariables(rho: Seq[Int]): AbstractOctagon[D, M] = {
     def converted: VarIndex => Option[VarIndex] = (vi) =>
       if (vi.i >= rho.length || rho(vi.i) == -1) None
       else Some(VarIndex(rho(vi.i)))
-    AbstractOctagon(e.mapVariables(converted)(dbm), e)
+    withDBM(e.mapVariables(converted)(dbm))
   }
 
   def mkString(vars: Seq[String]): String = {
@@ -393,7 +395,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
   }
 
-  def domain: this.Domain = ???
+  def domain: this.Domain = d
 
   def isEmpty = isBottom
 
@@ -477,7 +479,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 object AbstractOctagon {
   def fromInterval[D <: NumericalDomain, M[_,_]]
     (box: BoxDoubleDomain#Property,
-      e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+      d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
       : AbstractOctagon[D, M] = {
     require (box.low.size == box.high.size)
     val indices = (0 until box.high.size).map(x => VarIndex(x))
@@ -491,7 +493,7 @@ object AbstractOctagon {
         case (None, None) => Double.PositiveInfinity
       }
     }
-    AbstractOctagon(e.fromFun(box.dimension*2, f), e)
+    AbstractOctagon(e.fromFun(box.dimension*2, f), d, e)
   }
 }
 
