@@ -75,7 +75,8 @@ case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
 object FunDBMInstance {
   val me: Matrix[FunMatrix] = FunMatrixMatrixInstance.funMatrixIsMatrix
 
-  implicit val funDBM: DifferenceBoundMatrix[FunDBM] = new DifferenceBoundMatrix[FunDBM] {
+  implicit val funDBM: DifferenceBoundMatrix[FunDBM] { type PosetConstraint[A] = InfField[A] } =
+    new DifferenceBoundMatrix[FunDBM] {
     def update[S <: DBMState, A](f: (Int, Int) => A)
                                 (m: FunDBM[S, A])
                                 (implicit ifield: InfField[A]): ExistsM[A] =
