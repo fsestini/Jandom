@@ -31,7 +31,6 @@ case class NNI(nni: Int)
 // (for ex., full vs. Apron-style half matrices, or parallel stuff, or w/e)
 trait DenseSparseDBM[M[_]] {
 
-
   def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): Option[A]
 
   // The DBM must be aware of the variables that has under control.
@@ -43,6 +42,9 @@ trait DenseSparseDBM[M[_]] {
 
   def dbmUnion[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
   def dbmIntersection[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
+
+  def widening[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
+  def narrowing[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
 
   // closure (incremental or not) may be dense or sparse
   def strongClosure[A](m: M[A])(implicit e: InfField[A]): Option[M[A]]
