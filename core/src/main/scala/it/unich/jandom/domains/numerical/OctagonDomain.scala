@@ -2,7 +2,9 @@ package it.unich.jandom.domains.numerical
 import it.unich.jandom.domains.WideningDescription
 
 class OctagonDomain private[numerical] () extends NumericalDomain {
-  val widenings = ???
+
+  // Copied from BoxDoubleDomain.
+  val widenings = Seq(WideningDescription.default[Property])
 
   def apply(): Property = ???
 
