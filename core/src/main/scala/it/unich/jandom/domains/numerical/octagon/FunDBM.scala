@@ -96,8 +96,10 @@ object FunDBMInstance {
                         (implicit evidence: InfField[A]): FunDBM[Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
-          ClosedFunDBM(
-            BagnaraStrongClosure.strongClosure(dbm.noOfVariables)(m))
+          BagnaraStrongClosure.strongClosure(m) match {
+            case Some(closed: FunMatrix[A]) => ClosedFunDBM(closed)
+            case None => BottomFunDBM(dbm.noOfVariables)
+          }
         case None => BottomFunDBM(dbm.noOfVariables)
       }
 
@@ -306,29 +308,45 @@ object BagnaraStrongClosure {
 
   private def signed(i: Int) = if (i % 2 == 0) i + 1 else i - 1
 
-  def strongClosure[A](nOfVars: Int)(dbm: FunMatrix[A])
-                      (implicit ifield: InfField[A]): FunMatrix[A] = {
-    var x = dbm
-    for (k <- 0 until 2 * nOfVars)
-      for (i <- 0 until 2 * nOfVars)
-        for (j <- 0 until 2 * nOfVars) {
+  def nullCheck[A](m: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
+    val negative: Boolean = (0 until m.dimension).exists((i) =>
+      ifield.compare(me.get(i, i)(m), ifield.zero) == LT)
+    if (negative) None else {
+      val updater: (Int, Int) => A = (i, j) =>
+        if (i == j) ifield.zero else me.get(i, j)(m)
+      Some(me.update(updater)(m))
+    }
+  }
+
+  def strengthen[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): FunMatrix[A] =
+    (for { i <- 0 until dbm.dimension ;
+           j <- 0 until dbm.dimension } yield (i, j))
+      .foldLeft(dbm)((x, pair) => pair match {
+        case (i, j) => {
           val newVal =
             ifield.min(
-              me.get(i,j)(x),
-              ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
-          x = me.update(i, j, newVal)(x)
+              me.get(i, j)(x),
+              ifield.+(me.get(i, signed(i))(x), me.get(signed(j), j)(x)))
+          me.update(i, j, newVal)(x)
         }
+      })
 
-    for (i <- 0 until 2 * nOfVars)
-      for (j <- 0 until 2 * nOfVars) {
+  def strongClosure[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
+    val closed: FunMatrix[A] = (for {
+      k <- 0 until dbm.dimension
+      i <- 0 until dbm.dimension
+      j <- 0 until dbm.dimension
+    } yield (k, i, j)).foldLeft(dbm)((x, triple) => triple match {
+      case (k, i, j) => {
         val newVal =
           ifield.min(
-            me.get(i, j)(x),
-            ifield.+(
-              me.get(i, signed(i))(x),
-              me.get(signed(j), j)(x)))
+            me.get(i,j)(x),
+            ifield.+(me.get(i,k)(x), me.get(k,j)(x)))
+        me.update(i, j, newVal)(x)
       }
-    x
+    })
+
+    nullCheck(strengthen(closed))
   }
 
   def incrementalClosure[A](nOfVars:Int, vi: VarIndex)
