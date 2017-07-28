@@ -57,6 +57,10 @@ trait DenseSparseDBM[M[_]] {
   def addScalarOnVar[A](v: VarIndex, c: A)(m: M[A])
                        (implicit ifield: InfField[A]): M[A]
 
+
+  def addVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
+  def deleteVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
+
   //////////////////////////////////////////////////////////////////////////////
 
   def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
