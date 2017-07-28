@@ -370,7 +370,7 @@ sealed trait FastDBM[M[_], A] {
   }
 
     def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
-    : CFastDBM[M, Closed, A] = ???
+    : CFastDBM[M, Closed, A]
 }
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
@@ -382,7 +382,13 @@ sealed trait FastDBM[M[_], A] {
 // abstract trait of DBMs that does not talk about sparsity at all (who cares
 // if the implementations use a dense/sparse representation anyway, as long as
 // they provide the needed DBM-like operations?)
-case class FullDBM[M[_], A](dbm: M[A], dsdbm: DenseSparseDBM[M]) extends FastDBM[M, A]
+case class FullDBM[M[_], A](dbm: M[A], dsdbm: DenseSparseDBM[M]) extends FastDBM[M, A] {
+  def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
+    : CFastDBM[M, Closed, A] = dsdbm.incrementalClosure(v)(dbm) match {
+      case Some(m) => CFast(FullDBM(m, dsdbm))
+      case None    => BottomFast(dsdbm.nOfVars(dbm))
+    }
+}
 
 // We store the independent components as a linked list of linked lists of
 // variable indices.
@@ -400,5 +406,23 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
                                   rdbm: DenseSparseDBM[M]) extends FastDBM[M, A] {
 
   def toFull: FullDBM[M, A] = FullDBM(completeDBM, rdbm)
+
+  def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
+    : CFastDBM[M, Closed, A] = {
+      val maybeComp = indepComponents.find(_.contains(v))
+      maybeComp match {
+        case Some(comp) =>
+          val subMat = rdbm.extract(comp)(completeDBM)
+          rdbm.incrementalClosure(v)(subMat) match {
+            case Some(closed) =>
+              val newMat = rdbm.pour(closed)(completeDBM)
+              CFast(DecomposedDBM(newMat, indepComponents, rdbm))
+            case None         =>
+              BottomFast(rdbm.nOfVars(completeDBM))
+          }
+        case None       =>
+          CFast(this)
+      }
+    }
 
 }
