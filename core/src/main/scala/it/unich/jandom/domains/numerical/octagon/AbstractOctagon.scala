@@ -312,6 +312,13 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+
+  private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[M] =
+    e.decideState(eDBM.elem) match {
+      case CIxed(closed) => AbstractOctagon(closed, e)
+      case NCIxed(nclosed) => AbstractOctagon(e.strongClosure(nclosed), e)
+    }
+
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
     (dbm: M[Closed, Double]): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
     // val v = vi.i
