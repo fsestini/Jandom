@@ -335,7 +335,7 @@ object Utils {
 object Lol {
 
   def nuffDecomposed(is: List[List[VarIndex]]): Boolean = ???
-  def nuffSparse(is: NNI): Boolean = ???
+  def nuffSparse(d: Int, is: NNI): Boolean = ???
 
 }
 
