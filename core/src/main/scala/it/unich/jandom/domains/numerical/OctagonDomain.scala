@@ -15,7 +15,7 @@ class OctagonDomain[M[_,_]] private[numerical] (
     * @note @inheritdoc
     * @throws $ILLEGAL
     */
-  def top(dimension: Int): Property = ???
+  def top(dimension: Int): Property = AbstractOctagon(e.topDBM(dimension), e)
 
   /**
     * @inheritdoc
