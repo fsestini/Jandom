@@ -328,7 +328,7 @@ object BagnaraStrongClosure {
           val newVal =
             ifield.min(
               me.get(i, j)(x),
-              ifield.+(me.get(i, signed(i))(x), me.get(signed(j), j)(x)))
+              ifield.half(ifield.+(me.get(i, signed(i))(x), me.get(signed(j), j)(x))))
           me.update(i, j, newVal)(x)
         }
       })
