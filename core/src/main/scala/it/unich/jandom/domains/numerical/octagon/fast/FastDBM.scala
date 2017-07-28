@@ -29,7 +29,12 @@ object CFDBMInstance {
 
       def strongClosure[S <: DBMState, A](dbm: CFastDBM[M, S, A])
                           (implicit evidence: InfField[A]): CFastDBM[M, Closed, A] =
-        ???
+        dbm match {
+          case BottomFast(n) => BottomFast(n)
+          case TopFast(n) => TopFast(n)
+          case CFast(m) => CFast(m)
+          case NCFast(m) => m.strongClosure
+        }
 
       def forget[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
                                   (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
