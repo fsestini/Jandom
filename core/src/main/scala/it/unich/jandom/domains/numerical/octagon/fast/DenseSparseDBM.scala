@@ -31,10 +31,6 @@ case class NNI(nni: Int)
 // (for ex., full vs. Apron-style half matrices, or parallel stuff, or w/e)
 trait DenseSparseDBM[M[_]] {
 
-  // All closures return the number of non-infinite values in the matrix,
-  // and the independent components of the matrix.
-  // If closing produces an unsolvable set of constraints, None is returned.
-  type ClosureRes[A] = Option[(M[A], NNI, List[List[VarIndex]])]
 
   def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): Option[A]
 
@@ -49,8 +45,8 @@ trait DenseSparseDBM[M[_]] {
   def dbmIntersection[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
 
   // closure (incremental or not) may be dense or sparse
-  def strongClosure[A](m: M[A])(implicit e: InfField[A]): ClosureRes[A]
-  def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): ClosureRes[A]
+  def strongClosure[A](m: M[A])(implicit e: InfField[A]): Option[M[A]]
+  def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): Option[M[A]]
 
   def forget[A](v: VarIndex)(m: M[A]): M[A]
 

@@ -286,7 +286,36 @@ object Lol {
 
 }
 
-sealed trait FastDBM[M[_], A]
+sealed trait FastDBM[M[_], A] {
+  // Skeleton of strong closure for fast matrices.
+  def strongClosure(implicit ifield: InfField[A])
+  : CFastDBM[M, Closed, A] = {
+
+    val rdbm: DenseSparseDBM[M] = ???
+    val dbm = Utils.fastInnerMatrix(this)
+    val indepComponents: List[List[VarIndex]] = ???
+
+    val submatrices = indepComponents.map(seq => rdbm.extract(seq)(dbm))
+    Applicative[Option].sequence(
+      submatrices.map(m => rdbm.strongClosure(m)).toList) match {
+
+      case Some(closedSubs) => {
+        val newMatrix = closedSubs.foldRight(dbm)({
+            case (sub, full) => rdbm.pour(sub)(full)
+          })
+
+        if (Lol.nuffDecomposed(indepComponents))
+          CFast(DecomposedDBM(newMatrix, indepComponents, rdbm))
+        else
+          // might be that we have to compute the index of non-infinite terms
+          // during the strong closure above, and pass them to the dbm
+          // constructor.
+          CFast(FullDBM(newMatrix, rdbm))
+      }
+      case None => BottomFast(rdbm.varIndices(dbm).length)
+    }
+  }
+}
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
 // dense or sparse.
@@ -316,34 +345,4 @@ case class DecomposedDBM[M[_], A](completeDBM: M[A],
 
   def toFull: FullDBM[M, A] = FullDBM(completeDBM, rdbm)
 
-  // Skeleton of strong closure for decomposed matrices.
-  def decStrongClosure(m: DecomposedDBM[M, A])
-                      (implicit ifield: InfField[A])
-  : (CFastDBM[M, Closed, A], NNI, List[List[VarIndex]]) = {
-
-    val submatrices = indepComponents.map(seq => rdbm.extract(seq)(completeDBM))
-    Applicative[Option].sequence(
-      submatrices.map(m => rdbm.strongClosure(m)).toList) match {
-
-      case Some(closedSubs) => {
-        val (newMatrix, newNNI, newIndepComps) =
-          closedSubs.foldRight((completeDBM, 0, indepComponents))(
-            (x, y) => (x, y) match {
-              case ((sub, NNI(nni), _), (full, fullNNI, is)) =>
-                (rdbm.pour(sub)(full), nni + fullNNI, is)})
-        val actualNewIndepComponents = ???
-        val m =
-          if (Lol.nuffDecomposed(actualNewIndepComponents))
-            CFast(DecomposedDBM(newMatrix, actualNewIndepComponents, rdbm))
-          else
-            // might be that we have to compute the index of non-infinite terms
-            // during the strong closure above, and pass them to the dbm
-            // constructor.
-            CFast(FullDBM(newMatrix, rdbm))
-
-        (m, NNI(newNNI), actualNewIndepComponents)
-      }
-      case None => (BottomFast(rdbm.varIndices(completeDBM).length), ???, Nil)
-    }
-  }
 }
