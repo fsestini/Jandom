@@ -187,8 +187,51 @@ object CFDBMInstance {
 
       def widening[A, R <: DBMState, S <: DBMState]
         (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
-        (implicit ifield: InfField[A]): ExistsM[A] =
-        ???
+        (implicit ifield: InfField[A]): ExistsM[A] = {
+
+        def aux(m1: FastDBM[M, A], m2: FastDBM[M, A]): FastDBM[M, A] =
+          (m1, m2) match {
+            case (FullDBM(dbm1, dsdbm), FullDBM(dbm2, _)) =>
+              FullDBM(dsdbm.widening(dbm1, dbm2), dsdbm)
+            case (DecomposedDBM(dbm1, comps1, dsdbm), DecomposedDBM(dbm2, comps2, _)) =>
+              val vars1 = comps1.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+              val vars2 = comps2.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+              val vars = vars1 intersect vars2
+              val newComps = comps1.map(_.filter(vars.contains(_)))
+              val matrices = newComps.map(c => {
+                  val sub1 = dsdbm.extract(c)(dbm1)
+                  val sub2 = dsdbm.extract(c)(dbm2)
+                  dsdbm.widening(sub1, sub2)
+                })
+              val newMat = matrices.foldLeft(dbm1)((mat, subMat) =>
+                  dsdbm.pour(subMat)(mat)
+                )
+              DecomposedDBM(newMat, newComps, dsdbm)
+            case (dbm1 @ DecomposedDBM(_, _, _), dbm2 @ FullDBM(_, _)) =>
+              aux(dbm1.toFull, dbm2)
+            case (dbm1 @ FullDBM(_, _), dbm2 @ DecomposedDBM(_, _, _)) =>
+              aux(dbm1, dbm2.toFull)
+          }
+
+        (dbm1, dbm2) match {
+          case (BottomFast(nOfVars), _) =>
+            Utils.packEx(BottomFast(nOfVars))
+          case (_, BottomFast(nOfVars)) =>
+            Utils.packEx(BottomFast(nOfVars))
+          case (TopFast(nOfVars), _) =>
+            Utils.packEx(TopFast(nOfVars))
+          case (_, TopFast(nOfVars)) =>
+            Utils.packEx(TopFast(nOfVars))
+          case (CFast(m1), CFast(m2)) =>
+            Utils.packEx(NCFast(aux(m1, m2)))
+          case (CFast(m1), NCFast(m2)) =>
+            Utils.packEx(NCFast(aux(m1, m2)))
+          case (NCFast(m1), CFast(m2)) =>
+            Utils.packEx(NCFast(aux(m1, m2)))
+          case (NCFast(m1), NCFast(m2)) =>
+            Utils.packEx(NCFast(aux(m1, m2)))
+        }
+      }
 
       def narrowing[A, R <: DBMState, S <: DBMState]
         (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
