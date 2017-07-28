@@ -295,3 +295,40 @@ object BagnaraStrongClosure {
   }
 
 }
+
+object VarMapping {
+
+  def varMapImageSize(f: VarIndex => Option[VarIndex], nOfVars: Int): Int =
+    (0 until nOfVars).map(VarIndex).map((v) => f(v) match {
+      case Some(_) => 1
+      case None => 0
+    }).sum
+
+  def mapVariablesAux[A](f: (VarIndex) => Option[VarIndex], nOfVars: Int)
+                        (m: FunMatrix[A]): FunMatrix[A] = {
+
+    def inverse(f: VarIndex => Option[VarIndex])(v: VarIndex): VarIndex = {
+      val vars: List[Int] = (0 until nOfVars).toList
+      val opts: List[Option[VarIndex]] = vars.map((n) => f(VarIndex(n)) match {
+        case Some(vres) => ???
+        case None => None
+      })
+      val opt: Option[VarIndex] = opts.flatten.headOption
+      opt match {
+        case Some(vres) => vres
+        case None => throw new IllegalArgumentException("inverse out of bounds")
+      }
+    }
+
+    def inverseIx(f: VarIndex => Option[VarIndex])(i: Int): Int =
+      toIndexAndCoeff(i) match {
+        case (v, Positive) => varPlus(inverse(f)(v))
+        case (v, Negative) => varMinus(inverse(f)(v))
+      }
+
+    val newDim: Int = varMapImageSize(f, nOfVars)
+    FunMatrix((i, j) => {
+      m(inverseIx(f)(i), inverseIx(f)(j))
+    }, newDim * 2)
+  }
+}
