@@ -127,7 +127,7 @@ object CFDBMInstance {
 
       def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, S, A])
                                       (implicit ifield: InfField[A]): Boolean =
-        ???
+        Utils.cfastInnerMatrix(m).isEmpty
 
       def widening[A, R <: DBMState, S <: DBMState]
         (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
