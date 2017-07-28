@@ -223,6 +223,14 @@ object Utils {
     }
   }
 
+  def mapInnerMatrix[M[_], A](f: M[A] => M[A])(dbm: FastDBM[M, A])
+                             (implicit ds: DenseSparseDBM[M], ifield: InfField[A]): FastDBM[M, A] = {
+    dbm match {
+      case FullDBM(m, _) => FullDBM(f(m), ds)
+      case DecomposedDBM(m, comps, _) => DecomposedDBM(f(m), comps, ds)
+    }
+  }
+
 }
 
 object Lol {
