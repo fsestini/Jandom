@@ -47,8 +47,54 @@ object CFDBMInstance {
 
       def dbmIntersection[A, R <: DBMState, S <: DBMState]
         (m1: CFastDBM[M, R, A], m2: CFastDBM[M, S, A])
-        (implicit ifield: InfField[A]): ExistsM[A] =
-        ???
+        (implicit ifield: InfField[A]): ExistsM[A] = {
+
+        def aux(m1: FastDBM[M, A], m2: FastDBM[M, A]): FastDBM[M, A] =
+          (m1, m2) match {
+            case (FullDBM(dbm1, dsdbm), FullDBM(dbm2, _)) =>
+              FullDBM(dsdbm.dbmUnion(dbm1, dbm2), dsdbm)
+            case (DecomposedDBM(dbm1, comps1, dsdbm), DecomposedDBM(dbm2, comps2, _)) =>
+              // compute sets of initialized variables, i.e., variables
+              // that can be different from infinity
+              val vars1 = comps1.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+              val vars2 = comps2.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+
+              // create a new component with the variables that can be
+              // different from infinity in the intersection
+              val vars = vars1 union vars2
+              val component = vars.toSeq
+
+              // create new submatrices with the same components
+              val sub1 = dsdbm.extract(component)(dbm1)
+              val sub2 = dsdbm.extract(component)(dbm2)
+
+              val newMat = dsdbm.dbmIntersection(sub1, sub2)
+              DecomposedDBM(newMat, Seq(component), dsdbm)
+            case (dbm1 @ DecomposedDBM(_, _, _), dbm2 @ FullDBM(_, _)) =>
+              aux(dbm1.toFull, dbm2)
+            case (dbm1 @ FullDBM(_, _), dbm2 @ DecomposedDBM(_, _, _)) =>
+              aux(dbm1, dbm2.toFull)
+          }
+
+        (m1, m2) match {
+          case (BottomFast(nOfVars), _) =>
+            Utils.packEx(BottomFast(nOfVars))
+          case (_, BottomFast(nOfVars)) =>
+            Utils.packEx(BottomFast(nOfVars))
+          case (TopFast(_), other) =>
+            Utils.packEx(other)
+          case (other, TopFast(_)) =>
+            Utils.packEx(other)
+          case (CFast(dbm1), CFast(dbm2)) =>
+            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+          case (CFast(dbm1), NCFast(dbm2)) =>
+            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+          case (NCFast(dbm1), CFast(dbm2)) =>
+            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+          case (NCFast(dbm1), NCFast(dbm2)) =>
+            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+        }
+      }
 
       def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
         TopFast(nOfVars)
