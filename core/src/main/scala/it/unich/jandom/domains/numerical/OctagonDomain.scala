@@ -22,7 +22,7 @@ class OctagonDomain[M[_,_]] private[numerical] (
     * @note @inheritdoc
     * @throws $ILLEGAL
     */
-  def bottom(n: Int): Property = ???
+  def bottom(dimension: Int): Property = AbstractOctagon(e.bottomDBM(dimension), e)
 
   def mkString(vars: Seq[String]): String = ???
 
