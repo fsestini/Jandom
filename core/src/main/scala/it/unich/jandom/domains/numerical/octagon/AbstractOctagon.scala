@@ -312,6 +312,67 @@ case class AbstractOctagon[M[_, _]](dbm: M[Closed, Double], e: DifferenceBoundMa
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
   case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+  def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
+    (dbm: M[Closed, Double]): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+    // val v = vi.i
+    val f: (Int, Int) => Double = (i, j) => {
+      if (i == varMinus(vi) && j == varPlus(vi)) {
+        val p = toInterval.linearEvaluation(lf)
+        2 * math.max(p _1, p _2)
+      } else if (i == varPlus(vi) && j == varMinus(vi)) {
+        val p = toInterval.linearEvaluation(lf)
+        - 2 * math.max(p _1, p _2)
+      } else {
+        val g1: VarIndex => Boolean = other =>
+        vi != other && ((i == varPlus(other) && j == varPlus(vi)) ||
+          (i == varMinus(vi) && j == varMinus(other)))
+        val g2: VarIndex => Boolean = other =>
+        vi != other && ((i == varMinus(other) && j == varPlus(vi)) ||
+          (i == varMinus(vi) && j == varPlus(other)))
+        val g3: VarIndex => Boolean = other =>
+        vi != other && ((i == varPlus(vi) && j == varPlus(other)) ||
+          (i == varMinus(other) && j == varMinus(vi)))
+        val g4: VarIndex => Boolean = other =>
+        vi != other && ((i == varPlus(other) && j == varMinus(vi)) ||
+          (i == varPlus(vi) && j == varMinus(other)))
+
+        val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
+        val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
+          case (Some(other), _, _, _) => {
+            val p = toInterval.linearEvaluation(lf - varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case (_, Some(other), _, _) => {
+            val p = toInterval.linearEvaluation(lf + varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case (_, _, Some(other), _) => {
+            val p = toInterval.linearEvaluation(varLf(other, dimension) - lf)
+            Some(math.max(p _1, p _2))
+          }
+          case (_, _, _, Some(other)) => {
+            val p = toInterval.linearEvaluation(- lf - varLf(other, dimension))
+            Some(math.max(p _1, p _2))
+          }
+          case _ => None
+        }
+        r match {
+          case Some(x) => x
+          case None => (e.get(i,j)(e.strongClosure(dbm))).get
+        }
+      }
+    }
+    e.update(f)(dbm)
+  }
+
+  private def varLf(v: VarIndex, dimension: Int): LinearForm = {
+    val sss: Seq[Rational] =
+      (0 to dimension).map(x => if (x == v.i + 1) Rational(1) else Rational(0))
+    new DenseLinearForm(sss)
+  }
+
+  // Evaluation of linear assignment using interval arithmetics.
+  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
 object AbstractOctagon {
@@ -393,66 +454,4 @@ object DBMUtils {
     val mm = singlePositiveExactAssignment(v, const)(m.elem, e)
     MkEx[m.State, ({ type T[A] = M[A, Double] })#T](mm)
   }
-
-  private def varLf(v: VarIndex, dimension: Int): LinearForm = {
-    val sss: Seq[Rational] =
-      (0 to dimension).map(x => if (x == v.i + 1) Rational(1) else Rational(0))
-    new DenseLinearForm(sss)
-  }
-
-  def thruIntervals[M[_,_]](vi: VarIndex, lf: LinearForm, dimension: Int)
-    (dbm: M[Closed, Double],  e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
-    // val v = vi.i
-    val f: (Int, Int) => Double = (i, j) => {
-      if (i == varMinus(vi) && j == varPlus(vi)) {
-        val p = lfAsInterval(vi, lf)
-        2 * math.max(p _1, p _2)
-      } else if (i == varPlus(vi) && j == varMinus(vi)) {
-        val p = lfAsInterval(vi, lf)
-        - 2 * math.max(p _1, p _2)
-      } else {
-        val g1: VarIndex => Boolean = other =>
-        vi != other && ((i == varPlus(other) && j == varPlus(vi)) ||
-          (i == varMinus(vi) && j == varMinus(other)))
-        val g2: VarIndex => Boolean = other =>
-        vi != other && ((i == varMinus(other) && j == varPlus(vi)) ||
-          (i == varMinus(vi) && j == varPlus(other)))
-        val g3: VarIndex => Boolean = other =>
-        vi != other && ((i == varPlus(vi) && j == varPlus(other)) ||
-          (i == varMinus(other) && j == varMinus(vi)))
-        val g4: VarIndex => Boolean = other =>
-        vi != other && ((i == varPlus(other) && j == varMinus(vi)) ||
-          (i == varPlus(vi) && j == varMinus(other)))
-
-        val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
-        val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
-          case (Some(other), _, _, _) => {
-            val p = lfAsInterval(vi, lf - varLf(other, dimension))
-            Some(math.max(p _1, p _2))
-          }
-          case (_, Some(other), _, _) => {
-            val p = lfAsInterval(vi, lf + varLf(other, dimension))
-            Some(math.max(p _1, p _2))
-          }
-          case (_, _, Some(other), _) => {
-            val p = lfAsInterval(vi, varLf(other, dimension) - lf)
-            Some(math.max(p _1, p _2))
-          }
-          case (_, _, _, Some(other)) => {
-            val p = lfAsInterval(vi, - lf - varLf(other, dimension))
-            Some(math.max(p _1, p _2))
-          }
-          case _ => None
-        }
-        r match {
-          case Some(x) => x
-          case None => (e.get(i,j)(e.strongClosure(dbm))).get
-        }
-      }
-    }
-    e.update(f)(dbm)
-  }
-
-  // Evaluation of linear assignment using interval arithmetics.
-  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
