@@ -18,6 +18,8 @@ object CFDBMInstance {
   def instance[M[_]](implicit ds: DenseSparseDBM[M]) =
     new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, S, A] })#T] {
 
+      type PosetConstraint[A] = InfField[A]
+
       def update[S <: DBMState, A](f: (Int, Int) => A)(m: CFastDBM[M, S, A])
                                   (implicit ifield: InfField[A]): ExistsM[A] =
         Utils.liftFromInner(ds.update(f))(m)
@@ -298,7 +300,17 @@ object CFDBMInstance {
           )(dbm)
       }
 
-      def compare[A](x: ExistsM[A], y: ExistsM[A])(implicit pc: this.PosetConstraint[A]): Option[Ordering] = ???
+      def compare[A](x: ExistsM[A], y: ExistsM[A])
+                    (implicit evidence: InfField[A]): Option[Ordering] = {
+        val dbm1: Option[M[A]] = Utils.cfastInnerMatrix(x.elem)
+        val dbm2: Option[M[A]] = Utils.cfastInnerMatrix(y.elem)
+        (dbm1, dbm2) match {
+          case (None, None) => Some(EQ)
+          case (Some(_), None) => None
+          case (None, Some(_)) => None
+          case (Some(m1), Some(m2)) => ds.compare(m1, m2)
+        }
+      }
     }
 }
 
