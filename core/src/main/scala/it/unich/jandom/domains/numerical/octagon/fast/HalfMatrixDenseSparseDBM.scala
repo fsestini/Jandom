@@ -112,7 +112,22 @@ object HalfMatrixDenseSparseInstance {
 
         def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrixDenseSparseDBM[A])
                              (implicit ifield: InfField[A])
-                             : HalfMatrixDenseSparseDBM[A] = ???
+                             : HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) => {
+            val g1 = (i == varPlus(v) && j != varPlus(v) && j != varMinus(v)) ||
+                     (j == varMinus(v) && i != varPlus(v) && i != varMinus(v))
+            val g2 = (i != varPlus(v) && i != varMinus(v) && j == varPlus(v)) ||
+                     (j != varPlus(v) && j != varMinus(v) && i == varMinus(v))
+            val g3 = i == varPlus(v) && j == varMinus(v)
+            val g4 = i == varMinus(v) && j == varPlus(v)
+            if (g1) ifield.-(m.mat(i, j), c) else
+            if (g2) ifield.+(m.mat(i, j), c) else
+            if (g3) ifield.-(m.mat(i, j), ifield.double(c)) else
+            if (g4) ifield.+(m.mat(i, j), ifield.double(c)) else
+              m.mat(i, j)
+          }
+          update(f)(m)
+        }
 
 
         def addVariable[A](m: HalfMatrixDenseSparseDBM[A])
