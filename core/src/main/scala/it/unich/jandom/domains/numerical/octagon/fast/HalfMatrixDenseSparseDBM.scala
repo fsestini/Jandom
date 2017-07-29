@@ -150,7 +150,15 @@ object HalfMatrixDenseSparseInstance {
                       : HalfMatrixDenseSparseDBM[A] = ???
         def pour[A](source: HalfMatrixDenseSparseDBM[A])
                    (dest: HalfMatrixDenseSparseDBM[A])
-                   : HalfMatrixDenseSparseDBM[A] = ???
+                   : HalfMatrixDenseSparseDBM[A] = {
+          val sourceElemIndeces = varsToIndeces(source.indeces)
+          val f = (i: Int, j: Int) =>
+            if (sourceElemIndeces.contains((i, j)))
+              source.mat(i, j)
+            else
+              dest.mat(i, j)
+          update(f)(dest)
+        }
 
         def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): Int = ???
 
