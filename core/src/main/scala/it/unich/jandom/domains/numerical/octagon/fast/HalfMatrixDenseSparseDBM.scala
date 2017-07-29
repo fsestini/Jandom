@@ -71,7 +71,11 @@ object HalfMatrixDenseSparseInstance {
         def narrowing[A](m1: HalfMatrixDenseSparseDBM[A],
                          m2: HalfMatrixDenseSparseDBM[A])
                        (implicit e: InfField[A])
-                       : HalfMatrixDenseSparseDBM[A] = ???
+                       : HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) =>
+              if (m1.mat(i, j) == e.infinity) m2.mat(i, j) else m1.mat(i, j)
+          update(f)(m1)
+        }
 
         def strongClosure[A](m: HalfMatrixDenseSparseDBM[A])
                          (implicit e: InfField[A])
