@@ -11,7 +11,7 @@ object HalfMatrixDenseSparseInstance {
     val instance = new DenseSparseDBM[HalfMatrixDenseSparseDBM] {
 
         def get[A](i: Int, j: Int)(m: HalfMatrixDenseSparseDBM[A])
-                  (implicit e: InfField[A]): Option[A] = ???
+                  (implicit e: InfField[A]): Option[A] = Some(m.mat(i, j))
 
         def varIndices[A](m: HalfMatrixDenseSparseDBM[A]): Seq[VarIndex] = ???
 
