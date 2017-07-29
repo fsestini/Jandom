@@ -51,7 +51,7 @@ object CFDBMInstance {
           )(fast)
         )(m)
 
-      def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = nOfVars(m)
+      def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = Utils.nOfVars(m)
 
       def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A])
                                (implicit ifield: InfField[A]): Option[A] =
