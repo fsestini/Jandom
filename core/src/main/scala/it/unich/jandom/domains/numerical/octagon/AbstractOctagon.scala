@@ -115,50 +115,51 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
    *  - j0, i0 replaced by k, l for readability
    *  - Always m_ij if not specified
     */
+  private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+    val lh = fromInterval[D, M](toInterval.linearInequality(lf), d, e)
+    def g (i : Int, j : Int) : Double =
+      if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
+        val interval = this.toInterval
+        2*(interval.maximize(LinearForm.v(i/2) - lf).doubleValue())
+      } else if (i == j-1 & j%2 == 0 & j/2 <= lf.dimension) { // Case 2 with j/2 = j0
+        val interval = this.toInterval
+        2*(interval.maximize(LinearForm.v(j/2) - lf).doubleValue())
+      } else if ((i%2 == 1 & j%2 == 1 & i != j & (i+1)/2 <= lf.dimension & (j+1)/2 <= lf.dimension)
+        // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
+        |(i%2 == 0 & j%2 == 0 & i != j & i/2 <= lf.dimension & j/2 < lf.dimension)
+        // Case 3b, i/2 = i0, j/2 = j0
+      ) {
+        val interval = this.toInterval
+        val j0 = (j+1)/2
+        val i0 = (i+1)/2
+        2*(interval.maximize(LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
+      } else if (i%2 == 0 & j%2 == 1 & j != i-1 & (i/2) <= lf.dimension & (j+1)/2 <= lf.dimension) {
+        // Case 4, i0 = i/2, j0 = j+1/2
+        val interval = this.toInterval
+        val j0 = (j+1)/2
+        val i0 = i/2
+        2*(interval.maximize(LinearForm.v(j0) + LinearForm.v(i0) - lf).doubleValue())
+      } else if (i%2 == 1 & j%2 == 0 & i != j-1  & (j/2) <= lf.dimension & (i+1)/2 <= lf.dimension) {
+        // Case 5, j0 = j, i0 = (i+1)/2
+        val interval = this.toInterval
+        val j0 = j/2
+        val i0 = (i+1)/2
+        2*(interval.maximize(- LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
+      } else {
+        // id case
+        e.get(i,j)(dbm).get
+      }
+    val f = (i : Int, j : Int) => math.min(
+      e.get(i,j)(dbm).get,
+          g(i,j)
+    )
+    e.update(f)(dbm)
+  }
 
   def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
     val t : AbstractTest = decodeTest(lf)
     t match {
-      case Fallback() => {
-        val lh = fromInterval[D, M](toInterval.linearInequality(lf), d, e)
-        def g (i : Int, j : Int) : Double =
-          if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
-            val interval = this.toInterval
-            2*(interval.maximize(LinearForm.v(i/2) - lf).doubleValue())
-          } else if (i == j-1 & j%2 == 0 & j/2 <= lf.dimension) { // Case 2 with j/2 = j0
-            val interval = this.toInterval
-            2*(interval.maximize(LinearForm.v(j/2) - lf).doubleValue())
-          } else if ((i%2 == 1 & j%2 == 1 & i != j & (i+1)/2 <= lf.dimension & (j+1)/2 <= lf.dimension)
-                     // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
-                    |(i%2 == 0 & j%2 == 0 & i != j & i/2 <= lf.dimension & j/2 < lf.dimension)
-                     // Case 3b, i/2 = i0, j/2 = j0
-                    ) {
-            val interval = this.toInterval
-            val j0 = (j+1)/2
-            val i0 = (i+1)/2
-            2*(interval.maximize(LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
-          } else if (i%2 == 0 & j%2 == 1 & j != i-1 & (i/2) <= lf.dimension & (j+1)/2 <= lf.dimension) {
-            // Case 4, i0 = i/2, j0 = j+1/2
-            val interval = this.toInterval
-            val j0 = (j+1)/2
-            val i0 = i/2
-            2*(interval.maximize(LinearForm.v(j0) + LinearForm.v(i0) - lf).doubleValue())
-          } else if (i%2 == 1 & j%2 == 0 & i != j-1  & (j/2) <= lf.dimension & (i+1)/2 <= lf.dimension) {
-            // Case 5, j0 = j, i0 = (i+1)/2
-            val interval = this.toInterval
-            val j0 = j/2
-            val i0 = (i+1)/2
-            2*(interval.maximize(- LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
-          } else {
-            // id case
-            e.get(i,j)(dbm).get
-          }
-        val f = (i : Int, j : Int) => math.min(
-          e.get(i,j)(dbm).get,
-          g(i,j)
-        )
-        e.update(f)(dbm)
-      }
+      case Fallback() => fallbackUpdate(lf)
       case et : ExactTest => {
         val f = et match {
           case Case1Test(vl, c) => {
