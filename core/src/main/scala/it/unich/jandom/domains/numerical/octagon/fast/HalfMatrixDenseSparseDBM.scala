@@ -50,7 +50,10 @@ object HalfMatrixDenseSparseInstance {
         def dbmIntersection[A](m1: HalfMatrixDenseSparseDBM[A],
                                m2: HalfMatrixDenseSparseDBM[A])
                               (implicit e: InfField[A])
-                              : HalfMatrixDenseSparseDBM[A] = ???
+                              : HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) => e.min(m1.mat(i, j), m2.mat(i, j))
+          update(f)(m1)
+        }
 
         def widening[A](m1: HalfMatrixDenseSparseDBM[A],
                         m2: HalfMatrixDenseSparseDBM[A])
