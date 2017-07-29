@@ -436,40 +436,41 @@ object AbstractOctagon {
   /**
     * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
     */
-  private[octagon] def decodeTest (lf : LinearForm) : AbstractTest =
-    if ( !lf.homcoeffs.exists { !List(1,-1).contains(_) }
-      | lf.homcoeffs.size > 2) {
+  private[octagon] def decodeTest (lf : LinearForm) : AbstractTest = {
+    require (lf.coeffs.size > 0)
+    if ( lf.homcoeffs.exists { !List(1,0,-1).contains(_) }
+       | lf.homcoeffs.filter(_ != 0).size > 2
+       | lf.homcoeffs.filter(_ != 0).size == 0
+       // TODO: perhaps case (c,0,0...,0) needs is a special case of one of the others?
+    ) {
       Fallback()
       // Mine06 fig 20 does not give an exact abstraction for > 2
-      // coeffs or coeffs != 1, -1
-    } else if (lf.coeffs.size == 0) {
-      throw new IllegalArgumentException("???")
-      // Surely 0+0+...+0<=0?
-      // TODO: perhaps this is a legit use case, consider removing
+      // coeffs != 0 or any coeffs != 1, -1
     } else {
       val c = lf.known
-      if (lf.homcoeffs.size == 1) {
+      val nonZeroPairs = lf.pairs.filter(_._2 != 0)
+      if (nonZeroPairs.size == 1) {
         // Cases 1, 2
-        val vl = lf.pairs.head
+        val vl = nonZeroPairs.head
         if (vl._2 == 1)
           Case1Test (vl._1, c)
         else {
-          assert(vl._2 == -1)
+          require(vl._2 == -1)
           Case2Test (vl._1, c)
         }
-      } else if (lf.homcoeffs.size == 2) {
-        if (lf.homcoeffs.exists(_ == 1)) {
+      } else if (nonZeroPairs.size == 2) {
+        if (nonZeroPairs.exists(_._2 == 1)) {
           // Cases 3, 4
-          val vl = lf.pairs.filter(_._2 == 1).head
-          val vk = lf.pairs.diff(List(vl)).head
+          val vl = nonZeroPairs.filter(_._2 == 1).head
+          val vk = nonZeroPairs.diff(List(vl)).head
           if (vk._2 == -1)
             Case3Test (vl._1, vk._1, c)
           else
             Case4Test (vl._1, vk._1, c)
         } else {
           // Case 5
-          val vl = lf.pairs.head
-          val vk = lf.pairs.diff(List(vl)).head
+          val vl = nonZeroPairs.head
+          val vk = nonZeroPairs.diff(List(vl)).head
           Case5Test (vl._1, vk._1, c)
         }
       } else {
@@ -477,6 +478,7 @@ object AbstractOctagon {
         throw new RuntimeException("If you got here my logic is broken, sorry...")
       }
     }
+  }
 
   def fromInterval[D <: NumericalDomain, M[_,_]]
     (box: BoxDoubleDomain#Property,
