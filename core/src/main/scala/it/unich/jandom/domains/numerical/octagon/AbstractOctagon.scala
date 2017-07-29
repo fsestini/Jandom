@@ -117,59 +117,6 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     */
 
   def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
-    sealed abstract class AbstractTest
-    case class Fallback() extends AbstractTest
-    sealed abstract class ExactTest extends AbstractTest
-    case class Case1Test(val vl : Int, val c : Rational) extends ExactTest
-    case class Case2Test(val vl : Int, val c : Rational) extends ExactTest
-    case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
-    case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
-    case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
-    /**
-      * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
-      */
-    def decodeTest (lf : LinearForm) : AbstractTest =
-      if ( !lf.homcoeffs.exists { !List(1,-1).contains(_) }
-        | lf.homcoeffs.size > 2) {
-        Fallback()
-        // Mine06 fig 20 does not give an exact abstraction for > 2
-        // coeffs or coeffs != 1, -1
-      } else if (lf.coeffs.size == 0) {
-        throw new IllegalArgumentException("???")
-        // Surely 0+0+...+0<=0?
-        // TODO: perhaps this is a legit use case, consider removing
-      } else {
-        val c = lf.known
-        if (lf.homcoeffs.size == 1) {
-          // Cases 1, 2
-          val vl = lf.pairs.head
-          if (vl._2 == 1)
-            Case1Test (vl._1, c)
-          else {
-            assert(vl._2 == -1)
-            Case2Test (vl._1, c)
-          }
-        } else if (lf.homcoeffs.size == 2) {
-          if (lf.homcoeffs.exists(_ == 1)) {
-            // Cases 3, 4
-            val vl = lf.pairs.filter(_._2 == 1).head
-            val vk = lf.pairs.diff(List(vl)).head
-            if (vk._2 == -1)
-              Case3Test (vl._1, vk._1, c)
-            else
-              Case4Test (vl._1, vk._1, c)
-          } else {
-            // Case 5
-            val vl = lf.pairs.head
-            val vk = lf.pairs.diff(List(vl)).head
-            Case5Test (vl._1, vk._1, c)
-          }
-        } else {
-          // TODO: temporary, eventually remove
-          throw new RuntimeException("If you got here my logic is broken, sorry...")
-        }
-      }
-
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => {
@@ -476,7 +423,61 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
+sealed abstract class AbstractTest
+case class Fallback() extends AbstractTest
+sealed abstract class ExactTest extends AbstractTest
+case class Case1Test(val vl : Int, val c : Rational) extends ExactTest
+case class Case2Test(val vl : Int, val c : Rational) extends ExactTest
+case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+
 object AbstractOctagon {
+  /**
+    * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
+    */
+  private[octagon] def decodeTest (lf : LinearForm) : AbstractTest =
+    if ( !lf.homcoeffs.exists { !List(1,-1).contains(_) }
+      | lf.homcoeffs.size > 2) {
+      Fallback()
+      // Mine06 fig 20 does not give an exact abstraction for > 2
+      // coeffs or coeffs != 1, -1
+    } else if (lf.coeffs.size == 0) {
+      throw new IllegalArgumentException("???")
+      // Surely 0+0+...+0<=0?
+      // TODO: perhaps this is a legit use case, consider removing
+    } else {
+      val c = lf.known
+      if (lf.homcoeffs.size == 1) {
+        // Cases 1, 2
+        val vl = lf.pairs.head
+        if (vl._2 == 1)
+          Case1Test (vl._1, c)
+        else {
+          assert(vl._2 == -1)
+          Case2Test (vl._1, c)
+        }
+      } else if (lf.homcoeffs.size == 2) {
+        if (lf.homcoeffs.exists(_ == 1)) {
+          // Cases 3, 4
+          val vl = lf.pairs.filter(_._2 == 1).head
+          val vk = lf.pairs.diff(List(vl)).head
+          if (vk._2 == -1)
+            Case3Test (vl._1, vk._1, c)
+          else
+            Case4Test (vl._1, vk._1, c)
+        } else {
+          // Case 5
+          val vl = lf.pairs.head
+          val vk = lf.pairs.diff(List(vl)).head
+          Case5Test (vl._1, vk._1, c)
+        }
+      } else {
+        // TODO: temporary, eventually remove
+        throw new RuntimeException("If you got here my logic is broken, sorry...")
+      }
+    }
+
   def fromInterval[D <: NumericalDomain, M[_,_]]
     (box: BoxDoubleDomain#Property,
       d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
