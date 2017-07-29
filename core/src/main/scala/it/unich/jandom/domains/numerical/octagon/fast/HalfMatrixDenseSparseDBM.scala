@@ -95,7 +95,20 @@ object HalfMatrixDenseSparseInstance {
         }
 
         def flipVar[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
-                      : HalfMatrixDenseSparseDBM[A] = ???
+                      : HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) =>
+            if (i == varPlus(v) || i == varMinus(v))
+              if (j == varPlus(v) || j == varMinus(v))
+                m.mat(signed(i), signed(j))
+              else
+                m.mat(signed(i), j)
+            else
+              if (j == varPlus(v) || j == varMinus(v))
+                m.mat(i, signed(j))
+              else
+                m.mat(i, j)
+          update(f)(m)
+        }
 
         def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrixDenseSparseDBM[A])
                              (implicit ifield: InfField[A])
