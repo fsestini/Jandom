@@ -58,7 +58,16 @@ object HalfMatrixDenseSparseInstance {
         def widening[A](m1: HalfMatrixDenseSparseDBM[A],
                         m2: HalfMatrixDenseSparseDBM[A])
                        (implicit e: InfField[A])
-                       : HalfMatrixDenseSparseDBM[A] = ???
+                       : HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) => {
+            e.compare(m1.mat(i, j), m2.mat(i, j)) match {
+              case GT => m1.mat(i, j)
+              case _ => e.infinity
+            }
+          }
+          update(f)(m1)
+        }
+
         def narrowing[A](m1: HalfMatrixDenseSparseDBM[A],
                          m2: HalfMatrixDenseSparseDBM[A])
                        (implicit e: InfField[A])
