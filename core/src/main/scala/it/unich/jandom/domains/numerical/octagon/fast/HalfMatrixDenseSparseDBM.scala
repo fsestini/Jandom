@@ -42,7 +42,11 @@ object HalfMatrixDenseSparseInstance {
 
         def dbmUnion[A](m1: HalfMatrixDenseSparseDBM[A],
                         m2: HalfMatrixDenseSparseDBM[A])
-                       (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = ???
+                       (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) => e.max(m1.mat(i, j), m2.mat(i, j))
+          update(f)(m1)
+        }
+
         def dbmIntersection[A](m1: HalfMatrixDenseSparseDBM[A],
                                m2: HalfMatrixDenseSparseDBM[A])
                               (implicit e: InfField[A])
