@@ -164,6 +164,11 @@ object HalfMatrixDenseSparseInstance {
 
         def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): Int = ???
 
-        def pure[A](d: Int, x: A): HalfMatrixDenseSparseDBM[A] = ???
+        def pure[A](d: Int, x: A): HalfMatrixDenseSparseDBM[A] = {
+          val mat = new HalfMatrix(d, x)
+          val indeces = 0 until d map (VarIndex(_))
+          HalfMatrixDenseSparseDBM(mat, indeces, d)
+        }
+
     }
 }
