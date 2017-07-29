@@ -237,8 +237,16 @@ object CFDBMInstance {
 
       def narrowing[A, R <: DBMState, S <: DBMState]
         (dbm1: CFastDBM[M, R, A], dbm2: CFastDBM[M, S, A])
-        (implicit ifield: InfField[A]): ExistsM[A] =
-        ???
+        (implicit ifield: InfField[A]): ExistsM[A] = {
+        val nOfVars = Utils.nOfVars(dbm1)
+        (Utils.cfastInnerMatrix(dbm1), Utils.cfastInnerMatrix(dbm2)) match {
+          case (None, _) => Utils.packEx(BottomFast(nOfVars))
+          case (_, None) => Utils.packEx(BottomFast(nOfVars))
+          case (Some(m1), Some(m2)) =>
+            val newMat = ds.narrowing(m1, m2)
+            Utils.packEx(NCFast(FullDBM(newMat, ds)))
+        }
+      }
 
       def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): Boolean =
         dbm match {
