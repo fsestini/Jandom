@@ -85,7 +85,14 @@ object HalfMatrixDenseSparseInstance {
                                  : Option[HalfMatrixDenseSparseDBM[A]] = ???
 
         def forget[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
-                     : HalfMatrixDenseSparseDBM[A] = ???
+                     (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = {
+          val f = (i: Int, j: Int) =>
+            if (toIndexAndCoeff(i)._1 == v || toIndexAndCoeff(j)._1 == v)
+              if (i == j) e.zero else e.infinity
+            else
+              m.mat(i, j)
+          update(f)(m)
+        }
 
         def flipVar[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
                       : HalfMatrixDenseSparseDBM[A] = ???

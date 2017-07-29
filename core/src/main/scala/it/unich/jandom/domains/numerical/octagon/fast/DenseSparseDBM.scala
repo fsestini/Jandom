@@ -50,7 +50,7 @@ trait DenseSparseDBM[M[_]] {
   def strongClosure[A](m: M[A])(implicit e: InfField[A]): Option[M[A]]
   def incrementalClosure[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): Option[M[A]]
 
-  def forget[A](v: VarIndex)(m: M[A]): M[A]
+  def forget[A](v: VarIndex)(m: M[A])(implicit e: InfField[A]): M[A]
 
   def flipVar[A](v: VarIndex)(m: M[A]): M[A]
 
