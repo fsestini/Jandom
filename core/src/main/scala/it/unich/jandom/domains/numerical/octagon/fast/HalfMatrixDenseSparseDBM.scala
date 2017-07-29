@@ -147,7 +147,9 @@ object HalfMatrixDenseSparseInstance {
         //////////////////////////////////////////////////////////////////////////////
 
         def extract[A](is: Seq[VarIndex])(m: HalfMatrixDenseSparseDBM[A])
-                      : HalfMatrixDenseSparseDBM[A] = ???
+                      : HalfMatrixDenseSparseDBM[A] =
+          HalfMatrixDenseSparseDBM(m.mat, is, m.dimension)
+
         def pour[A](source: HalfMatrixDenseSparseDBM[A])
                    (dest: HalfMatrixDenseSparseDBM[A])
                    : HalfMatrixDenseSparseDBM[A] = {
