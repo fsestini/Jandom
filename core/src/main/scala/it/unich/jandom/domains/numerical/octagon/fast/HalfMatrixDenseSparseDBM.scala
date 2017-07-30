@@ -82,7 +82,7 @@ object HalfMatrixDenseSparseInstance {
         def strongClosure[A](m: HalfMatrixDenseSparseDBM[A])
                          (implicit e: InfField[A])
                          : Option[HalfMatrixDenseSparseDBM[A]] =
-          if (Lol.nuffSparse(m.dimension, computeSparsity(m)))
+          if (FastDbmUtils.nuffSparse(m.dimension, computeSparsity(m)))
             sparseStrongClosure(m)
           else
             denseStrongClosure(m)

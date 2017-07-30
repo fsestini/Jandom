@@ -402,7 +402,7 @@ object Utils {
 
 }
 
-object Lol {
+object FastDbmUtils {
   val sparseThreshold = 0.5
 
   def nuffDecomposed(is: List[List[VarIndex]]): Boolean = is.size > 1
@@ -458,7 +458,7 @@ sealed trait FastDBM[M[_], A] {
 
     val dbm = Utils.fastInnerMatrix(this)
     val indepComponents: List[List[VarIndex]] =
-          Lol.calculateComponents(this)
+          FastDbmUtils.calculateComponents(this)
 
     val submatrices = indepComponents.map(seq => rdbm.extract(seq)(dbm))
     Applicative[Option].sequence(
@@ -469,7 +469,7 @@ sealed trait FastDBM[M[_], A] {
             case (sub, full) => rdbm.pour(sub)(full)
           })
 
-        if (Lol.nuffDecomposed(indepComponents))
+        if (FastDbmUtils.nuffDecomposed(indepComponents))
           CFast(DecomposedDBM(newMatrix, indepComponents, rdbm))
         else
           // might be that we have to compute the index of non-infinite terms
