@@ -116,39 +116,79 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     *  - Always m_ij if not specified
     */
   private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
-    val lh = fromInterval[D, M](toInterval.linearInequality(lf), d, e)
-    def g (i : Int, j : Int) : Double =
-      if (j == i-1 & i%2 == 0 & i/2 <= lf.dimension) { // Case 1 with i/2 = j0
-        val interval = this.toInterval
-        2*(interval.maximize(LinearForm.v(i/2) - lf).doubleValue())
-      } else if (i == j-1 & j%2 == 0 & j/2 <= lf.dimension) { // Case 2 with j/2 = j0
-        val interval = this.toInterval
-        2*(interval.maximize(LinearForm.v(j/2) - lf).doubleValue())
-      } else if ((i%2 == 1 & j%2 == 1 & i != j & (i+1)/2 <= lf.dimension & (j+1)/2 <= lf.dimension)
-        // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
-        |(i%2 == 0 & j%2 == 0 & i != j & i/2 <= lf.dimension & j/2 < lf.dimension)
-        // Case 3b, i/2 = i0, j/2 = j0
-      ) {
-        val interval = this.toInterval
-        val j0 = (j+1)/2
-        val i0 = (i+1)/2
-        2*(interval.maximize(LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
-      } else if (i%2 == 0 & j%2 == 1 & j != i-1 & (i/2) <= lf.dimension & (j+1)/2 <= lf.dimension) {
-        // Case 4, i0 = i/2, j0 = j+1/2
-        val interval = this.toInterval
-        val j0 = (j+1)/2
-        val i0 = i/2
-        2*(interval.maximize(LinearForm.v(j0) + LinearForm.v(i0) - lf).doubleValue())
-      } else if (i%2 == 1 & j%2 == 0 & i != j-1  & (j/2) <= lf.dimension & (i+1)/2 <= lf.dimension) {
-        // Case 5, j0 = j, i0 = (i+1)/2
-        val interval = this.toInterval
-        val j0 = j/2
-        val i0 = (i+1)/2
-        2*(interval.maximize(- LinearForm.v(j0) - LinearForm.v(i0) - lf).doubleValue())
+    def inverseVarPlus = inverseVarPlusMinus(VarIndexOps.Positive, this.dimension, _: Int)
+    def inverseVarMinus = inverseVarPlusMinus(VarIndexOps.Negative, this.dimension, _: Int)
+    /**
+      * Computes enhanced fallback abstraction according to Mine06 fig. 21, ie:
+      *
+      * ({ e<= 0?}(m))_{ij} = min(m_{ij}, m'_{ij})
+      *
+      * The cases for m'_{ij} are:
+      *
+      *  1.  2*max (Int (V_j0 - e))
+      *  2. -2*max (int(-V_j0 - e))
+      *  3a. max(Int(V_j0 - V_i0 - e))
+      *  3b.    "   "   "
+      *  4.  max(Int( V_j0 + V_i0- e))
+      *  5.  max(Int(-V_j0 - V_i0- e))
+      *  6. id
+      *
+      * Visually the cases for fallback map as follows:
+      *
+      *     |+ |- |+ |- |+ |- |
+      *   --+=====+--+--+--+--+
+      *    +|id|1 |3b|4 |3b|4 |
+      *   --+--+--+--+--+--+--+
+      *    -| 2|id|5 |3a|5 |3a|
+      *   --+=====+=====+--+--+
+      *    +|3b|4 |id|1 |3b|4 |
+      *   --+--+--+--+--+--+--+
+      *    -|5 |3a| 2|id|5 |3a|
+      *   --+--+--+=====+=====+
+      *    +|3b|4 |3b|1 |id|1 |
+      *   --+--+--+--+--+--+--+
+      *    -|5 |3a|5 |3a| 2|id|
+      *   --+--+--+--+--+=====+
+      */
+    def g (i: Int, j: Int) : Double = {
+      if (inverseVarPlus(i) != None & inverseVarMinus(j) != None
+        & inverseVarPlus(i) == inverseVarMinus(j)
+      ) { // Case 1 with i/2 = j0
+        val j0 = inverseVarPlus(i).get
+        2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+     } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
+       & inverseVarMinus(i) == inverseVarPlus(j)
+      ) { // Case 2 with j/2 = j0
+        val j0 = inverseVarPlus(j).get
+        -2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+      } else if (inverseVarMinus(j) != None & inverseVarMinus(i) != None
+        & inverseVarMinus(i) != inverseVarMinus(j)
+      ) { // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
+        val j0 = inverseVarMinus(j).get
+        val i0 = inverseVarMinus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarPlus(j) != None & inverseVarPlus(i) != None
+        & inverseVarPlus(i) != inverseVarPlus(j)
+      ) { // Case 3b, i/2 = i0, j/2 = j0
+        val j0 = inverseVarPlus(j).get
+        val i0 = inverseVarPlus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarMinus(j) != None & inverseVarPlus(i) != None
+        & inverseVarMinus(j) != inverseVarPlus(i)
+      ) { // Case 4, i0 = i/2, j0 = j+1/2
+        val j0 = inverseVarMinus(j).get
+        val i0 = inverseVarPlus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) + LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
+        & inverseVarPlus(j) != inverseVarMinus(i)
+      ) { // Case 5, j0 = j, i0 = (i+1)/2
+        val j0 = inverseVarPlus(j).get
+        val i0 = inverseVarMinus(i).get
+        this.toInterval.maximize(- LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
       } else {
-        // id case
         e.get(i,j)(dbm).get
       }
+    }
     val f = (i : Int, j : Int) => math.min(
       e.get(i,j)(dbm).get,
           g(i,j)
