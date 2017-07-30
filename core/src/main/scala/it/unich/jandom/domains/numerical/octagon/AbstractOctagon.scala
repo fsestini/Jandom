@@ -92,28 +92,28 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   def linearDisequality (lf: LinearForm) = this
 
   /**
-   * Intersection with the half-plane `lf <= 0`.
-   *
-   * Computed according to Mine06; particularly, 5 cases for an exact
-   * abstraction are given, otherwise the intersection is computed by
-   * fallback on intervals.
-   *
-   * The cases given in Mine06 fig 20 are as follows:
-   *
-   *  1. ({ V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l, j=2l-1
-   *  2. ({-V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l-1, j=2l
-   *  3. ({V_l - V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i=2k-1, j=2l-1
-   *                                                     or i=2l, j=2k
-   *  4. ({V_l + V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k, j = 2l - 1
-   *                                                     or i = 2l, j = 2k - 1
-   *  5. ({-V_l - V_k + c <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k - 1, j = 2l
-   *                                                     or i = 2l - 1, j = 2k
-   *  6. Fallback on interval-based abstraction
-   *
-   * Notes:
-   *  - [a,b] in Mine06 replaced by c, we don't do range assignments
-   *  - j0, i0 replaced by k, l for readability
-   *  - Always m_ij if not specified
+    * Intersection with the half-plane `lf <= 0`.
+    *
+    * Computed according to Mine06; particularly, 5 cases for an exact
+    * abstraction are given, otherwise the intersection is computed by
+    * fallback on intervals.
+    *
+    * The cases given in Mine06 fig 20 are as follows:
+    *
+    *  1. ({ V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l, j=2l-1
+    *  2. ({-V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l-1, j=2l
+    *  3. ({V_l - V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i=2k-1, j=2l-1
+    *                                                     or i=2l, j=2k
+    *  4. ({V_l + V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k, j = 2l - 1
+    *                                                     or i = 2l, j = 2k - 1
+    *  5. ({-V_l - V_k + c <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k - 1, j = 2l
+    *                                                     or i = 2l - 1, j = 2k
+    *  6. Fallback on interval-based abstraction
+    *
+    * Notes:
+    *  - [a,b] in Mine06 replaced by c, we don't do range assignments
+    *  - j0, i0 replaced by k, l for readability
+    *  - Always m_ij if not specified
     */
   private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
     val lh = fromInterval[D, M](toInterval.linearInequality(lf), d, e)
