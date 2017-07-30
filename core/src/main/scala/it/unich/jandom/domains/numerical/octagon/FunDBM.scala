@@ -279,8 +279,8 @@ object FunDBMInstance {
                   (implicit evidence: InfField[A]): Option[Ordering] = {
       (x.elem.innerMatrix, y.elem.innerMatrix) match {
         case (None, None) => Some(EQ)
-        case (Some(_), None) => None
-        case (None, Some(_)) => None
+        case (Some(_), None) => Some(GT)
+        case (None, Some(_)) => Some(LT)
         case (Some(m1), Some(m2)) => {
           val l: List[Ordering] = me.combine(evidence.compare)(m1, m2).toList
           (l.forall(_ == EQ), l.forall(_ == LT), l.forall(_ == GT)) match {
