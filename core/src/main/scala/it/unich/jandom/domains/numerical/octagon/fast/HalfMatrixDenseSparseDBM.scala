@@ -89,7 +89,11 @@ object HalfMatrixDenseSparseInstance {
 
         def incrementalClosure[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
                                  (implicit e: InfField[A])
-                                 : Option[HalfMatrixDenseSparseDBM[A]] = ???
+                                 : Option[HalfMatrixDenseSparseDBM[A]] =
+          if (FastDbmUtils.nuffSparse(m.dimension, computeSparsity(m)))
+            denseIncrementalClosure(v)(m)
+          else
+            sparseIncrementalClosure(v)(m)
 
         def forget[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
                      (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = {
@@ -250,6 +254,11 @@ object HalfMatrixDenseSparseDBM {
   def denseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])
                         (implicit ifield: InfField[A]) = ???
   def sparseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])
+                         (implicit ifield: InfField[A]) = ???
+
+  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
+                        (implicit ifield: InfField[A]) = ???
+  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
                          (implicit ifield: InfField[A]) = ???
 }
 
