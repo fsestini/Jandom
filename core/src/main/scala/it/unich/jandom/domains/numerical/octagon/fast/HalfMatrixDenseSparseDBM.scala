@@ -132,7 +132,21 @@ object HalfMatrixDenseSparseInstance {
 
         def addVariable[A](m: HalfMatrixDenseSparseDBM[A])
                           (implicit ifield: InfField[A])
-                          : HalfMatrixDenseSparseDBM[A] = ???
+                          : HalfMatrixDenseSparseDBM[A] = {
+          val nOfVars = m.mat.dimension + 1
+          val newVar = VarIndex(nOfVars-1)
+          val newMat = new HalfMatrix(nOfVars, ifield.infinity)
+                            .update(varPlus(newVar),
+                                    varPlus(newVar),
+                                    ifield.zero)
+                            .update(varPlus(newVar),
+                                    varPlus(newVar),
+                                    ifield.zero)
+          pour(m)(HalfMatrixDenseSparseDBM(newMat,
+                                           m.indeces :+ newVar,
+                                           nOfVars))
+        }
+
         def deleteVariable[A](m: HalfMatrixDenseSparseDBM[A])
                              (implicit ifield: InfField[A])
                              : HalfMatrixDenseSparseDBM[A] = ???
