@@ -202,42 +202,42 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
       case Fallback() => fallbackUpdate(lf)
       case et : ExactTest => {
         val f = et match {
-          case Case1Test(vl, c) => {
+          case Case1Test(vj, c) => {
             (i : Int, j : Int) =>
-            if (i == 2*vl & j == 2*vl - 1)
+            if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
               math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
-          case Case2Test(vl, c) => {
+          case Case2Test(vj, c) => {
             (i : Int, j : Int) =>
-            if (i == 2*vl-1& j == 2*vl)
+            if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
               math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
-          case Case3Test(vl, vk, c) => {
+          case Case3Test(vj, vi, c) => {
             (i : Int, j : Int) =>
-            if ((i == 2*vk-1 & j == 2*vl-1)
-              | (i == 2*vk & j == 2*vl)
+            if ((i == varPlus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
+              | (i == varMinus(VarIndex(vi)) & j == varMinus(VarIndex(vj)))
             )
               math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
-          case Case4Test(vl, vk, c) => {
+          case Case4Test(vj, vi, c) => {
             (i : Int, j : Int) =>
-            if ((i == 2*vk & j == 2*vl-1)
-              | (i == 2*vl & j == 2*vk-1)
+            if ((i == varMinus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
+              | (i == varPlus(VarIndex(vj)) & j == varPlus(VarIndex(vi)))
             )
               math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
-          case Case5Test(vl, vk, c) => {
+          case Case5Test(vj, vi, c) => {
             (i : Int, j : Int) =>
-            if ((i == 2*vk-1 & j == 2*vl)
-              | (i == 2*vl-1 & j == 2*vk)
+            if ((i == varPlus(VarIndex(vi)) & j == varMinus(VarIndex(vj)))
+              | (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
             )
               math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
             else
@@ -467,11 +467,11 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 sealed abstract class AbstractTest
 case class Fallback() extends AbstractTest
 sealed abstract class ExactTest extends AbstractTest
-case class Case1Test(val vl : Int, val c : Rational) extends ExactTest
-case class Case2Test(val vl : Int, val c : Rational) extends ExactTest
-case class Case3Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
-case class Case4Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
-case class Case5Test(val vl : Int, val vk : Int, val c : Rational) extends ExactTest
+case class Case1Test(val vj : Int, val c : Rational) extends ExactTest
+case class Case2Test(val vj : Int, val c : Rational) extends ExactTest
+case class Case3Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
+case class Case4Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
+case class Case5Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
 
 object AbstractOctagon {
   /**
