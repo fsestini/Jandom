@@ -39,6 +39,10 @@ object VarIndexOps {
   def toIndexAndCoeff(i: Int): (VarIndex, OctaVarCoeff) =
     if (i % 2 == 0) (VarIndex(i / 2), Positive)
     else (VarIndex((i - 1) / 2), Negative)
+  def fromIndexAndCoeff(vi: VarIndex, c: OctaVarCoeff): Int = c match {
+    case Positive => varPlus(vi)
+    case Negative => varMinus(vi)
+  }
 }
 
 object VarIndexUtils {
