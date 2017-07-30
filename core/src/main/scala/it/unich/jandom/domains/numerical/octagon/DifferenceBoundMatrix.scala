@@ -36,6 +36,10 @@ object VarIndexOps {
   def varPlus(v: VarIndex): Int = 2 * v.i
   def varMinus(v: VarIndex): Int = 2 * v.i + 1
   def signed(i: Int): Int = if (i % 2 == 0) i + 1 else i - 1
+
+  def inverseVarPlusMinus(coeff: OctaVarCoeff, dimension: Int, i: Int): Option[VarIndex] =
+    if (0 <= i && i < dimension && toIndexAndCoeff(i)._2 == coeff)
+      Some(toIndexAndCoeff(i)._1) else None
   def toIndexAndCoeff(i: Int): (VarIndex, OctaVarCoeff) =
     if (i % 2 == 0) (VarIndex(i / 2), Positive)
     else (VarIndex((i - 1) / 2), Negative)
