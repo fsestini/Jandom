@@ -41,7 +41,7 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
     new HalfMatrix(vec.updated(elementIndex(i, j), x), dimension)
   }
 
-  // def update(updater: (Int, Int) => A): HalfMatrix[A] = ???
+  def update(updater: (Int, Int) => A): HalfMatrix[A] = ???
 
   def apply(i: Int, j: Int): A = {
     require(0 <= i && i < dimension && 0 <= j && j < dimension)
