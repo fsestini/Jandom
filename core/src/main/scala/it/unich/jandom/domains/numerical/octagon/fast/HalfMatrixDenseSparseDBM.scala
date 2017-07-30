@@ -4,7 +4,7 @@ import it.unich.jandom.domains.numerical.octagon._
 import VarIndexOps._
 
 case class HalfMatrixDenseSparseDBM[A](mat: HalfMatrix[A],
-                                       indeces: Seq[VarIndex],
+                                       indices: Seq[VarIndex],
                                        dimension: Int)
 
 object HalfMatrixDenseSparseInstance {
@@ -12,12 +12,12 @@ object HalfMatrixDenseSparseInstance {
 
         import HalfMatrixDenseSparseDBM._
 
-        private def varsToIndeces(indeces: Seq[VarIndex]): Seq[(Int, Int)] = {
-          val varIndeces = for (vi <- indeces;
-                                vj <- indeces;
+        private def varsToIndices(indices: Seq[VarIndex]): Seq[(Int, Int)] = {
+          val varIndices = for (vi <- indices;
+                                vj <- indices;
                                 if vi >= vj) yield (vi, vj)
 
-          varIndeces.flatMap({ case (vi, vj) =>
+          varIndices.flatMap({ case (vi, vj) =>
             Seq(
               (varPlus(vi), varPlus(vj)),
               (varPlus(vi), varMinus(vj)),
@@ -30,16 +30,16 @@ object HalfMatrixDenseSparseInstance {
         def get[A](i: Int, j: Int)(m: HalfMatrixDenseSparseDBM[A])
                   (implicit e: InfField[A]): Option[A] = Some(m.mat(i, j))
 
-        def varIndices[A](m: HalfMatrixDenseSparseDBM[A]): Seq[VarIndex] = m.indeces
+        def varIndices[A](m: HalfMatrixDenseSparseDBM[A]): Seq[VarIndex] = m.indices
 
         def update[A](f: (Int, Int) => A)
                      (m: HalfMatrixDenseSparseDBM[A])
                      : HalfMatrixDenseSparseDBM[A] = {
-          val elemIndeces = varsToIndeces(m.indeces)
-          val newMat = elemIndeces.foldLeft(m.mat)({ case (mat, (i, j)) =>
+          val elemIndices = varsToIndices(m.indices)
+          val newMat = elemIndices.foldLeft(m.mat)({ case (mat, (i, j)) =>
               mat.update(i, j, f(i, j))
             })
-          HalfMatrixDenseSparseDBM(newMat, m.indeces, m.dimension)
+          HalfMatrixDenseSparseDBM(newMat, m.indices, m.dimension)
         }
 
         def dbmUnion[A](m1: HalfMatrixDenseSparseDBM[A],
@@ -150,7 +150,7 @@ object HalfMatrixDenseSparseInstance {
                                     varPlus(newVar),
                                     ifield.zero)
           pour(m)(HalfMatrixDenseSparseDBM(newMat,
-                                           m.indeces :+ newVar,
+                                           m.indices :+ newVar,
                                            nOfVars))
         }
 
@@ -161,7 +161,7 @@ object HalfMatrixDenseSparseInstance {
           val remVar = VarIndex(nOfVars)
           val newMat = new HalfMatrix(nOfVars, ifield.infinity)
           val newHMat = HalfMatrixDenseSparseDBM(newMat,
-                                                 m.indeces.filter(_ != remVar),
+                                                 m.indices.filter(_ != remVar),
                                                  nOfVars)
           val f = (i: Int, j: Int) => m.mat(i, j)
           update(f)(newHMat)
@@ -171,14 +171,14 @@ object HalfMatrixDenseSparseInstance {
                            (m: HalfMatrixDenseSparseDBM[A])
                            (implicit ifield: InfField[A])
                            : HalfMatrixDenseSparseDBM[A] = {
-          val allVarIndeces = for (i <- 0 until m.dimension) yield VarIndex(i)
-          val newSize = allVarIndeces.count(f(_).isDefined)
-          val newIndeces = m.indeces.map(f(_)).collect({
+          val allVarIndices = for (i <- 0 until m.dimension) yield VarIndex(i)
+          val newSize = allVarIndices.count(f(_).isDefined)
+          val newIndices = m.indices.map(f(_)).collect({
               case Some(vi) => vi
             })
           val newMat = new HalfMatrix(newSize, ifield.infinity)
           // g is the inverse of f
-          val g = allVarIndeces.map(vi => f(vi) -> vi).collect({
+          val g = allVarIndices.map(vi => f(vi) -> vi).collect({
               case (Some(vi), vj) => vi -> vj
             }).toMap
           val updater = (i: Int, j: Int) => {
@@ -189,15 +189,15 @@ object HalfMatrixDenseSparseInstance {
             m.mat(ii, jj)
           }
           HalfMatrixDenseSparseDBM(newMat.update(updater),
-                                   newIndeces,
+                                   newIndices,
                                    newSize)
         }
 
         def compare[A](m1: HalfMatrixDenseSparseDBM[A],
                        m2: HalfMatrixDenseSparseDBM[A])
                       (implicit ifield: InfField[A]): Option[Ordering] = {
-          val elemIndeces = varsToIndeces(m1.indeces)
-          val ord = elemIndeces.map({ case (i, j) =>
+          val elemIndices = varsToIndices(m1.indices)
+          val ord = elemIndices.map({ case (i, j) =>
               ifield.compare(m1.mat(i, j), m2.mat(i, j))
             })
           lazy val lt = ord.forall(v => v == EQ || v == LT)
@@ -222,21 +222,21 @@ object HalfMatrixDenseSparseInstance {
         def pour[A](source: HalfMatrixDenseSparseDBM[A])
                    (dest: HalfMatrixDenseSparseDBM[A])
                    : HalfMatrixDenseSparseDBM[A] = {
-          val sourceElemIndeces = varsToIndeces(source.indeces)
+          val sourceElemIndices = varsToIndices(source.indices)
           val f = (i: Int, j: Int) =>
-            if (sourceElemIndeces.contains((i, j)))
+            if (sourceElemIndices.contains((i, j)))
               source.mat(i, j)
             else
               dest.mat(i, j)
           update(f)(dest)
         }
 
-        def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): Int = m.indeces.size
+        def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): Int = m.indices.size
 
         def pure[A](d: Int, x: A): HalfMatrixDenseSparseDBM[A] = {
           val mat = new HalfMatrix(d, x)
-          val indeces = 0 until d map (VarIndex(_))
-          HalfMatrixDenseSparseDBM(mat, indeces, d)
+          val indices = 0 until d map (VarIndex(_))
+          HalfMatrixDenseSparseDBM(mat, indices, d)
         }
 
     }
