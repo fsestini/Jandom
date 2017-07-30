@@ -163,7 +163,29 @@ object HalfMatrixDenseSparseInstance {
         def mapVariables[A](f: VarIndex => Option[VarIndex])
                            (m: HalfMatrixDenseSparseDBM[A])
                            (implicit ifield: InfField[A])
-                           : HalfMatrixDenseSparseDBM[A] = ???
+                           : HalfMatrixDenseSparseDBM[A] = {
+          val allVarIndeces = for (i <- 0 until m.dimension) yield VarIndex(i)
+          val newSize = allVarIndeces.count(f(_).isDefined)
+          val newIndeces = m.indeces.map(f(_)).collect({
+              case Some(vi) => vi
+            })
+          val newMat = new HalfMatrix(newSize, ifield.infinity)
+          // g is the inverse of f
+          val g = allVarIndeces.map(vi => f(vi) -> vi).collect({
+              case (Some(vi), vj) => vi -> vj
+            }).toMap
+          val updater = (i: Int, j: Int) => {
+            val (vi, si) = toIndexAndCoeff(i)
+            val (vj, sj) = toIndexAndCoeff(j)
+            val ii = fromIndexAndCoeff(g(vi), si)
+            val jj = fromIndexAndCoeff(g(vj), sj)
+            m.mat(ii, jj)
+          }
+          HalfMatrixDenseSparseDBM(newMat.update(updater),
+                                   newIndeces,
+                                   newSize)
+        }
+
         def compare[A](m1: HalfMatrixDenseSparseDBM[A],
                        m2: HalfMatrixDenseSparseDBM[A])
                       (implicit ifield: InfField[A]): Option[Ordering] = {
