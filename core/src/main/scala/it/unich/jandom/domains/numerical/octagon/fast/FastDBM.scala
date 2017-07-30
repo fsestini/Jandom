@@ -314,8 +314,8 @@ object CFDBMInstance {
         val dbm2: Option[M[A]] = Utils.cfastInnerMatrix(y.elem)
         (dbm1, dbm2) match {
           case (None, None) => Some(EQ)
-          case (Some(_), None) => None
-          case (None, Some(_)) => None
+          case (Some(_), None) => Some(GT)
+          case (None, Some(_)) => Some(LT)
           case (Some(m1), Some(m2)) => ds.compare(m1, m2)
         }
       }
