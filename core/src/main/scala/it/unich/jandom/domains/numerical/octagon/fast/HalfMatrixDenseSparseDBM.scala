@@ -10,6 +10,8 @@ case class HalfMatrixDenseSparseDBM[A](mat: HalfMatrix[A],
 object HalfMatrixDenseSparseInstance {
     val instance = new DenseSparseDBM[HalfMatrixDenseSparseDBM] {
 
+        import HalfMatrixDenseSparseDBM._
+
         private def varsToIndeces(indeces: Seq[VarIndex]): Seq[(Int, Int)] = {
           val varIndeces = for (vi <- indeces;
                                 vj <- indeces;
@@ -79,7 +81,12 @@ object HalfMatrixDenseSparseInstance {
 
         def strongClosure[A](m: HalfMatrixDenseSparseDBM[A])
                          (implicit e: InfField[A])
-                         : Option[HalfMatrixDenseSparseDBM[A]] = ???
+                         : Option[HalfMatrixDenseSparseDBM[A]] =
+          if (Lol.nuffSparse(m.dimension, computeSparsity(m)))
+            sparseStrongClosure(m)
+          else
+            denseStrongClosure(m)
+
         def incrementalClosure[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
                                  (implicit e: InfField[A])
                                  : Option[HalfMatrixDenseSparseDBM[A]] = ???
@@ -239,6 +246,11 @@ object HalfMatrixDenseSparseDBM {
   def computeSparsity[A](m: HalfMatrixDenseSparseDBM[A])
                         (implicit ifield: InfField[A]): NNI =
     NNI(m.mat.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
+
+  def denseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])
+                        (implicit ifield: InfField[A]) = ???
+  def sparseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])
+                         (implicit ifield: InfField[A]) = ???
 }
 
 
