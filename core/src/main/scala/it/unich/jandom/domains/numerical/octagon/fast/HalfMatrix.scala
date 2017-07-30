@@ -56,4 +56,6 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
     new HalfMatrix(mat, dimension)
   }
 
+  def toSeq: Seq[A] = vec
+
 }
