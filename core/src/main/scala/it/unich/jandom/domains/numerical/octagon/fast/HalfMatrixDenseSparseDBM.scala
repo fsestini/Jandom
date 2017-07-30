@@ -166,7 +166,23 @@ object HalfMatrixDenseSparseInstance {
                            : HalfMatrixDenseSparseDBM[A] = ???
         def compare[A](m1: HalfMatrixDenseSparseDBM[A],
                        m2: HalfMatrixDenseSparseDBM[A])
-                      (implicit ifield: InfField[A]): Option[Ordering] = ???
+                      (implicit ifield: InfField[A]): Option[Ordering] = {
+          val elemIndeces = varsToIndeces(m1.indeces)
+          val ord = elemIndeces.map({ case (i, j) =>
+              ifield.compare(m1.mat(i, j), m2.mat(i, j))
+            })
+          lazy val lt = ord.forall(v => v == EQ || v == LT)
+          lazy val eq = ord.forall(v => v == EQ)
+          lazy val gt = ord.forall(v => v == EQ || v == GT)
+          if (lt)
+            Some(LT)
+          else if (eq)
+            Some(EQ)
+          else if (gt)
+            Some(GT)
+          else
+            None
+        }
 
         //////////////////////////////////////////////////////////////////////////////
 
