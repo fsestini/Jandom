@@ -234,3 +234,12 @@ object HalfMatrixDenseSparseInstance {
 
     }
 }
+
+object HalfMatrixDenseSparseDBM {
+  def computeSparsity[A](m: HalfMatrixDenseSparseDBM[A])
+                        (implicit ifield: InfField[A]): NNI =
+    NNI(m.mat.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
+}
+
+
+
