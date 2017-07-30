@@ -219,7 +219,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
           case Case3Test(vj, vi, c) => {
             (i : Int, j : Int) =>
             if ((i == varPlus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
-              | (i == varMinus(VarIndex(vi)) & j == varMinus(VarIndex(vj)))
+              | (i == varMinus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
             )
               math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
             else
@@ -228,7 +228,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
           case Case4Test(vj, vi, c) => {
             (i : Int, j : Int) =>
             if ((i == varMinus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
-              | (i == varPlus(VarIndex(vj)) & j == varPlus(VarIndex(vi)))
+              | (i == varMinus(VarIndex(vj)) & j == varPlus(VarIndex(vi)))
             )
               math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
             else
