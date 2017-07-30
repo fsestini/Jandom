@@ -15,7 +15,6 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
 
   private def getIndex(i: Int, j: Int): Int = j + ((i+1)*(i+1))/2
 
-  /*
   private def fromIndex(x: Int): (Int, Int) = {
     def aux(i: Int, j: Int): (Int, Int) = {
       if (getIndex(i, j) == x)
@@ -28,7 +27,6 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
 
     aux(0,0)
   }
-  */
 
   private def elementIndex(i: Int, j: Int): Int =
     if (i < j)
@@ -41,7 +39,11 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
     new HalfMatrix(vec.updated(elementIndex(i, j), x), dimension)
   }
 
-  // def update(updater: (Int, Int) => A): HalfMatrix[A] = ???
+  def update(updater: (Int, Int) => A): HalfMatrix[A] = {
+    val newValues = for (i <- 0 until vec.length)
+                       yield (updater.tupled(fromIndex(i)))
+    new HalfMatrix(newValues.toVector, dimension)
+  }
 
   def apply(i: Int, j: Int): A = {
     require(0 <= i && i < dimension && 0 <= j && j < dimension)
