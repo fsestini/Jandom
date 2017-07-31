@@ -39,6 +39,7 @@ trait DenseSparseDBM[M[_]] {
   def varIndices[A](m: M[A]): Seq[VarIndex]
 
   def update[A](f: (Int, Int) => A)(m: M[A]): M[A]
+  def update[A](i: Int, j: Int, x: A)(m: M[A]): M[A]
 
   def dbmUnion[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]
   def dbmIntersection[A](m1: M[A], m2: M[A])(implicit e: InfField[A]): M[A]

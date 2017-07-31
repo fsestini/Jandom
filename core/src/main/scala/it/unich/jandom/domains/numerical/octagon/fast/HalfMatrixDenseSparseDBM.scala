@@ -244,6 +244,7 @@ object HalfMatrixDenseSparseInstance {
           HalfMatrixDenseSparseDBM(mat, indices, d)
         }
 
+      def update[A](i: Int, j: Int, x: A)(m: HalfMatrixDenseSparseDBM[A]): HalfMatrixDenseSparseDBM[A] = ???
     }
 }
 
