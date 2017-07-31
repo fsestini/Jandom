@@ -80,43 +80,6 @@ class OctagonDomainSuite extends FunSuite {
     assert(em.foldRight(fourfours, 0.0)(i) == 16)
   }
 
-  test ("fromFun sanity check") {
-    // These are fig 9a and b from Mine01, fig9b is the closure of fig9a
-    val fig9a = Array(
-      Array(0,   inf, inf, inf),
-      Array(inf,   0,   3, inf),
-      Array(inf, inf, inf, inf),
-      Array(3,   inf, inf, inf)
-    )
-
-    val fig9b = Array(
-      Array(0,   inf, inf, inf),
-      Array(2,   0,   3,   inf),
-      Array(inf, inf, inf, inf),
-      Array(3,   inf, 4,   inf)
-    )
-    val e = FunMatrixMatrixInstance.funMatrixIsMatrix
-    val e1 = FunDBMInstance.funDBM
-    val funm9a = FunMatrix((i : Int, j : Int) => (fig9a(i))(j), 4)
-    val funm9b = FunMatrix((i : Int, j : Int) => (fig9b(i))(j), 4)
-    val dbm9b = ClosedFunDBM(funm9b)
-    val fromFun = FunDBMInstance.funDBM.fromFun(4, (i : Int, j : Int) => (fig9a(i))(j))
-    /*
-     * Now, fromFun should be
-     * 1. closed
-     * 2. should look like dbm9b elementwise
-     * 3. probably should also == dbm9b
-     */
-    fromFun match {
-      case x : ClosedFunDBM[Double] => {
-        elementwiseEquals(4)(x.m, fig9b)
-      }
-      case _ => assert(false, "Not a ClosedFunDBM")
-    }
-    assert(fromFun == dbm9b)
-    // TODO Not sure if this last one is really the desired semantics, double-check
-  }
-
   test ("strongClosure sanity check") {
     // O4 and O4* from www.srl.inf.ethz.ch/pa2015/Octagon.pdf
     val o4 = Array(
