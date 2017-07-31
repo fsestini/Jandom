@@ -283,7 +283,9 @@ object FunDBMInstance {
         case (None, Some(_)) => Some(LT)
         case (Some(m1), Some(m2)) => {
           val l: List[Ordering] = me.combine(evidence.compare)(m1, m2).toList
-          (l.forall(_ == EQ), l.forall(_ == LT), l.forall(_ == GT)) match {
+          (l.forall(_ == EQ),
+           l.forall(x => x == LT || x == EQ),
+           l.forall(x => x == GT || x == EQ)) match {
             case (true, _, _) => Some(EQ)
             case (_, true, _) => Some(LT)
             case (_, _, true) => Some(GT)
