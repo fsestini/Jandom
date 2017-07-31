@@ -29,7 +29,7 @@ object HalfMatrixDenseSparseInstance {
         }
 
         def get[A](i: Int, j: Int)(m: HalfMatrixDenseSparseDBM[A])
-                  (implicit e: InfField[A]): Option[A] = Some(m.mat(i, j))
+                  (implicit e: InfField[A]): A = m.mat(i, j)
 
         def varIndices[A](m: HalfMatrixDenseSparseDBM[A]): Seq[VarIndex] = m.indices
 

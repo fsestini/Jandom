@@ -31,7 +31,7 @@ case class NNI(nni: Int)
 // (for ex., full vs. Apron-style half matrices, or parallel stuff, or w/e)
 trait DenseSparseDBM[M[_]] {
 
-  def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): Option[A]
+  def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): A
 
   // The DBM must be aware of the variables that has under control.
   // We need actual indices. The dimension is not enough as the matrix could

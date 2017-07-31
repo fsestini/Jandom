@@ -56,7 +56,7 @@ object CFDBMInstance {
 
       def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A])
                                (implicit ifield: InfField[A]): Option[A] =
-        Utils.cfastInnerMatrix(m).flatMap((inner) => ds.get(i, j)(inner))
+        Utils.cfastInnerMatrix(m).map((inner) => ds.get(i, j)(inner))
 
       def dbmIntersection[A, R <: DBMState, S <: DBMState]
         (m1: CFastDBM[M, R, A], m2: CFastDBM[M, S, A])
@@ -422,10 +422,7 @@ object FastDbmUtils {
       ).filter({ case (i, j) =>
         i != j
       }).exists({ case (i, j) =>
-        e.get(i, j)(innerMatrix) match {
-          case Some(v) => ifield.!=(v, ifield.infinity)
-          case None    => false
-        }
+        ifield.!=(e.get(i, j)(innerMatrix), ifield.infinity)
       })
     }
 
