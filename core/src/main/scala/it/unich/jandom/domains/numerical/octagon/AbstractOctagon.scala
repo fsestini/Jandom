@@ -68,6 +68,9 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   private def createInterval(
     low: Array[Double], high: Array[Double], isEmpty: Boolean)
       : BoxDoubleDomain#Property = {
+    val isEmpty : Boolean =
+      low.forall(_ == Double.PositiveInfinity) &&
+      high.forall(_ == Double.NegativeInfinity)
     val dom: BoxDoubleDomain = BoxDoubleDomain(false)
     new dom.Property(low, high, isEmpty)
   }
