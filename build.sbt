@@ -82,3 +82,5 @@ scmInfo := Some(new ScmInfo(
   "scm:git:https://github.com/jandom-devel/Jandom.git",
   Some("scm:git:https://github.com/jandom-devel/Jandom.git")
 ))
+
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
