@@ -29,7 +29,14 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
   val oct = new OctagonDomain(e)
   val box = BoxDoubleDomain(false)
 
-  def GenSmallInt : Gen[Int] = Gen.choose(1, 32)
+  def GenSmallInt : Gen[Int] = Gen.choose(1, 16)
+  def GenSmallEvenInt : Gen[Int] = for (n <- GenSmallInt) yield (n * 2)
+  def GenInf : Gen[Double] = Gen.const(Double.PositiveInfinity)
+  def GenNonnegDoubles : Gen[Double] = Gen.choose(0, Double.MaxValue)
+  def GenDoublesAndInf(p: Int = 10) : Gen[Double] = Gen.frequency(
+    (1, GenInf),
+    (p-1, GenNonnegDoubles)
+  )
 
   def GenOrderedPair : Gen[(Double, Double)] = for {
     low <- arbitrary[Double]
@@ -40,6 +47,14 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
     low <- arbitrary[Double]
     high <- Gen.choose(low, Double.MaxValue).suchThat(_ > low)
   } yield (low, high)
+
+  def GenMatrix : Gen[FunMatrix[Double]] = for {
+    d <- GenSmallEvenInt
+    rowSeq <- Gen.containerOfN[Array, Double](d, GenDoublesAndInf())
+    arrayOfRows <- Gen.containerOfN[Array, Array[Double]](d, rowSeq)
+  } yield (
+      new FunMatrix[Double](
+        (i: Int, j: Int) => arrayOfRows(i)(j), d))
 
   implicit def arbBox : Arbitrary[box.Property] =
     Arbitrary {
