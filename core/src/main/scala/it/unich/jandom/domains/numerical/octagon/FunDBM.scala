@@ -31,6 +31,8 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
 
   def decideState: DBMIxed[FunDBM, A] = CIxed(this)
+
+  override def toString = "ClosedFunDBM("+m.dimension+") with FunMatrix:\n" + m.toString
 }
 
 case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
@@ -51,6 +53,8 @@ case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
   val innerMatrix: Option[FunMatrix[A]] = Some(m)
 
   def decideState: DBMIxed[FunDBM, A] = NCIxed(this)
+
+  override def toString = "NonClosedFunDBM("+m.dimension+") with FunMatrix:\n" + m.toString
 }
 
 case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
@@ -70,6 +74,8 @@ case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
     val dbm: FunDBM[Closed, A] = BottomFunDBM[A](noOfVariables)
     CIxed(dbm)
   }
+
+  override def toString = "BottomFunDBM("+noOfVariables+")"
 }
 
 object FunDBMInstance {
