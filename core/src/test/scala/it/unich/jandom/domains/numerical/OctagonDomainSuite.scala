@@ -354,7 +354,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(2,  0, 2,  0, inf, 0),
       Array(0, -2, 0, -2, inf, -2),
       Array(2,  0, 2,  0, inf, 0),
-      Array(inf, -2, 0, -2, 0, -2),
+      Array(0, -2.0, 0, -2, 0, -2),
       Array(inf, inf, inf, inf, inf, 0)
     )
     o4star.dbm match {
