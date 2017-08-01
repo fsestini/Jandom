@@ -5,7 +5,15 @@ import scala.language.higherKinds
 
 // Simple implementation of a functional square matrix.
 // For test purposes only.
-case class FunMatrix[A](fun: (Int, Int) => A, dimension: Int) {
+class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
+
+  def ==(that: FunMatrix[A]): Boolean = {
+    val indices = for (i <- 0 until dimension;
+                       j <- 0 until dimension) yield (i, j)
+    val thisTupled = this.fun.tupled
+    val thatTupled = that.fun.tupled
+    indices.forall(idx => thisTupled(idx) == thatTupled(idx))
+  }
 
   def update(i: Int, j: Int, x: A): FunMatrix[A] = {
     require(0 <= i && i < dimension && 0 <= j && j < dimension)
@@ -40,6 +48,11 @@ case class FunMatrix[A](fun: (Int, Int) => A, dimension: Int) {
     } yield (x, y)).toList
     for ((i, j) <- indexes) yield fun(i, j)
   }
+}
+
+object FunMatrix {
+  def apply[A](fun: (Int, Int) => A, dimension: Int) =
+    new FunMatrix(fun, dimension)
 }
 
 object FunMatrixMatrixInstance {
