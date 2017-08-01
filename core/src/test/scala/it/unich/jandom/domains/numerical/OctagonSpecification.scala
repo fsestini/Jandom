@@ -250,7 +250,80 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       }
   }
 
-  // TODO
-  // property ("strongClosure(m) is closed") = ???
+  def symmetricVarIndex(dimension: Int, i: Int): Option[Int] = {
+    import VarIndexOps._
+    if (inverseVarPlusMinus(Negative, dimension, i) != None
+      & inverseVarPlusMinus(Positive, dimension, i) == None)
+      // Is negative, return index for v+
+      Some(varPlus(inverseVarPlusMinus(Negative, dimension, i).get))
+    else
+      if (inverseVarPlusMinus(Positive, dimension, i) != None
+      & inverseVarPlusMinus(Negative, dimension, i) == None)
+      // Is positive, return index for v-
+      Some(varMinus(inverseVarPlusMinus(Positive, dimension, i).get))
+    else
+      None
+  }
 
+  property ("Check that strongClosure is coherent (condition 1 of 3 for strong closure)") {
+    forAll (GenMatrix) {
+      case (m : FunMatrix[Double]) =>
+        BagnaraStrongClosure.strongClosure(m) match {
+          case None => false
+          case Some(c) =>
+            forAll (
+              Gen.zip(
+                Gen.choose(0,c.dimension - 1),
+                Gen.choose(0,c.dimension - 1))) {
+              case (i, j) =>
+                val ibar = symmetricVarIndex(m.dimension, i).get
+                val jbar = symmetricVarIndex(m.dimension, j).get
+                c(jbar, ibar) == c(i, j)
+            }
+        }
+    }
+  }
+
+  property ("Check that strongClosure is closed (condition 2 of 3 for strong closure)") {
+    forAll (GenMatrix) {
+      case (m : FunMatrix[Double]) =>
+        BagnaraStrongClosure.strongClosure(m) match {
+          case None => false
+          case Some(c) =>
+            forAll (
+              Gen.zip(
+                Gen.choose(0,c.dimension - 1),
+                Gen.choose(0,c.dimension - 1),
+                Gen.choose(0,c.dimension - 1))) {
+              case (i, j, k) =>
+                if (i == j)
+                  c(i,j) == 0
+                else
+                  // No need to special case i = k or j = k
+                  // it reduces to e.g. for i = k c(i,j) <= 0 + c(i,j)
+                  c(i,j) <= c(i, k) + c(k, j)
+            }
+        }
+    }
+  }
+
+  property ("Check that for strongClosure m_ij <= (m_{i, bari}+m_{barj, j})/2 holds (condition 3 of 3 for strong closure)") {
+    forAll (GenMatrix) {
+      case (m : FunMatrix[Double]) =>
+        BagnaraStrongClosure.strongClosure(m) match {
+          case None => false
+          case Some(c) =>
+            forAll (
+              Gen.zip(
+                Gen.choose(0,c.dimension - 1),
+                Gen.choose(0,c.dimension - 1))) {
+              case (i, j) => {
+                val ibar = symmetricVarIndex(m.dimension, i).get
+                val jbar = symmetricVarIndex(m.dimension, j).get
+                c(i,j) <= (c(i, ibar) + c(jbar, j)) / 2
+              }
+            }
+        }
+    }
+  }
 }
