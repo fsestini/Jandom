@@ -1,4 +1,5 @@
 package it.unich.jandom.domains.numerical.octagon.fast
+import it.unich.jandom.domains.numerical.octagon.VarIndexOps
 
 import it.unich.jandom.domains.numerical.octagon.Dimension
 import it.unich.jandom.domains.numerical.octagon.CountOps._
@@ -13,6 +14,11 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Dimension
 
   def this(dimension: Dimension, elem: A) =
     this(Vector.fill(2*dimension.dim*(dimension.dim + 1))(elem), dimension)
+
+  // The lower part of the DBM, that is, elements at line i, column j,
+  // such that i >= j or i = signed(j) [Mine06]
+  val lowerIndices: Seq[(Int, Int)] =
+    grid(dimension).filter(p => p._1 >= p._2 || p._1 == VarIndexOps.signed(p._2))
 
   private def getIndex(i: Int, j: Int): Int = j + ((i+1)*(i+1))/2
 
