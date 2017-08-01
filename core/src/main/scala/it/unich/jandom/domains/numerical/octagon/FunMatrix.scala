@@ -52,6 +52,28 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
     } yield (x, y)).toList
     for ((i, j) <- indexes) yield fun(i, j)
   }
+
+  override def toString: String = {
+    val pad = 4
+    val maxLength =
+      toList
+        .map(_.toString.size)
+        .max
+
+    (0 until dimension).map(
+      (i: Int) =>
+      (0 until dimension).map(
+        (j: Int) => {
+          val res =
+            if (fun(i,j) == Double.PositiveInfinity)
+              0x221E.toChar.toString // infty
+            else
+              fun(i,j).toString
+          (" " * ((maxLength + pad) - res.length)) + res
+        }
+      ).mkString("")
+    ).mkString("\n")
+  }
 }
 
 object FunMatrix {
