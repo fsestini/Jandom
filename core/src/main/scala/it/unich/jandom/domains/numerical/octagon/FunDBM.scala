@@ -80,7 +80,10 @@ object FunDBMInstance {
     def update[S <: DBMState, A](f: (Int, Int) => A)
                                 (m: FunDBM[S, A])
                                 (implicit ifield: InfField[A]): ExistsM[A] =
-      mkExFun(m.liftFromInner(me.update(f)))
+      m.innerMatrix match {
+        case Some(inner) => mkExFun(NonClosedFunDBM(me.update(f)(inner)))
+        case None => mkExFun(BottomFunDBM(m.noOfVariables))
+      }
 
     def incrementalClosure[S <: DBMState, A](v: VarIndex)
                              (dbm: FunDBM[S, A])
