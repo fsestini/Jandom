@@ -2,6 +2,7 @@ package it.unich.jandom.domains.numerical.octagon.fast
 
 import breeze.numerics.pow
 import it.unich.jandom.domains.numerical.octagon._
+import CountOps._
 
 import scala.language.higherKinds
 import scalaz.{Applicative, Apply, Monoid, Traverse}
@@ -51,7 +52,7 @@ object CFDBMInstance {
           )(fast)
         )(m)
 
-      def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): Int = Utils.nOfVars(m)
+      def nOfVars[S <: DBMState, A](m: CFastDBM[M, S, A]): VarCount = Utils.nOfVars(m)
 
       def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, S, A])
                                (implicit ifield: InfField[A]): Option[A] =
@@ -108,14 +109,14 @@ object CFDBMInstance {
         }
       }
 
-      def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+      def topDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
         TopFast(nOfVars)
 
-      def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+      def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
         BottomFast(nOfVars)
 
-      def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
-        CFast(FullDBM(ds.update(f)(ds.pure(d, ifield.infinity)), ds))
+      def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, Closed, A] =
+        CFast(FullDBM(ds.update(f)(ds.pure(halvedDimension(d), ifield.infinity)), ds))
 
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, S, A])
                                    (implicit ifield: InfField[A]): CFastDBM[M, S, A] =
@@ -256,8 +257,8 @@ object CFDBMInstance {
 
       def addVariable[S <: DBMState, A](dbm: CFastDBM[M,S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
-            case BottomFast(n) => BottomFast(n+1)
-            case TopFast(n) => TopFast(n+1)
+            case BottomFast(n) => BottomFast(addOne(n))
+            case TopFast(n) => TopFast(addOne(n))
             case m =>
               Utils.mapFastDBM[M, S, A](fast =>
                 Utils.mapInnerMatrix[M, A](inner =>
@@ -280,8 +281,8 @@ object CFDBMInstance {
 
       def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
-            case BottomFast(n) => BottomFast(n-1)
-            case TopFast(n) => TopFast(n-1)
+            case BottomFast(n) => BottomFast(subOne(n))
+            case TopFast(n) => TopFast(subOne(n))
             case m =>
               Utils.mapFastDBM[M, S, A](fast =>
                 Utils.mapInnerMatrix[M, A](inner =>
@@ -293,13 +294,11 @@ object CFDBMInstance {
       def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])
           (dbm: CFastDBM[M,S,A])(implicit ifield: InfField[A]): CFastDBM[M,S,A] = dbm match {
         case BottomFast(n) =>
-          val varIndeces = for (i <- 0 until n) yield VarIndex(i)
-          val newN = varIndeces.count(f(_).isDefined)
-          BottomFast(newN)
+          val newN = allVars(n).count(f(_).isDefined)
+          BottomFast(VarCount(newN))
         case TopFast(n) =>
-          val varIndeces = for (i <- 0 until n) yield VarIndex(i)
-          val newN = varIndeces.count(f(_).isDefined)
-          BottomFast(newN)
+          val newN = allVars(n).count(f(_).isDefined)
+          BottomFast(VarCount(newN))
         case m =>
           Utils.mapFastDBM[M, S, A](fast =>
             Utils.mapInnerMatrix[M, A](inner =>
@@ -330,8 +329,8 @@ sealed trait CFastDBM[M[_], _, A]
 case class CFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, Closed, A]
 // Constructor of *non-closed* fast DBMs.
 case class NCFast[M[_], A](m: FastDBM[M, A]) extends CFastDBM[M, NonClosed, A]
-case class TopFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
-case class BottomFast[M[_], A](nOfVars: Int) extends CFastDBM[M, Closed, A]
+case class TopFast[M[_], A](nOfVars: VarCount) extends CFastDBM[M, Closed, A]
+case class BottomFast[M[_], A](nOfVars: VarCount) extends CFastDBM[M, Closed, A]
 
 object Utils {
 
@@ -340,7 +339,7 @@ object Utils {
     MkEx[S, ({ type T[S] = CFastDBM[M, S, A]})#T](fastDBM)
 
   def nOfVars[M[_], S, A](dbm: CFastDBM[M, S, A])
-                         (implicit ds: DenseSparseDBM[M]): Int =
+                         (implicit ds: DenseSparseDBM[M]): VarCount =
     dbm match {
       case CFast(m: FastDBM[M, A]) => ds.nOfVars(fastInnerMatrix(m))
       case NCFast(m: FastDBM[M, A]) => ds.nOfVars(fastInnerMatrix(m))
@@ -406,8 +405,8 @@ object FastDbmUtils {
   val sparseThreshold = 0.5
 
   def nuffDecomposed(is: List[List[VarIndex]]): Boolean = is.size > 1
-  def nuffSparse(d: Int, is: NNI): Boolean =
-    1.0 - (is.nni / (2*d*d + 2*d)) >= sparseThreshold
+  def nuffSparse(d: VarCount, is: NNI): Boolean =
+    1.0 - (is.nni / (2 * d.count * d.count + 2 * d.count)) >= sparseThreshold
 
   def calculateComponents[M[_], A](dbm: FastDBM[M, A])
                                    (implicit e: DenseSparseDBM[M],
@@ -430,11 +429,11 @@ object FastDbmUtils {
       })
     }
 
+    import CountOps._
+
     val nOfVars = e.nOfVars(innerMatrix)
-    val rels = for (i <- 0 until nOfVars;
-                    vi = VarIndex(i);
-                    j <- 0 until nOfVars;
-                    vj = VarIndex(j);
+    val rels = for (vi <- allVars(nOfVars);
+                    vj <- allVars(nOfVars);
                     if related(vi, vj))
                   yield (vi, vj)
 
@@ -477,7 +476,7 @@ sealed trait FastDBM[M[_], A] {
           // constructor.
           CFast(FullDBM(newMatrix, rdbm))
       }
-      case None => BottomFast(rdbm.varIndices(dbm).length)
+      case None => BottomFast(VarCount(rdbm.varIndices(dbm).length))
     }
   }
 

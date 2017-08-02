@@ -42,3 +42,21 @@ object VarIndexUtils {
   def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
+// Distinguish integers used as variable count or matrix dimension
+case class VarCount(count: Int) { require(count >= 0) }
+case class Dimension(dim: Int) { require(dim % 2 == 0 && dim >= 0) }
+
+object CountOps {
+  def halvedDimension(d: Dimension): VarCount = VarCount(d.dim / 2)
+  def doubledVarCount(c: VarCount): Dimension = Dimension(c.count * 2)
+  def addOne(c: VarCount): VarCount = VarCount(c.count + 1)
+  def subOne(c: VarCount): VarCount = VarCount(c.count - 1)
+  def inDimension(i: Int, j: Int, dim: Dimension): Boolean =
+    0 <= i && i < dim.dim && 0 <= j && j < dim.dim
+  def grid(d: Dimension): Seq[(Int, Int)] = for {
+    i <- 0 until d.dim
+    j <- 0 until d.dim
+  } yield (i, j)
+  def allIndices(d: Dimension): Seq[Int] = 0 until d.dim
+  def allVars(vc: VarCount): Seq[VarIndex] = (0 until vc.count).map(VarIndex)
+}

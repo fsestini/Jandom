@@ -6,6 +6,7 @@ import scala.language.higherKinds
 import scala.language.postfixOps
 import VarIndexOps._
 import VarIndexUtils._
+import it.unich.jandom.domains.numerical.octagon.CountOps.allIndices
 import spire.math.Rational
 import it.unich.jandom.utils.numberext.RationalExt
 import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
@@ -35,7 +36,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   private def withDBM(dbm: M[Closed, Double]): AbstractOctagon[D, M] =
     AbstractOctagon(dbm, d, e)
 
-  def dimension: Int = e.nOfVars(dbm)
+  def dimension: Int = e.nOfVars(dbm).count
 
   def union(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     withDBM(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble))
@@ -75,11 +76,12 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     new dom.Property(low, high, isEmpty)
   }
 
+  import CountOps._
+
   def toInterval: BoxDoubleDomain#Property = {
     val closed = e.strongClosure(dbm)
     val l: List[(Double, Double)] =
-      (0 until e.nOfVars(dbm))
-        .map(i => projectInterval(VarIndex(i), closed)).toList
+      allVars(e.nOfVars(dbm)).map(v => projectInterval(v, closed)).toList
     val (low, high) = l.unzip
     createInterval(low.toArray, high.toArray, isEmpty = false)
   }
@@ -334,8 +336,8 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     def temp: Double => RationalExt = ???
     val l: List[Option[LinearForm]] =
       (for {
-        i <- 0 until e.nOfVars(dbm) * 2
-        j <- 0 until e.nOfVars(dbm) * 2
+        i <- allIndices(doubledVarCount(e.nOfVars(dbm)))
+        j <- allIndices(doubledVarCount(e.nOfVars(dbm)))
       } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
         .map((c) => mapConstraint(temp)(c))
         .flatMap((c) => constrToLf(dimension)(c)))
@@ -539,7 +541,7 @@ object AbstractOctagon {
         case (None, None) => Double.PositiveInfinity
       }
     }
-    AbstractOctagon(e.fromFun(box.dimension*2, f), d, e)
+    AbstractOctagon(e.fromFun(Dimension(box.dimension * 2), f), d, e)
   }
 
 

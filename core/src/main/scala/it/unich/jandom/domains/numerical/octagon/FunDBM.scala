@@ -1,6 +1,7 @@
 package it.unich.jandom.domains.numerical.octagon
 
 import VarIndexOps._
+import CountOps._
 
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
@@ -8,12 +9,12 @@ sealed trait FunDBM[S, A] {
   def union(other: FunDBM[S, A])(implicit infField: InfField[A]): FunDBM[S, A]
   def decideState: DBMIxed[FunDBM, A]
   val innerMatrix: Option[FunMatrix[A]]
-  def noOfVariables: Int
+  def noOfVariables: VarCount
 }
 
 case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
-  require (m.dimension % 2 == 0)
-  def noOfVariables : Int = (m.dimension / 2)
+  require (m.dimension.dim % 2 == 0)
+  def noOfVariables : VarCount = halvedDimension(m.dimension)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[Closed, A] =
     ClosedFunDBM(f(m))
@@ -36,8 +37,8 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
 }
 
 case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
-  require (m.dimension % 2 == 0)
-  def noOfVariables : Int = (m.dimension / 2)
+  require (m.dimension.dim % 2 == 0)
+  def noOfVariables : VarCount = halvedDimension(m.dimension)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[NonClosed, A] =
     NonClosedFunDBM(f(m))
@@ -57,12 +58,12 @@ case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
   override def toString = "NonClosedFunDBM("+m.dimension+") with FunMatrix:\n" + m.toString
 }
 
-case class BottomFunDBM[A](noOfVariables: Int) extends FunDBM[Closed, A] {
+case class BottomFunDBM[A](noOfVariables: VarCount) extends FunDBM[Closed, A] {
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[Closed, A] = {
     val bogus: FunMatrix[A] =
-      FunMatrix((_, _) => ifield.infinity, noOfVariables * 2)
-    BottomFunDBM(f(bogus).dimension / 2)
+      FunMatrix((_, _) => ifield.infinity, doubledVarCount(noOfVariables))
+    BottomFunDBM(halvedDimension(f(bogus).dimension))
   }
 
   def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] =
@@ -128,7 +129,7 @@ object FunDBMInstance {
       })
     }
 
-    def nOfVars[S <: DBMState, A](m: FunDBM[S, A]): Int = m.noOfVariables
+    def nOfVars[S <: DBMState, A](m: FunDBM[S, A]): VarCount = m.noOfVariables
 
     def get[S <: DBMState, A](i: Int, j: Int)(m: FunDBM[S, A])
                              (implicit ifield: InfField[A]): Option[A] =
@@ -151,11 +152,11 @@ object FunDBMInstance {
       }
     }
 
-    def topDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] =
-      ClosedFunDBM(FunMatrix((i, j) => ifield.infinity, nOfVars * 2))
+    def topDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): FunDBM[Closed, A] =
+      ClosedFunDBM(FunMatrix((i, j) => ifield.infinity, doubledVarCount(nOfVars)))
 
-    def bottomDBM[A](nOfVars: Int)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
-    def fromFun[A](d: Int, f: ((Int, Int) => A))(implicit ifield: InfField[A]): FunDBM[Closed, A] =
+    def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
+    def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): FunDBM[Closed, A] =
       strongClosure(NonClosedFunDBM(FunMatrix[A](f, d)))
     def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: FunDBM[S, A])
                                  (implicit ifield: InfField[A]): FunDBM[S, A] = {
@@ -262,10 +263,10 @@ object FunDBMInstance {
                                      (implicit ifield: InfField[A]): FunDBM[S, A] =
       dbm.liftFromInner((m) => {
         FunMatrix((i, j) => {
-          if (i < dbm.noOfVariables * 2 && j < dbm.noOfVariables * 2)
+          if (inDimension(i, j, doubledVarCount(dbm.noOfVariables)))
             m(i, j)
           else ifield.infinity
-        }, dbm.noOfVariables + 1)
+        }, doubledVarCount(addOne(dbm.noOfVariables)))
       })
 
     // Proved with pen and paper that shuffling variables around preserves
@@ -326,7 +327,7 @@ object BagnaraStrongClosure {
   private def signed(i: Int) = if (i % 2 == 0) i + 1 else i - 1
 
   def nullCheck[A](m: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
-    val negative: Boolean = (0 until m.dimension).exists((i) =>
+    val negative: Boolean = allIndices(m.dimension).exists((i) =>
       ifield.compare(me.get(i, i)(m), ifield.zero) == LT)
     if (negative) None else {
       val updater: (Int, Int) => A = (i, j) =>
@@ -336,8 +337,7 @@ object BagnaraStrongClosure {
   }
 
   def strengthen[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): FunMatrix[A] =
-    (for { i <- 0 until dbm.dimension ;
-           j <- 0 until dbm.dimension } yield (i, j))
+    grid(dbm.dimension)
       .foldLeft(dbm)((x, pair) => pair match {
         case (i, j) => {
           val newVal =
@@ -350,9 +350,8 @@ object BagnaraStrongClosure {
 
   def strongClosure[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
     val closed: FunMatrix[A] = (for {
-      k <- 0 until dbm.dimension
-      i <- 0 until dbm.dimension
-      j <- 0 until dbm.dimension
+      k <- allIndices(dbm.dimension)
+      (i, j) <- grid(dbm.dimension)
     } yield (k, i, j)).foldLeft(dbm)((x, triple) => triple match {
       case (k, i, j) => {
         val newVal =
@@ -376,9 +375,8 @@ object BagnaraStrongClosure {
     }
 
     val iclosed: FunMatrix[A] =
-      (for { k <- 0 until dbm.dimension ;
-             i <- 0 until dbm.dimension ;
-             j <- 0 until dbm.dimension } yield (k, i, j))
+      (for { k <- allIndices(dbm.dimension) ;
+             (i, j) <- grid(dbm.dimension) } yield (k, i, j))
         .filter(p)
         .foldLeft(dbm)((x, triple) => triple match {
           case (k, i, j) => {
@@ -395,19 +393,20 @@ object BagnaraStrongClosure {
 
 object VarMapping {
 
-  def varMapImageSize(f: VarIndex => Option[VarIndex], nOfVars: Int): Int =
-    (0 until nOfVars).map(VarIndex).map((v) => f(v) match {
-      case Some(_) => 1
-      case None => 0
-    }).sum
+  def varMapImageSize(f: VarIndex => Option[VarIndex], nOfVars: VarCount): VarCount =
+    VarCount(
+      allVars(nOfVars).map((v) => f(v) match {
+        case Some(_) => 1
+        case None => 0
+      }).sum)
 
-  def mapVariablesAux[A](f: (VarIndex) => Option[VarIndex], nOfVars: Int)
+  def mapVariablesAux[A](f: (VarIndex) => Option[VarIndex], nOfVars: VarCount)
                         (m: FunMatrix[A]): FunMatrix[A] = {
 
     def inverse(f: VarIndex => Option[VarIndex])(v: VarIndex): VarIndex = {
-      val vars: List[Int] = (0 until nOfVars).toList
-      val opts: List[Option[VarIndex]] = vars.map((n) => f(VarIndex(n)) match {
-        case Some(vres) => ???
+      val vars: Seq[VarIndex] = allVars(nOfVars)
+      val opts: Seq[Option[VarIndex]] = vars.map(x => f(x) match {
+        case Some(vres) => if (v == vres) Some(x) else None
         case None => None
       })
       val opt: Option[VarIndex] = opts.flatten.headOption
@@ -423,9 +422,9 @@ object VarMapping {
         case (v, Negative) => varMinus(inverse(f)(v))
       }
 
-    val newDim: Int = varMapImageSize(f, nOfVars)
+    val newCount: VarCount = varMapImageSize(f, nOfVars)
     FunMatrix((i, j) => {
       m(inverseIx(f)(i), inverseIx(f)(j))
-    }, newDim * 2)
+    }, doubledVarCount(newCount))
   }
 }

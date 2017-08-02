@@ -1,25 +1,24 @@
 package it.unich.jandom.domains.numerical.octagon
 import scalaz._
+import it.unich.jandom.domains.numerical.octagon.CountOps._
 
 // Simple implementation of a functional square matrix.
 // For test purposes only.
-class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
+class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
 
   def ==(that: FunMatrix[A]): Boolean = {
     if (dimension != that.dimension)
       false
     else {
-      val indices = for (i <- 0 until dimension;
-        j <- 0 until dimension) yield (i, j)
       val thisTupled = this.fun.tupled
       val thatTupled = that.fun.tupled
-      indices.forall(idx => thisTupled(idx) == thatTupled(idx))
+      grid(dimension).forall(idx => thisTupled(idx) == thatTupled(idx))
     }
   }
 
   def update(i: Int, j: Int, x: A): FunMatrix[A] = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension,
-      "Can't update (" + i + "," + j + "), dimension is " + dimension)
+    require(inDimension(i, j, dimension),
+      "Can't update (" + i + "," + j + "), dimension is " + dimension.dim)
     update((ii, jj) => if (ii == i && jj == j) x else fun(ii, jj))
   }
 
@@ -27,7 +26,7 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
     new FunMatrix(updater, dimension)
 
   def apply(i: Int, j: Int): A = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension,
+    require(inDimension(i, j, dimension),
       "Can't apply (" + i + "," + j + "), dimension is " + dimension)
     fun(i, j)
   }
@@ -45,13 +44,7 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
     case _ => Nil
   }
 
-  def toList: List[A] = {
-    val indexes: List[(Int, Int)] = (for {
-      x <- 0 until dimension
-      y <- 0 until dimension
-    } yield (x, y)).toList
-    for ((i, j) <- indexes) yield fun(i, j)
-  }
+  def toList: List[A] = grid(dimension).map(p => fun(p._1, p._2)).toList
 
   override def toString: String = {
     val pad = 4
@@ -60,9 +53,9 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
         .map(_.toString.size)
         .max
 
-    (0 until dimension).map(
+    (allIndices(dimension)).map(
       (i: Int) =>
-      (0 until dimension).map(
+      (allIndices(dimension)).map(
         (j: Int) => {
           val res =
             if (fun(i,j) == Double.PositiveInfinity)
@@ -77,7 +70,7 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
 }
 
 object FunMatrix {
-  def apply[A](fun: (Int, Int) => A, dimension: Int) =
+  def apply[A](fun: (Int, Int) => A, dimension: Dimension) =
     new FunMatrix(fun, dimension)
 }
 
@@ -97,7 +90,7 @@ object FunMatrixMatrixInstance {
     def foldRight[A, B](fa: FunMatrix[A], z: => B)(f: (A, => B) => B): B =
       fa.toList.foldRight(z)((x, y) => f(x, y))
 
-    def pure[A](dimension: Int, x: A): FunMatrix[A] =
+    def pure[A](dimension: Dimension, x: A): FunMatrix[A] =
       new FunMatrix[A]((_, _) => x, dimension)
   }
 }

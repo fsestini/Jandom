@@ -2,10 +2,11 @@ package it.unich.jandom.domains.numerical.octagon.fast
 
 import it.unich.jandom.domains.numerical.octagon._
 import VarIndexOps._
+import CountOps._
 
 case class HalfMatrixDenseSparseDBM[A](mat: HalfMatrix[A],
                                        indices: Seq[VarIndex],
-                                       dimension: Int)
+                                       dimension: VarCount)
 
 object HalfMatrixDenseSparseInstance {
     val instance = new DenseSparseDBM[HalfMatrixDenseSparseDBM] {
@@ -144,9 +145,9 @@ object HalfMatrixDenseSparseInstance {
         def addVariable[A](m: HalfMatrixDenseSparseDBM[A])
                           (implicit ifield: InfField[A])
                           : HalfMatrixDenseSparseDBM[A] = {
-          val nOfVars = m.mat.dimension + 1
-          val newVar = VarIndex(nOfVars-1)
-          val newMat = new HalfMatrix(nOfVars, ifield.infinity)
+          val nOfVars = addOne(m.dimension)
+          val newVar = VarIndex(nOfVars.count -1)
+          val newMat = new HalfMatrix(doubledVarCount(nOfVars), ifield.infinity)
                             .update(varPlus(newVar),
                                     varPlus(newVar),
                                     ifield.zero)
@@ -161,9 +162,9 @@ object HalfMatrixDenseSparseInstance {
         def deleteVariable[A](m: HalfMatrixDenseSparseDBM[A])
                              (implicit ifield: InfField[A])
                              : HalfMatrixDenseSparseDBM[A] = {
-          val nOfVars = m.mat.dimension - 1
-          val remVar = VarIndex(nOfVars)
-          val newMat = new HalfMatrix(nOfVars, ifield.infinity)
+          val nOfVars = subOne(m.dimension)
+          val remVar = VarIndex(nOfVars.count)
+          val newMat = new HalfMatrix(doubledVarCount(nOfVars), ifield.infinity)
           val newHMat = HalfMatrixDenseSparseDBM(newMat,
                                                  m.indices.filter(_ != remVar),
                                                  nOfVars)
@@ -175,14 +176,13 @@ object HalfMatrixDenseSparseInstance {
                            (m: HalfMatrixDenseSparseDBM[A])
                            (implicit ifield: InfField[A])
                            : HalfMatrixDenseSparseDBM[A] = {
-          val allVarIndices = for (i <- 0 until m.dimension) yield VarIndex(i)
-          val newSize = allVarIndices.count(f(_).isDefined)
+          val newSize = VarCount(allVars(m.dimension).count(f(_).isDefined))
           val newIndices = m.indices.map(f(_)).collect({
               case Some(vi) => vi
             })
-          val newMat = new HalfMatrix(newSize, ifield.infinity)
+          val newMat = new HalfMatrix(doubledVarCount(newSize), ifield.infinity)
           // g is the inverse of f
-          val g = allVarIndices.map(vi => f(vi) -> vi).collect({
+          val g = allVars(m.dimension).map(vi => f(vi) -> vi).collect({
               case (Some(vi), vj) => vi -> vj
             }).toMap
           val updater = (i: Int, j: Int) => {
@@ -235,11 +235,12 @@ object HalfMatrixDenseSparseInstance {
           update(f)(dest)
         }
 
-        def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): Int = m.indices.size
+        def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): VarCount =
+          VarCount(m.indices.size)
 
-        def pure[A](d: Int, x: A): HalfMatrixDenseSparseDBM[A] = {
-          val mat = new HalfMatrix(d, x)
-          val indices = 0 until d map (VarIndex(_))
+        def pure[A](d: VarCount, x: A): HalfMatrixDenseSparseDBM[A] = {
+          val mat = new HalfMatrix(doubledVarCount(d), x)
+          val indices = allVars(d)
           HalfMatrixDenseSparseDBM(mat, indices, d)
         }
 
@@ -307,7 +308,7 @@ object SparseStrongClosure {
       } else {
         (m, cp)
       }
-    val t = for (i <- 0 until (m.dimension*2)) yield newVals._1.mat(i, k)
+    val t = for (i <- allIndices(doubledVarCount(m.dimension))) yield newVals._1.mat(i, k)
     (newVals._1, newVals._2, t)
   }
 
@@ -473,5 +474,3 @@ object SparseStrongClosure {
     strengthening(m)
   }
 }
-
-

@@ -1,17 +1,18 @@
 package it.unich.jandom.domains.numerical.octagon.fast
 
+import it.unich.jandom.domains.numerical.octagon.Dimension
+import it.unich.jandom.domains.numerical.octagon.CountOps._
+
 /**
   * Created by fsestini on 7/11/17.
   *
   * Implementation of matrices that are represented by storing only the lower
   * triangular half of it, as explained in Singh et al.
   */
-class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
+class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Dimension) {
 
-  def this(dimension: Int, elem: A) = this(Vector.fill(2*dimension*(dimension+1))(elem),
-                                           dimension)
-
-  require(dimension > 0)
+  def this(dimension: Dimension, elem: A) =
+    this(Vector.fill(2*dimension.dim*(dimension.dim + 1))(elem), dimension)
 
   private def getIndex(i: Int, j: Int): Int = j + ((i+1)*(i+1))/2
 
@@ -35,7 +36,7 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
       getIndex(i, j)
 
   def update(i: Int, j: Int, x: A): HalfMatrix[A] = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    require(inDimension(i, j, dimension))
     new HalfMatrix(vec.updated(elementIndex(i, j), x), dimension)
   }
 
@@ -46,7 +47,7 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Int) {
   }
 
   def apply(i: Int, j: Int): A = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    require(inDimension(i, j, dimension))
     vec(elementIndex(i, j))
   }
 

@@ -1,26 +1,25 @@
 package it.unich.jandom.domains.numerical.octagon
 import scalaz._
+import CountOps._
 
 import scala.language.higherKinds
 
 // Simple implementation of a square matrix by means of nested vectors.
-class VecMatrix[A](private val vec: Vector[Vector[A]], val dimension: Int) {
-
-  require(dimension > 0)
+class VecMatrix[A](private val vec: Vector[Vector[A]], val dimension: Dimension) {
 
   def update(i: Int, j: Int, x: A): VecMatrix[A] = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    require(inDimension(i, j, dimension))
     new VecMatrix(vec.updated(i, vec(i).updated(j, x)), dimension)
   }
 
   def update(updater: (Int, Int) => A): VecMatrix[A] = {
-    val range = (0 until dimension).toVector
+    val range = allIndices(dimension).toVector
     val mat = range.map(i => range.map(j => updater(i, j)))
     new VecMatrix(mat, dimension)
   }
 
   def apply(i: Int, j: Int): A = {
-    require(0 <= i && i < dimension && 0 <= j && j < dimension)
+    require(inDimension(i, j, dimension))
     vec(i)(j)
   }
 
@@ -54,8 +53,8 @@ object VecMatrixMatrixInstance {
     def foldRight[A, B](fa: VecMatrix[A], z: => B)(f: (A, => B) => B): B =
       fa.toList.foldRight(z)((x, y) => f(x, y))
 
-    def pure[A](dimension: Int, x: A): VecMatrix[A] = {
-      val newV: Vector[Vector[A]] = Vector.fill(dimension, dimension){ x }
+    def pure[A](dimension: Dimension, x: A): VecMatrix[A] = {
+      val newV: Vector[Vector[A]] = Vector.fill(dimension.dim, dimension.dim){ x }
       new VecMatrix[A](newV, dimension)
     }
 

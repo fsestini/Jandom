@@ -69,9 +69,9 @@ trait DenseSparseDBM[M[_]] {
   def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
   def pour[A](source: M[A])(dest: M[A]): M[A]
 
-  def nOfVars[A](m: M[A]): Int
+  def nOfVars[A](m: M[A]): VarCount
 
-  def pure[A](d: Int, x: A): M[A]
+  def pure[A](d: VarCount, x: A): M[A]
 
   // // Utility to combine two matrices only on a subset of elements
   // def combine[A, B, C](f: (A, B) => C,
