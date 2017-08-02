@@ -119,8 +119,8 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     *  - Always m_ij if not specified
     */
   private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
-    def inverseVarPlus = inverseVarPlusMinus(VarIndexOps.Positive, this.dimension, _: Int)
-    def inverseVarMinus = inverseVarPlusMinus(VarIndexOps.Negative, this.dimension, _: Int)
+    def inverseVarPlus = inverseVarPlusMinus(VarIndexOps.Positive, this.dimension * 2, _: Int)
+    def inverseVarMinus = inverseVarPlusMinus(VarIndexOps.Negative, this.dimension * 2, _: Int)
     /**
       * Computes enhanced fallback abstraction according to Mine06 fig. 21, ie:
       *
