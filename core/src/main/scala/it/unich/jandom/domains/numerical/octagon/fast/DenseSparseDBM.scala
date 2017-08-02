@@ -29,14 +29,10 @@ case class NNI(nni: Int)
 
 // Pack all these operations in a trait, to allow for multiple implementations
 // (for ex., full vs. Apron-style half matrices, or parallel stuff, or w/e)
-trait DenseSparseDBM[M[_]] {
+
+trait DenseSparse[M[_]] {
 
   def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): A
-
-  // The DBM must be aware of the variables that has under control.
-  // We need actual indices. The dimension is not enough as the matrix could
-  // be a submatrix, as in the decomposed case.
-  def varIndices[A](m: M[A]): Seq[VarIndex]
 
   def update[A](f: (Int, Int) => A)(m: M[A]): M[A]
   def update[A](i: Int, j: Int, x: A)(m: M[A]): M[A]
@@ -58,17 +54,9 @@ trait DenseSparseDBM[M[_]] {
   def addScalarOnVar[A](v: VarIndex, c: A)(m: M[A])
                        (implicit ifield: InfField[A]): M[A]
 
-
-  def addVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
-  def deleteVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
-  def mapVariables[A](f: VarIndex => Option[VarIndex])(m: M[A])
-                     (implicit ifield: InfField[A]): M[A]
   def compare[A](m1: M[A], m2: M[A])(implicit ifield: InfField[A]): Option[Ordering]
 
   //////////////////////////////////////////////////////////////////////////////
-
-  def extract[A](is: Seq[VarIndex])(m: M[A]): M[A]
-  def pour[A](source: M[A])(dest: M[A]): M[A]
 
   def nOfVars[A](m: M[A]): VarCount
 
@@ -77,5 +65,24 @@ trait DenseSparseDBM[M[_]] {
   // // Utility to combine two matrices only on a subset of elements
   // def combine[A, B, C](f: (A, B) => C,
   //   xScope: Seq[Int], yScope: Seq[Int])(ma: M[A], mb: M[B]): M[C]
+
+}
+
+trait SubMatrix[M[_]] extends DenseSparse[M] {
+  // The DBM must be aware of the variables that has under control.
+  def varIndices[A](m: M[A]): Seq[VarIndex]
+
+  override def nOfVars[A](m: M[A]): VarCount = VarCount(varIndices(m).length)
+}
+
+trait Decomposable[M[_], DS[_]] extends SubMatrix[DS] {
+
+  def addVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
+  def deleteVariable[A](m: M[A])(implicit ifield: InfField[A]): M[A]
+  def mapVariables[A](f: VarIndex => Option[VarIndex])(m: M[A])
+                     (implicit ifield: InfField[A]): M[A]
+
+  def extract[A](is: Seq[VarIndex])(m: M[A]): DS[A]
+  def pour[A](source: DS[A])(dest: M[A]): M[A]
 
 }

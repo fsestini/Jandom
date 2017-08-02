@@ -9,7 +9,7 @@ case class HalfMatrixDenseSparseDBM[A](mat: HalfMatrix[A],
                                        dimension: VarCount)
 
 object HalfMatrixDenseSparseInstance {
-    val instance = new DenseSparseDBM[HalfMatrixDenseSparseDBM] {
+    val instance = new Decomposable[HalfMatrixDenseSparseDBM, HalfMatrixDenseSparseDBM] {
 
         import HalfMatrixDenseSparseDBM._
 
@@ -235,9 +235,6 @@ object HalfMatrixDenseSparseInstance {
           update(f)(dest)
         }
 
-        def nOfVars[A](m: HalfMatrixDenseSparseDBM[A]): VarCount =
-          VarCount(m.indices.size)
-
         def pure[A](d: VarCount, x: A): HalfMatrixDenseSparseDBM[A] = {
           val mat = new HalfMatrix(doubledVarCount(d), x)
           val indices = allVars(d)
@@ -271,7 +268,7 @@ object DenseStrongClosure {
 
   type HM[A] = HalfMatrixDenseSparseDBM[A]
 
-  private val e: DenseSparseDBM[HalfMatrixDenseSparseDBM] =
+  private val e: Decomposable[HalfMatrixDenseSparseDBM, HalfMatrixDenseSparseDBM] =
     HalfMatrixDenseSparseInstance.instance
 
   private def computeColHalfScalar[A]
