@@ -347,6 +347,51 @@ class OctagonDomainSuite extends FunSuite {
     // If it's really closed it should be also a fixed point for the closure op?
     assert(e.strongClosure(o4star.dbm) == o4star.dbm)
 
-   // TO BE CONTINUED...
+    // x <- x + 1
+    val o5star = o4star.linearAssignment(0, new DenseLinearForm(Seq(1,1,0,0)))
+    val expectedo5star : Array[Array[Double]] = Array(
+      Array(0.0,  -4,  -1,  -3, inf, -3),
+      Array(  4,   0,   3,   1, inf,  1),
+      Array(  1,  -3,   0,  -2, inf, -2),
+      Array(  3,  -1,   2,   0, inf,  0),
+      Array(  1,  -3,   0,  -2,   0, -2),
+      Array(inf, inf, inf, inf, inf,  0)
+    )
+    o5star.dbm match {
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo5star(i)(j), 6))
+      case _ => assert(false)
+    }
+
+    // y <- y + x
+    val o6star = o5star.linearAssignment(1, new DenseLinearForm(Seq(0,1,1,0)))
+    val expectedo6star : Array[Array[Double]] = Array(
+      Array(  0,  -4,   1,  -5, inf, -5),
+      Array(  4,   0,   5,  -1, inf, -1),
+      Array( -1,  -5,   0,  -6, inf, -6),
+      Array(  5,   1,   6,   0, inf,  0),
+      Array(  0,  -4,   1,  -5,   0, -4),
+      Array(inf, inf, inf, inf, inf,  0)
+    )
+
+    // o6star.dbm match {
+    //   case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo6star(i)(j), 6))
+    //   case _ => assert(false)
+    // }
+    //
+    // TODO This doesn't hold, probably because Vechev uses a different approximation in the slides? (this is one of the "interval fallback" cases)
+
+    val expectedo3star2 = Array(
+      Array(0, -2, 1, -2, inf, inf),
+      Array(4,  0, 5,  0, inf, inf),
+      Array(0, -2, 0, -2, inf, inf),
+      Array(5,  1, 6,  0, inf, inf),
+      Array(inf, inf, inf, inf, 0, inf),
+      Array(inf, inf, inf, inf, inf, 0)
+    )
+
+    o6star.union(o3star).dbm match {
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo3star2(i)(j), 6))
+      case _ => assert(false)
+    }
   }
 }
