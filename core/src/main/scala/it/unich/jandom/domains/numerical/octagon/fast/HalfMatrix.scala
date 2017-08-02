@@ -1,7 +1,7 @@
 package it.unich.jandom.domains.numerical.octagon.fast
 import it.unich.jandom.domains.numerical.octagon.VarIndexOps
 
-import it.unich.jandom.domains.numerical.octagon.Dimension
+import it.unich.jandom.domains.numerical.octagon._
 import it.unich.jandom.domains.numerical.octagon.CountOps._
 
 /**
@@ -65,4 +65,8 @@ class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Dimension
 
   def toSeq: Seq[A] = vec
 
+}
+
+object HalfMatrix {
+  def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = ???
 }
