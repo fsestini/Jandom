@@ -6,11 +6,15 @@ import scalaz._
 class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Int) {
 
   def ==(that: FunMatrix[A]): Boolean = {
-    val indices = for (i <- 0 until dimension;
-                       j <- 0 until dimension) yield (i, j)
-    val thisTupled = this.fun.tupled
-    val thatTupled = that.fun.tupled
-    indices.forall(idx => thisTupled(idx) == thatTupled(idx))
+    if (dimension != that.dimension)
+      false
+    else {
+      val indices = for (i <- 0 until dimension;
+        j <- 0 until dimension) yield (i, j)
+      val thisTupled = this.fun.tupled
+      val thatTupled = that.fun.tupled
+      indices.forall(idx => thisTupled(idx) == thatTupled(idx))
+    }
   }
 
   def update(i: Int, j: Int, x: A): FunMatrix[A] = {
@@ -73,4 +77,3 @@ object FunMatrixMatrixInstance {
       new FunMatrix[A]((_, _) => x, dimension)
   }
 }
-
