@@ -28,25 +28,6 @@ class OctagonDomainSuite extends FunSuite {
   val inf = Double.PositiveInfinity
   val dom = new OctagonDomain[FunDBM](e)
 
-  def elementwiseEquals(len : Int)(m : FunMatrix[Double], expected : Array[Array[Double]], extra : String = "") = {
-    def prettyM(len : Int)(dbm : FunMatrix[Double]) : String =
-      (0 to len - 1).map((i) => (0 to len - 1).map((j) => em.get(i,j)(dbm)).mkString(",")).mkString("\n")
-
-    def prettyArray(len : Int)(array : Array[Array[Double]]) : String =
-      (0 to len - 1).map((i) => (0 to len - 1).map((j) => array(i)(j)).mkString(",")).mkString("\n")
-
-    for (i <- 0 to len - 1)
-      for (j <- 0 to len - 1)
-        assert(em.get(i,j)(m) == expected(i)(j),
-          "Mismatch at index ("+i+", "+j+"), M:\n"
-          + prettyM(len)(m)
-          + "\n did not equal: \n"
-          + prettyArray(len)(expected)
-          + "\nExtra info: "
-          +extra
-        )
-  }
-
   test ("FunMatrix sanity check") {
     def f (i : Int, j : Int) : Double = ((i + j) % 2)
     val m = FunMatrix[Double](f, 4)
@@ -107,7 +88,7 @@ class OctagonDomainSuite extends FunSuite {
     val o4star = e.strongClosure(o4dbm)
 
     o4star match {
-      case x : ClosedFunDBM[Double] => elementwiseEquals(6: Int)(x.m, expectedo4star)
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4star(i)(j), 6))
       case _ => assert(false)
     }
   }
@@ -236,7 +217,7 @@ class OctagonDomainSuite extends FunSuite {
 
   test ("Sanity check for fallbackUpdate") {
     // CAVEAT: Super trivial example, not nearly enough to trust the thing
-    val topoct = AbstractOctagon(e.topDBM[Double](6), dom, e)
+    val topoct = AbstractOctagon(e.topDBM[Double](3), dom, e)
     val assigned =
       topoct.linearAssignment(0, LinearForm.c(1))
       .linearAssignment(1, LinearForm.c(2))
@@ -254,7 +235,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     assigned.dbm match {
-      case x : ClosedFunDBM[Double] =>  elementwiseEquals(6)(x.m, expectedassignment)
+      case dbm : ClosedFunDBM[Double] =>  assert(dbm.m == new FunMatrix((i,j) => expectedassignment(i)(j), 6))
       case (other) => assert(false, "Got " + other)
     }
 
@@ -272,7 +253,8 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     def peek[S, A](m: FunDBM[S, A]): Unit = m match {
-      case dbm : ClosedFunDBM[Double] => elementwiseEquals(6)(dbm.m, expected)
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expected(i)(j), 6))
+      case dbm : NonClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expected(i)(j), 6))
       case _ => assert(false)
     }
     peek(updated.elem)
@@ -287,7 +269,7 @@ class OctagonDomainSuite extends FunSuite {
      *   y <- y + x
      * assert(y >= m)
      */
-    val o1 = AbstractOctagon(e.topDBM[Double](6), dom, e)
+    val o1 = AbstractOctagon(e.topDBM[Double](3), dom, e)
 
     // We choose (v0, v1, v2) = (x, y, m)
     // x <- 1
@@ -301,7 +283,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
     o2star.dbm match {
-      case dbm : ClosedFunDBM[Double] => elementwiseEquals(6)(dbm.m, expectedo2star)
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo2star(i)(j), 6))
       case _ => assert(false)
     }
 
@@ -317,7 +299,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     o3star.dbm match {
-      case x : ClosedFunDBM[Double] => elementwiseEquals(6)(x.m, expectedo3star)
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo3star(i)(j), 6))
       case _ => assert(false)
     }
 
@@ -341,8 +323,8 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     def peek[S, A](m: FunDBM[S, A]): Unit = m match {
-      case dbm : ClosedFunDBM[Double] => elementwiseEquals(6)(dbm.m, expectedo4, "Checking that o4 == expectedo4, is ClosedFunDBM")
-      case dbm : NonClosedFunDBM[Double] => elementwiseEquals(6)(dbm.m, expectedo4, "Checking that o4 == expectedo4, is NonClosedFunDBM")
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4(i)(j), 6))
+      case dbm : NonClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4(i)(j), 6))
       case _ => assert(false)
     }
     peek(o4.elem)
@@ -358,7 +340,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
     o4star.dbm match {
-      case dbm : ClosedFunDBM[Double] => elementwiseEquals(6)(dbm.m, expectedo4star, "Checking that o4star == expectedo4star")
+      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4star(i)(j), 6))
       case _ => assert(false)
     }
 
