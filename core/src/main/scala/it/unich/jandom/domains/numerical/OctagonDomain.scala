@@ -26,3 +26,7 @@ class OctagonDomain[M[_,_]] private[numerical] (
 
   type Property = AbstractOctagon[OctagonDomain[M], M]
 }
+
+object OctagonDomain {
+  def apply() = new OctagonDomain(FunDBMInstance.funDBM)
+}
