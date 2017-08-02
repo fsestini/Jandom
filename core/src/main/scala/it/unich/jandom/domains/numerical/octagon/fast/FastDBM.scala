@@ -116,7 +116,7 @@ object CFDBMInstance {
         BottomFast(nOfVars)
 
       def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
-        CFast(FullDBM(mev.ds.update(f)(mev.ds.pure(halvedDimension(d), ifield.infinity)), mev))
+        CFast(FullDBM(mev.ds.update(f)(mev.dec.pure(halvedDimension(d), ifield.infinity)), mev))
 
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, SM, S, A])
                                    (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
@@ -363,7 +363,7 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => Some(fastInnerMatrix(m))
       case NCFast(m: FastDBM[M, SM, A]) => Some(fastInnerMatrix(m))
-      case TopFast(n) => Some(mev.ds.pure(n, ifield.infinity))
+      case TopFast(n) => Some(mev.dec.pure(n, ifield.infinity))
       case BottomFast(_) => None
     }
   }
@@ -389,7 +389,7 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => CFast(f(m))
       case NCFast(m: FastDBM[M, SM, A]) => NCFast(f(m))
-      case TopFast(n) => CFast(f(FullDBM(mev.ds.pure(n, ifield.infinity), mev)))
+      case TopFast(n) => CFast(f(FullDBM(mev.dec.pure(n, ifield.infinity), mev)))
       case BottomFast(n) => BottomFast(n)
     }
   }

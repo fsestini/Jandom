@@ -32,7 +32,7 @@ case class NNI(nni: Int)
 
 trait DenseSparse[M[_]] {
 
-  def get[A](i: Int, j: Int)(m: M[A])(implicit e: InfField[A]): A
+  def get[A](i: Int, j: Int)(m: M[A]): A
 
   def update[A](f: (Int, Int) => A)(m: M[A]): M[A]
   def update[A](i: Int, j: Int, x: A)(m: M[A]): M[A]
@@ -60,8 +60,6 @@ trait DenseSparse[M[_]] {
 
   def nOfVars[A](m: M[A]): VarCount
 
-  def pure[A](d: VarCount, x: A): M[A]
-
   // // Utility to combine two matrices only on a subset of elements
   // def combine[A, B, C](f: (A, B) => C,
   //   xScope: Seq[Int], yScope: Seq[Int])(ma: M[A], mb: M[B]): M[C]
@@ -84,5 +82,7 @@ trait Decomposable[M[_], DS[_]] extends SubMatrix[DS] {
 
   def extract[A](is: Seq[VarIndex])(m: M[A]): DS[A]
   def pour[A](source: DS[A])(dest: M[A]): M[A]
+
+  def pure[A](d: VarCount, x: A): M[A]
 
 }
