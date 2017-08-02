@@ -69,3 +69,7 @@ class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimensi
   def toSeq: Seq[A] = vec
 
 }
+
+object HalfMatrix {
+  def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = ???
+}
