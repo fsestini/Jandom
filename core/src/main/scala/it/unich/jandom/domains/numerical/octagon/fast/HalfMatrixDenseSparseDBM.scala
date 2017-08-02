@@ -4,12 +4,10 @@ import it.unich.jandom.domains.numerical.octagon._
 import VarIndexOps._
 import CountOps._
 
-case class HalfMatrixDenseSparseDBM[A](mat: HalfMatrix[A],
-                                       indices: Seq[VarIndex],
-                                       dimension: VarCount)
+case class HalfSubMatrix[A](mat: HalfMatrix[A], indices: Seq[VarIndex])
 
 object HalfMatrixDenseSparseInstance {
-    val instance = new Decomposable[HalfMatrixDenseSparseDBM, HalfMatrixDenseSparseDBM] {
+    val halfMatrixDenseSparseInstance = new DenseSparse[HalfMatrix] {
 
         import HalfMatrixDenseSparseDBM._
 
@@ -28,102 +26,86 @@ object HalfMatrixDenseSparseInstance {
           })
         }
 
-        def get[A](i: Int, j: Int)(m: HalfMatrixDenseSparseDBM[A]): A = m.mat(i, j)
+        def get[A](i: Int, j: Int)(m: HalfMatrix[A]): A = m(i, j)
 
-        def varIndices[A](m: HalfMatrixDenseSparseDBM[A]): Seq[VarIndex] = m.indices
+        def update[A](f: (Int, Int) => A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(f)
 
-        def update[A](f: (Int, Int) => A)
-                     (m: HalfMatrixDenseSparseDBM[A])
-                     : HalfMatrixDenseSparseDBM[A] = {
-          val elemIndices = varsToIndices(m.indices)
-          val newMat = elemIndices.foldLeft(m.mat)({ case (mat, (i, j)) =>
-              mat.update(i, j, f(i, j))
-            })
-          HalfMatrixDenseSparseDBM(newMat, m.indices, m.dimension)
+        def dbmUnion[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+                       (implicit e: InfField[A]): HalfMatrix[A] = {
+          require(m1.dimension == m2.dimension)
+          val f = (i: Int, j: Int) => e.max(m1(i, j), m2(i, j))
+          HalfMatrix(f, nOfVars(m1))
         }
 
-        def dbmUnion[A](m1: HalfMatrixDenseSparseDBM[A],
-                        m2: HalfMatrixDenseSparseDBM[A])
-                       (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = {
-          val f = (i: Int, j: Int) => e.max(m1.mat(i, j), m2.mat(i, j))
-          update(f)(m1)
+        def dbmIntersection[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+                              (implicit e: InfField[A]): HalfMatrix[A] = {
+          require(m1.dimension == m2.dimension)
+          val f = (i: Int, j: Int) => e.min(m1(i, j), m2(i, j))
+          HalfMatrix(f, nOfVars(m1))
         }
 
-        def dbmIntersection[A](m1: HalfMatrixDenseSparseDBM[A],
-                               m2: HalfMatrixDenseSparseDBM[A])
-                              (implicit e: InfField[A])
-                              : HalfMatrixDenseSparseDBM[A] = {
-          val f = (i: Int, j: Int) => e.min(m1.mat(i, j), m2.mat(i, j))
-          update(f)(m1)
-        }
-
-        def widening[A](m1: HalfMatrixDenseSparseDBM[A],
-                        m2: HalfMatrixDenseSparseDBM[A])
-                       (implicit e: InfField[A])
-                       : HalfMatrixDenseSparseDBM[A] = {
+        def widening[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+                       (implicit e: InfField[A]): HalfMatrix[A] = {
           val f = (i: Int, j: Int) => {
-            e.compare(m1.mat(i, j), m2.mat(i, j)) match {
-              case GT => m1.mat(i, j)
+            e.compare(m1(i, j), m2(i, j)) match {
+              case GT => m1(i, j)
               case _ => e.infinity
             }
           }
           update(f)(m1)
         }
 
-        def narrowing[A](m1: HalfMatrixDenseSparseDBM[A],
-                         m2: HalfMatrixDenseSparseDBM[A])
-                       (implicit e: InfField[A])
-                       : HalfMatrixDenseSparseDBM[A] = {
+        def narrowing[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+                        (implicit e: InfField[A]): HalfMatrix[A] = {
           val f = (i: Int, j: Int) =>
-              if (m1.mat(i, j) == e.infinity) m2.mat(i, j) else m1.mat(i, j)
+              if (m1(i, j) == e.infinity) m2(i, j) else m1(i, j)
           update(f)(m1)
         }
 
-        def strongClosure[A](m: HalfMatrixDenseSparseDBM[A])
-                         (implicit e: InfField[A])
-                         : Option[HalfMatrixDenseSparseDBM[A]] =
-          if (FastDbmUtils.nuffSparse(m.dimension, computeSparsity(m)))
+        def strongClosure[A](m: HalfMatrix[A])
+                            (implicit e: InfField[A]): Option[HalfMatrix[A]] =
+          if (FastDbmUtils.nuffSparse(halvedDimension(m.dimension), computeSparsity(m)))
             SparseStrongClosure(m)
           else
             denseStrongClosure(m)
 
-        def incrementalClosure[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
+        def incrementalClosure[A](v: VarIndex)(m: HalfMatrix[A])
                                  (implicit e: InfField[A])
-                                 : Option[HalfMatrixDenseSparseDBM[A]] =
-          if (FastDbmUtils.nuffSparse(m.dimension, computeSparsity(m)))
+                                 : Option[HalfMatrix[A]] =
+          if (FastDbmUtils.nuffSparse(halvedDimension(m.dimension), computeSparsity(m)))
             denseIncrementalClosure(v)(m)
           else
             sparseIncrementalClosure(v)(m)
 
-        def forget[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
-                     (implicit e: InfField[A]): HalfMatrixDenseSparseDBM[A] = {
+        def forget[A](v: VarIndex)(m: HalfMatrix[A])
+                     (implicit e: InfField[A]): HalfMatrix[A] = {
           val f = (i: Int, j: Int) =>
             if (toIndexAndCoeff(i)._1 == v || toIndexAndCoeff(j)._1 == v)
               if (i == j) e.zero else e.infinity
             else
-              m.mat(i, j)
+              m(i, j)
           update(f)(m)
         }
 
-        def flipVar[A](v: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
-                      : HalfMatrixDenseSparseDBM[A] = {
+        def flipVar[A](v: VarIndex)(m: HalfMatrix[A])
+                      : HalfMatrix[A] = {
           val f = (i: Int, j: Int) =>
             if (i == varPlus(v) || i == varMinus(v))
               if (j == varPlus(v) || j == varMinus(v))
-                m.mat(signed(i), signed(j))
+                m(signed(i), signed(j))
               else
-                m.mat(signed(i), j)
+                m(signed(i), j)
             else
               if (j == varPlus(v) || j == varMinus(v))
-                m.mat(i, signed(j))
+                m(i, signed(j))
               else
-                m.mat(i, j)
+                m(i, j)
           update(f)(m)
         }
 
-        def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrixDenseSparseDBM[A])
+        def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrix[A])
                              (implicit ifield: InfField[A])
-                             : HalfMatrixDenseSparseDBM[A] = {
+                             : HalfMatrix[A] = {
           val f = (i: Int, j: Int) => {
             val g1 = (i == varPlus(v) && j != varPlus(v) && j != varMinus(v)) ||
                      (j == varMinus(v) && i != varPlus(v) && i != varMinus(v))
@@ -131,77 +113,21 @@ object HalfMatrixDenseSparseInstance {
                      (j != varPlus(v) && j != varMinus(v) && i == varMinus(v))
             val g3 = i == varPlus(v) && j == varMinus(v)
             val g4 = i == varMinus(v) && j == varPlus(v)
-            if (g1) ifield.-(m.mat(i, j), c) else
-            if (g2) ifield.+(m.mat(i, j), c) else
-            if (g3) ifield.-(m.mat(i, j), ifield.double(c)) else
-            if (g4) ifield.+(m.mat(i, j), ifield.double(c)) else
-              m.mat(i, j)
+            if (g1) ifield.-(m(i, j), c) else
+            if (g2) ifield.+(m(i, j), c) else
+            if (g3) ifield.-(m(i, j), ifield.double(c)) else
+            if (g4) ifield.+(m(i, j), ifield.double(c)) else
+              m(i, j)
           }
           update(f)(m)
         }
 
 
-        def addVariable[A](m: HalfMatrixDenseSparseDBM[A])
-                          (implicit ifield: InfField[A])
-                          : HalfMatrixDenseSparseDBM[A] = {
-          val nOfVars = addOne(m.dimension)
-          val newVar = VarIndex(nOfVars.count -1)
-          val newMat = new HalfMatrix(doubledVarCount(nOfVars), ifield.infinity)
-                            .update(varPlus(newVar),
-                                    varPlus(newVar),
-                                    ifield.zero)
-                            .update(varPlus(newVar),
-                                    varPlus(newVar),
-                                    ifield.zero)
-          pour(m)(HalfMatrixDenseSparseDBM(newMat,
-                                           m.indices :+ newVar,
-                                           nOfVars))
-        }
-
-        def deleteVariable[A](m: HalfMatrixDenseSparseDBM[A])
-                             (implicit ifield: InfField[A])
-                             : HalfMatrixDenseSparseDBM[A] = {
-          val nOfVars = subOne(m.dimension)
-          val remVar = VarIndex(nOfVars.count)
-          val newMat = new HalfMatrix(doubledVarCount(nOfVars), ifield.infinity)
-          val newHMat = HalfMatrixDenseSparseDBM(newMat,
-                                                 m.indices.filter(_ != remVar),
-                                                 nOfVars)
-          val f = (i: Int, j: Int) => m.mat(i, j)
-          update(f)(newHMat)
-        }
-
-        def mapVariables[A](f: VarIndex => Option[VarIndex])
-                           (m: HalfMatrixDenseSparseDBM[A])
-                           (implicit ifield: InfField[A])
-                           : HalfMatrixDenseSparseDBM[A] = {
-          val newSize = VarCount(allVars(m.dimension).count(f(_).isDefined))
-          val newIndices = m.indices.map(f(_)).collect({
-              case Some(vi) => vi
-            })
-          val newMat = new HalfMatrix(doubledVarCount(newSize), ifield.infinity)
-          // g is the inverse of f
-          val g = allVars(m.dimension).map(vi => f(vi) -> vi).collect({
-              case (Some(vi), vj) => vi -> vj
-            }).toMap
-          val updater = (i: Int, j: Int) => {
-            val (vi, si) = toIndexAndCoeff(i)
-            val (vj, sj) = toIndexAndCoeff(j)
-            val ii = fromIndexAndCoeff(g(vi), si)
-            val jj = fromIndexAndCoeff(g(vj), sj)
-            m.mat(ii, jj)
-          }
-          HalfMatrixDenseSparseDBM(newMat.update(updater),
-                                   newIndices,
-                                   newSize)
-        }
-
-        def compare[A](m1: HalfMatrixDenseSparseDBM[A],
-                       m2: HalfMatrixDenseSparseDBM[A])
+        def compare[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
                       (implicit ifield: InfField[A]): Option[Ordering] = {
-          val elemIndices = varsToIndices(m1.indices)
-          val ord = elemIndices.map({ case (i, j) =>
-              ifield.compare(m1.mat(i, j), m2.mat(i, j))
+          require(m1.dimension == m2.dimension)
+          val ord = m1.lowerIndices.map({ case (i, j) =>
+              ifield.compare(m1(i, j), m2(i, j))
             })
           lazy val lt = ord.forall(v => v == EQ || v == LT)
           lazy val eq = ord.forall(v => v == EQ)
@@ -216,48 +142,142 @@ object HalfMatrixDenseSparseInstance {
             None
         }
 
-        //////////////////////////////////////////////////////////////////////////////
+      def update[A](i: Int, j: Int, x: A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(i, j, x)
 
-        def extract[A](is: Seq[VarIndex])(m: HalfMatrixDenseSparseDBM[A])
-                      : HalfMatrixDenseSparseDBM[A] =
-          HalfMatrixDenseSparseDBM(m.mat, is, m.dimension)
-
-        def pour[A](source: HalfMatrixDenseSparseDBM[A])
-                   (dest: HalfMatrixDenseSparseDBM[A])
-                   : HalfMatrixDenseSparseDBM[A] = {
-          val sourceElemIndices = varsToIndices(source.indices)
-          val f = (i: Int, j: Int) =>
-            if (sourceElemIndices.contains((i, j)))
-              source.mat(i, j)
-            else
-              dest.mat(i, j)
-          update(f)(dest)
-        }
-
-        def pure[A](d: VarCount, x: A): HalfMatrixDenseSparseDBM[A] = {
-          val mat = new HalfMatrix(doubledVarCount(d), x)
-          val indices = allVars(d)
-          HalfMatrixDenseSparseDBM(mat, indices, d)
-        }
-
-      def update[A](i: Int, j: Int, x: A)(m: HalfMatrixDenseSparseDBM[A]): HalfMatrixDenseSparseDBM[A] = ???
+      def nOfVars[A](m: HalfMatrix[A]): VarCount = halvedDimension(m.dimension)
     }
+
+  val halfMatrixDecomposableInstance: Decomposable[HalfMatrix, HalfSubMatrix] = new Decomposable[HalfMatrix, HalfSubMatrix] {
+
+    val ds = halfMatrixDenseSparseInstance
+
+    def addVariable[A](m: HalfMatrix[A])
+                      (implicit ifield: InfField[A]): HalfMatrix[A] = {
+      val newVar = VarIndex(ds.nOfVars(m).count)
+      HalfMatrix((i, j) => {
+        if (toIndexAndCoeff(i)._1 == newVar || toIndexAndCoeff(j)._1 == newVar)
+          ifield.infinity else m(i, j)
+      }, addOne(ds.nOfVars(m)))
+    }
+
+    def deleteVariable[A](m: HalfMatrix[A])
+                         (implicit ifield: InfField[A]): HalfMatrix[A] =
+      HalfMatrix(m(_, _), subOne(ds.nOfVars(m)))
+
+    def mapVariables[A](f: VarIndex => Option[VarIndex])(m: HalfMatrix[A])
+                       (implicit ifield: InfField[A]): HalfMatrix[A] = {
+      val newSize = VarCount(allVars(ds.nOfVars(m)).count(f(_).isDefined))
+      val newIndices = allVars(ds.nOfVars(m)).map(v => f(v)).collect({
+        case Some(vi) => vi
+      })
+      val newMat = new HalfMatrix(doubledVarCount(newSize), ifield.infinity)
+      // g is the inverse of f
+      val g = allVars(ds.nOfVars(m)).map(vi => f(vi) -> vi).collect({
+        case (Some(vi), vj) => vi -> vj
+      }).toMap
+      val updater = (i: Int, j: Int) => {
+        val (vi, si) = toIndexAndCoeff(i)
+        val (vj, sj) = toIndexAndCoeff(j)
+        val ii = fromIndexAndCoeff(g(vi), si)
+        val jj = fromIndexAndCoeff(g(vj), sj)
+        m(ii, jj)
+      }
+      newMat.update(updater)
+    }
+
+    def extract[A](is: Seq[VarIndex])(m: HalfMatrix[A]): HalfSubMatrix[A] = {
+      val subDim = is.length * 2
+      val f: (Int, Int) => A = (i, j) => {
+        val (vi, signi) = toIndexAndCoeff(i)
+        val originalVi = is(vi.i)
+        val (vj, signj) = toIndexAndCoeff(j)
+        val originalVj = is(vj.i)
+        m(fromIndexAndCoeff(originalVi, signi),
+          fromIndexAndCoeff(originalVj, signj))
+      }
+      HalfSubMatrix(HalfMatrix(f, VarCount(subDim)), is)
+    }
+
+    // TODO: not extremely efficient as it is. consider improvements
+    def pour[A](source: HalfSubMatrix[A])(dest: HalfMatrix[A]): HalfMatrix[A] = {
+      def findCorresponding(ixs: Seq[VarIndex], v: VarIndex, sign: OctaVarCoeff): Option[Int] = {
+        ixs.zipWithIndex
+          .find(vyvx => vyvx._1 == v)
+          .map(p => VarIndex(p._2))
+          .map(v => fromIndexAndCoeff(v, sign))
+      }
+      val f: (Int, Int) => A = (i, j) => {
+        val (vi, signi) = toIndexAndCoeff(i)
+        val (vj, signj) = toIndexAndCoeff(j)
+        (findCorresponding(source.indices, vi, signi),
+          findCorresponding(source.indices, vj, signj)) match {
+          case (Some(ii), Some(jj)) => ds.get(ii, jj)(source.mat)
+          case _ => ds.get(i, j)(dest)
+        }
+      }
+      ds.update(f)(dest)
+    }
+
+    def pure[A](d: VarCount, x: A): HalfMatrix[A] =
+      new HalfMatrix[A](doubledVarCount(d), x)
+
+    def varIndices[A](m: HalfSubMatrix[A]): Seq[VarIndex] = m.indices
+    def compare[A](m1: HalfSubMatrix[A], m2: HalfSubMatrix[A])
+                  (implicit ifield: InfField[A]): Option[Ordering] = ds.compare(m1.mat, m2.mat)
+
+    def widening[A](m1: HalfSubMatrix[A], m2: HalfSubMatrix[A])
+                   (implicit e: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.widening(m1.mat, m2.mat), m1.indices)
+
+    def update[A](f: (Int, Int) => A)(m: HalfSubMatrix[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.update(f)(m.mat), m.indices)
+
+    def update[A](i: Int, j: Int, x: A)(m: HalfSubMatrix[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.update(i, j, x)(m.mat), m.indices)
+
+    def strongClosure[A](m: HalfSubMatrix[A])(implicit e: InfField[A]): Option[HalfSubMatrix[A]] =
+      ds.strongClosure(m.mat).map(clo => HalfSubMatrix(clo, m.indices))
+
+    def get[A](i: Int, j: Int)(m: HalfSubMatrix[A]): A = ds.get(i, j)(m.mat)
+
+    def dbmIntersection[A](m1: HalfSubMatrix[A], m2: HalfSubMatrix[A])(implicit e: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.dbmIntersection(m1.mat, m2.mat), m1.indices)
+
+    def dbmUnion[A](m1: HalfSubMatrix[A], m2: HalfSubMatrix[A])(implicit e: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.dbmUnion(m1.mat, m2.mat), m1.indices)
+
+    def incrementalClosure[A](v: VarIndex)(m: HalfSubMatrix[A])(implicit e: InfField[A]): Option[HalfSubMatrix[A]] =
+      ds.incrementalClosure(v)(m.mat).map(clo => HalfSubMatrix(clo, m.indices))
+
+    def forget[A](v: VarIndex)(m: HalfSubMatrix[A])(implicit e: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.forget(v)(m.mat), m.indices)
+
+    def flipVar[A](v: VarIndex)(m: HalfSubMatrix[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.flipVar(v)(m.mat), m.indices)
+
+    def narrowing[A](m1: HalfSubMatrix[A], m2: HalfSubMatrix[A])(implicit e: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.narrowing(m1.mat, m2.mat), m1.indices)
+
+    def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfSubMatrix[A])(implicit ifield: InfField[A]): HalfSubMatrix[A] =
+      HalfSubMatrix(ds.addScalarOnVar(v, c)(m.mat), m.indices)
+  }
+
 }
 
 object HalfMatrixDenseSparseDBM {
-  def computeSparsity[A](m: HalfMatrixDenseSparseDBM[A])
+  def computeSparsity[A](m: HalfMatrix[A])
                         (implicit ifield: InfField[A]): NNI =
-    NNI(m.mat.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
+    NNI(m.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
 
-  def denseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])(implicit ifield: InfField[A]) =
+  def denseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
     DenseStrongClosure.closureHalfScalar(m)
 
-  def sparseStrongClosure[A](m: HalfMatrixDenseSparseDBM[A])
+  def sparseStrongClosure[A](m: HalfMatrix[A])
                          (implicit ifield: InfField[A]) = ???
 
-  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
+  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])
                         (implicit ifield: InfField[A]) = ???
-  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrixDenseSparseDBM[A])
+  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])
                          (implicit ifield: InfField[A]) = ???
 }
 
@@ -265,10 +285,12 @@ object HalfMatrixDenseSparseDBM {
 // Taken from Singh, Fast Algorithms for Octagon Abstract Domain
 object DenseStrongClosure {
 
-  type HM[A] = HalfMatrixDenseSparseDBM[A]
+  type HM[A] = HalfMatrix[A]
 
-  private val e: Decomposable[HalfMatrixDenseSparseDBM, HalfMatrixDenseSparseDBM] =
-    HalfMatrixDenseSparseInstance.instance
+  private val dec: Decomposable[HalfMatrix, HalfSubMatrix] =
+    HalfMatrixDenseSparseInstance.halfMatrixDecomposableInstance
+  private val e: DenseSparse[HalfMatrix] =
+    HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
   private def computeColHalfScalar[A]
     (c: Int, d: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
@@ -362,26 +384,29 @@ object DenseStrongClosure {
 
 object SparseStrongClosure {
 
+  val e: DenseSparse[HalfMatrix] = HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
+
+  def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
+
   // returns (r, r', c, c')
-  private def computeIndex[A](m: HalfMatrixDenseSparseDBM[A], k: Int)
+  private def computeIndex[A](m: HalfMatrix[A], k: Int)
                              (implicit ifield: InfField[A])
                              : (Seq[Int], Seq[Int], Seq[Int], Seq[Int]) = {
-    val cIndices = m.indices.filter(_ > VarIndex(k))
+    val cIndices = indices(m).filter(_ > VarIndex(k))
               .flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
-    val rIndices = m.indices.filter(_ < VarIndex(k))
+    val rIndices = indices(m).filter(_ < VarIndex(k))
               .flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
 
-    val cp = cIndices.filter(i => m.mat(i, 2*k) == ifield.infinity)
-    val cm = cIndices.filter(i => m.mat(signed(i), 2*k + 1) == ifield.infinity)
-    val rp = rIndices.filter(j => m.mat(2*k, j) == ifield.infinity)
-    val rm = rIndices.filter(j => m.mat(2*k + 1, signed(j)) == ifield.infinity)
-
+    val cp = cIndices.filter(i => m(i, 2*k) == ifield.infinity)
+    val cm = cIndices.filter(i => m(signed(i), 2*k + 1) == ifield.infinity)
+    val rp = rIndices.filter(j => m(2*k, j) == ifield.infinity)
+    val rm = rIndices.filter(j => m(2*k + 1, signed(j)) == ifield.infinity)
 
     (rp, rm, cp, cm)
   }
 
   // returns (m, cp, t)
-  private def computeColumn[A](m: HalfMatrixDenseSparseDBM[A],
+  private def computeColumn[A](m: HalfMatrix[A],
                                k: Int,
                                kk: Int,
                                cp: Seq[Int],
@@ -389,14 +414,12 @@ object SparseStrongClosure {
                                (implicit ifield: InfField[A]) = {
     // update both m and cm
     val newVals =
-      if (m.mat(k, kk) != ifield.infinity) {
+      if (m(k, kk) != ifield.infinity) {
         cm.foldLeft((m, cp))((pair, i) => {
           val (m, cp) = pair
-          val min = ifield.min(m.mat(i, k), ifield.+(m.mat(i, kk), m.mat(kk, k)))
-          val newMat = HalfMatrixDenseSparseDBM(m.mat.update(i, k, min),
-                                                m.indices,
-                                                m.dimension)
-          if (m.mat(i, k) != ifield.infinity) {
+          val min = ifield.min(m(i, k), ifield.+(m(i, kk), m(kk, k)))
+          val newMat = m.update(i, k, min)
+          if (m(i, k) != ifield.infinity) {
             (newMat, cp)
           } else {
             (newMat, cp :+ i)
@@ -405,25 +428,23 @@ object SparseStrongClosure {
       } else {
         (m, cp)
       }
-    val t = for (i <- allIndices(doubledVarCount(m.dimension))) yield newVals._1.mat(i, k)
+    val t = for (i <- allIndices(m.dimension)) yield newVals._1(i, k)
     (newVals._1, newVals._2, t)
   }
 
   // returns (m, rp)
-  private def computeRow[A](m: HalfMatrixDenseSparseDBM[A],
+  private def computeRow[A](m: HalfMatrix[A],
                             k: Int,
                             kk: Int,
                             rp: Seq[Int],
                             rm: Seq[Int])
                             (implicit ifield: InfField[A]) = {
-    if (m.mat(k, kk) != ifield.infinity) {
+    if (m(k, kk) != ifield.infinity) {
       rm.foldLeft((m, rp))((pair, j) => {
         val (m, rp) = pair
-        val min = ifield.min(m.mat(k, j), ifield.+(m.mat(k, kk), m.mat(kk, j)))
-        val newMat = HalfMatrixDenseSparseDBM(m.mat.update(k, j, min),
-                                              m.indices,
-                                              m.dimension)
-        if (m.mat(k, j) != ifield.infinity) {
+        val min = ifield.min(m(k, j), ifield.+(m(k, kk), m(kk, j)))
+        val newMat = m.update(k, j, min)
+        if (m(k, j) != ifield.infinity) {
           (newMat, rp)
         } else {
           (newMat, rp :+ j)
@@ -434,7 +455,7 @@ object SparseStrongClosure {
     }
   }
 
-  private def computeIteration[A](m: HalfMatrixDenseSparseDBM[A],
+  private def computeIteration[A](m: HalfMatrix[A],
                                   k: Int,
                                   cp: Seq[Int],
                                   cm: Seq[Int],
@@ -445,81 +466,65 @@ object SparseStrongClosure {
                                  (implicit ifield: InfField[A]) = {
     val mat1 =
       rp.foldLeft(m)((m, i) => {
-        val ik = m.mat(2*k, i)
+        val ik = m(2*k, i)
         val zero =
           rm.foldLeft(m)((m, j) => {
-            val kj = m.mat(2*k + 1, j)
-            val min = ifield.min(m.mat(signed(i), j), ifield.+(ik, kj))
-            HalfMatrixDenseSparseDBM(m.mat.update(signed(i), j, min),
-                                     m.indices,
-                                     m.dimension)
+            val kj = m(2*k + 1, j)
+            val min = ifield.min(m(signed(i), j), ifield.+(ik, kj))
+            m.update(signed(i), j, min)
           })
         cp.foldLeft(zero)((m, j) => {
             val kj = b(j)
-            val min = ifield.min(m.mat(signed(i), signed(j)), ifield.+(ik, kj))
-            HalfMatrixDenseSparseDBM(m.mat.update(signed(i), signed(j), min),
-                                     m.indices,
-                                     m.dimension)
+            val min = ifield.min(m(signed(i), signed(j)), ifield.+(ik, kj))
+            m.update(signed(i), signed(j), min)
           })
       })
 
     val mat2 =
       rm.foldLeft(mat1)((m, i) => {
-        val ikk = m.mat(2*k + 1, i)
+        val ikk = m(2*k + 1, i)
         val zero =
           rp.foldLeft(m)((m, j) => {
-            val kkj = m.mat(2*k, j)
-            val min = ifield.min(m.mat(signed(i), j), ifield.+(ikk, kkj))
-            HalfMatrixDenseSparseDBM(m.mat.update(signed(i), j, min),
-                                     m.indices,
-                                     m.dimension)
+            val kkj = m(2*k, j)
+            val min = ifield.min(m(signed(i), j), ifield.+(ikk, kkj))
+            m.update(signed(i), j, min)
           })
         cm.foldLeft(zero)((m, j) => {
             val kkj = a(j)
-            val min = ifield.min(m.mat(signed(i), signed(j)), ifield.+(ikk, kkj))
-            HalfMatrixDenseSparseDBM(m.mat.update(signed(i), signed(j), min),
-                                     m.indices,
-                                     m.dimension)
+            val min = ifield.min(m(signed(i), signed(j)), ifield.+(ikk, kkj))
+            m.update(signed(i), signed(j), min)
           })
       })
 
     val mat3 =
       cm.foldLeft(mat2)((m, i) => {
-        val ik = m.mat(i, 2*k + 1)
+        val ik = m(i, 2*k + 1)
         val zero =
           rm.foldLeft(m)((m, j) => {
-            val kj = m.mat(2*k+1, j)
-            val min = ifield.min(m.mat(i, j), ifield.+(ik, kj))
-            HalfMatrixDenseSparseDBM(m.mat.update(i, j, min),
-                                     m.indices,
-                                     m.dimension)
+            val kj = m(2*k+1, j)
+            val min = ifield.min(m(i, j), ifield.+(ik, kj))
+            m.update(i, j, min)
           })
         cp.foldLeft(zero)((m, j) => {
             val kj = b(j)
-            val min = ifield.min(m.mat(i, signed(j)), ifield.+(ik, kj))
-            HalfMatrixDenseSparseDBM(m.mat.update(i, signed(j), min),
-                                     m.indices,
-                                     m.dimension)
+            val min = ifield.min(m(i, signed(j)), ifield.+(ik, kj))
+            m.update(i, signed(j), min)
           })
       })
 
     val mat4 =
       cp.foldLeft(mat3)((m, i) => {
-        val ikk = m.mat(i, 2*k)
+        val ikk = m(i, 2*k)
         val zero =
           rp.foldLeft(m)((m, j) => {
-            val kkj = m.mat(2*k, j)
-            val min = ifield.min(m.mat(i, j), ifield.+(ikk, kkj))
-            HalfMatrixDenseSparseDBM(m.mat.update(i, j, min),
-                                     m.indices,
-                                     m.dimension)
+            val kkj = m(2*k, j)
+            val min = ifield.min(m(i, j), ifield.+(ikk, kkj))
+            m.update(i, j, min)
           })
         cm.foldLeft(zero)((m, j) => {
             val kkj = a(j)
-            val min = ifield.min(m.mat(i, signed(j)), ifield.+(ikk, kkj))
-            HalfMatrixDenseSparseDBM(m.mat.update(i, signed(j), min),
-                                     m.indices,
-                                     m.dimension)
+            val min = ifield.min(m(i, signed(j)), ifield.+(ikk, kkj))
+            m.update(i, signed(j), min)
           })
       })
 
@@ -527,39 +532,37 @@ object SparseStrongClosure {
   }
 
 
-  private def strengthening[A](m: HalfMatrixDenseSparseDBM[A])
+  private def strengthening[A](m: HalfMatrix[A])
                               (implicit ifield: InfField[A])
-                              : Option[HalfMatrixDenseSparseDBM[A]] = {
-    val indices = m.indices.flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
-    val d = indices.filter(i => m.mat(signed(i), i) != ifield.infinity)
-    val t = indices.map(i => m.mat(signed(i), i))
+                              : Option[HalfMatrix[A]] = {
+    val indicess = indices(m).flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
+    val d = indicess.filter(i => m(signed(i), i) != ifield.infinity)
+    val t = indicess.map(i => m(signed(i), i))
 
-    val newMat: HalfMatrixDenseSparseDBM[A] =
+    val newMat: HalfMatrix[A] =
       d.foldLeft(m)((m, i) => {
         val ii = t(i)
         d.foldLeft(m)((m, j) => {
           val jj = t(j)
-          val min = ifield.min(m.mat(signed(i), j),
+          val min = ifield.min(m(signed(i), j),
                                ifield.half(ifield.+(ii,jj)))
 
-          HalfMatrixDenseSparseDBM(m.mat.update(signed(i), j, min),
-                                   m.indices,
-                                   m.dimension)
+          m.update(signed(i), j, min)
         })
       })
 
-    if (indices.exists(i =>
-            ifield.compare(newMat.mat(i, i), ifield.zero) == LT))
+    if (indicess.exists(i =>
+            ifield.compare(newMat(i, i), ifield.zero) == LT))
       None
     else
       Some(newMat)
   }
 
-  def apply[A](m: HalfMatrixDenseSparseDBM[A])
+  def apply[A](m: HalfMatrix[A])
               (implicit ifield: InfField[A])
-              : Option[HalfMatrixDenseSparseDBM[A]] = {
+              : Option[HalfMatrix[A]] = {
     val newMat =
-      m.indices.foldLeft(m)((m, vi) => {
+      indices(m).foldLeft(m)((m, vi) => {
         val (rp, rm, cp, cm) = computeIndex(m, vi.i)
         val (m1, cp1, a) = computeColumn(m, 2*vi.i, 2*vi.i + 1, cp, cm)
         val (m2, cm1, b) = computeColumn(m1, 2*vi.i + 1, 2*vi.i, cm, cp1)
