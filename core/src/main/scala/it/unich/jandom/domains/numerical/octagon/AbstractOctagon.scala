@@ -301,14 +301,6 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     withDBM(f(dbm))
   }
 
-  sealed trait OctaVarCoeff
-  object Positive extends OctaVarCoeff { }
-  object Negative extends OctaVarCoeff { }
-  sealed trait ExactLinearForm
-  case class ConstExact(const: Rational) extends ExactLinearForm
-  case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
-  case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
-
   def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
     forget(VarIndex(n))
 
@@ -542,6 +534,15 @@ object AbstractOctagon {
     }
     AbstractOctagon(e.fromFun(box.dimension*2, f), d, e)
   }
+
+
+  sealed trait OctaVarCoeff
+  object Positive extends OctaVarCoeff { }
+  object Negative extends OctaVarCoeff { }
+  sealed trait ExactLinearForm
+  case class ConstExact(const: Rational) extends ExactLinearForm
+  case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+  case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
 }
 
 object DBMUtils {
