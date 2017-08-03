@@ -413,7 +413,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         2 * math.max(p _1, p _2)
       } else if (i == varPlus(vi) && j == varMinus(vi)) {
         val p = toInterval.linearEvaluation(lf)
-        - 2 * math.max(p _1, p _2)
+        - 2 * math.min(p _1, p _2)
       } else {
         val g1: VarIndex => Boolean = other =>
         vi != other && ((i == varPlus(other) && j == varPlus(vi)) ||
