@@ -370,12 +370,19 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   }
 
   def mkString(vars: Seq[String]): String = {
-    val sss: IndexedSeq[Option[String]] = for {
-      i <- 0 until 2 * e.nOfVars(dbm)
-      j <- 0 until 2 * e.nOfVars(dbm)
-    } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
-      .map(prettyConstraint(_.toString, vars))
-    cleanup(sss.toList).fold("")((x, y) => x + " ; " + y)
+    val indexedVars = vars.zipWithIndex
+                          .map({ case (name, i) => (name, VarIndex(i))})
+    val str =
+      for ((vari, vi) <- indexedVars;
+           (namei, posi) <- Seq((s"+$vari", varPlus(vi)),
+                                (s"-$vari", varMinus(vi)));
+           (varj, vj) <- indexedVars;
+           (namej, posj) <- Seq((s"+$varj", varPlus(vj)),
+                                (s"-$varj", varMinus(vj)))) yield {
+        val elem = e.get(posi, posj)(dbm)
+        s"$namei - $namej <= $elem"
+      }
+    "[ " + str.reduceOption(_ ++ " ; " ++ _).getOrElse("") + " ]"
   }
 
   def domain: this.Domain = d
