@@ -215,19 +215,18 @@ object FunDBMInstance {
 
       require(dbm1.noOfVariables == dbm2.noOfVariables)
 
-      val m: Option[FunMatrix[A]] = for {
-        m1 <- dbm1.innerMatrix
-        m2 <- dbm2.innerMatrix
-      } yield me.combine((mij: A, nij: A) =>
-        ifield.compare(mij, nij) match {
-          case GT => mij
-          case _ => ifield.infinity
-        }
-      )(m1, m2)
 
-      m match {
-        case Some(matrix) => mkExFun(NonClosedFunDBM(matrix))
-        case None => mkExFun(BottomFunDBM(dbm1.noOfVariables))
+      (dbm1.innerMatrix, dbm2.innerMatrix) match {
+        case (None, None)         => mkExFun(BottomFunDBM(dbm1.noOfVariables))
+        case (Some(_), None)      => mkExFun(dbm1)
+        case (None, Some(_))      => mkExFun(dbm2)
+        case (Some(m1), Some(m2)) => mkExFun(NonClosedFunDBM(
+                                          me.combine((mij: A, nij: A) =>
+                                            ifield.compare(mij, nij) match {
+                                              case GT => mij
+                                              case _ => ifield.infinity
+                                            }
+                                          )(m1, m2)))
       }
     }
 
