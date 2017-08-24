@@ -1,6 +1,8 @@
 package it.unich.jandom.domains.numerical.octagon
 
 import breeze.math.Field
+import it.unich.jandom.domains.numerical.LinearForm
+
 // Distinguish integers used as variable indices
 case class VarIndex(i: Int) extends Ordered[VarIndex] {
   def compare(that: VarIndex) = this.i compare that.i
@@ -30,4 +32,12 @@ object VarIndexOps {
     case Positive => varPlus(vi)
     case Negative => varMinus(vi)
   }
+}
+
+object VarIndexUtils {
+  def forSomeVar(
+                  vars: Seq[VarIndex])(p: VarIndex => Boolean): Option[VarIndex] =
+    (vars.map(x => if (p(x)) Some(x) else None).toList).flatten.headOption
+  // Evaluation of linear assignment using interval arithmetics.
+  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
