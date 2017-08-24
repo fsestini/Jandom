@@ -14,7 +14,9 @@ libraryDependencies ++= Seq(
   // ASM is included in the Soot Jar
   "ca.mcgill.sable" % "soot" %"3.0.0-SNAPSHOT",
   "org.scalaz" %% "scalaz-core" % "7.2.14",
-  "org.scala-graph" %% "graph-core" % "1.11.5"
+  "org.scala-graph" %% "graph-core" % "1.11.5",
+  "org.scalanlp" %% "breeze" % "0.12",
+  "org.scalanlp" %% "breeze-viz" % "0.12"
 )
 
 updateOptions := updateOptions.value.withLatestSnapshots(false)
