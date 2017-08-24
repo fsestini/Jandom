@@ -45,6 +45,28 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
   }
 
   def toList: List[A] = grid(dimension).map(p => fun(p._1, p._2)).toList
+
+  override def toString: String = {
+    val pad = 4
+    val maxLength =
+      toList
+        .map(_.toString.size)
+        .max
+
+    (allIndices(dimension)).map(
+      (i: Int) =>
+      (allIndices(dimension)).map(
+        (j: Int) => {
+          val res =
+            if (fun(i,j) == Double.PositiveInfinity)
+              0x221E.toChar.toString // infty
+            else
+              fun(i,j).toString
+          (" " * ((maxLength + pad) - res.length)) + res
+        }
+      ).mkString("")
+    ).mkString("\n")
+  }
 }
 
 object FunMatrix {
