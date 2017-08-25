@@ -86,10 +86,17 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     createInterval(low.toArray, high.toArray, isEmpty = false)
   }
 
-  def linearDisequality (lf: LinearForm) = ???
   def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
+  //////////////////////// BOOL TESTS //////////////////////////////////////////
 
   def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = ???
+  /**
+   * Computes intersection with `lf != 0`.
+   *
+   * Amounts to identity as Mine06 does not give a better abstraction
+   * than id
+   */
+  def linearDisequality (lf: LinearForm) = this
 
   def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
     forget(VarIndex(n))
