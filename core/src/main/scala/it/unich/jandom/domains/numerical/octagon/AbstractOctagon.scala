@@ -86,7 +86,6 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     createInterval(low.toArray, high.toArray, isEmpty = false)
   }
 
-  def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = ???
   //////////////////////// BOOL TESTS //////////////////////////////////////////
 
   def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = ???
@@ -97,6 +96,164 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
    * than id
    */
   def linearDisequality (lf: LinearForm) = this
+
+  /**
+    * Intersection with the half-plane `lf <= 0`.
+    *
+    * Computed according to Mine06; particularly, 5 cases for an exact
+    * abstraction are given, otherwise the intersection is computed by
+    * fallback on intervals.
+    *
+    * The cases given in Mine06 fig 20 are as follows:
+    *
+    *  1. ({ V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l, j=2l-1
+    *  2. ({-V_l + c <= 0 ?}(m))_ij = min(m_ij, -2c) if i=2l-1, j=2l
+    *  3. ({V_l - V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i=2k-1, j=2l-1
+    *                                                     or i=2l, j=2k
+    *  4. ({V_l + V_k + c  <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k, j = 2l - 1
+    *                                                     or i = 2l, j = 2k - 1
+    *  5. ({-V_l - V_k + c <= 0 ?}(m))_ij = min(m_ij, -c) if i = 2k - 1, j = 2l
+    *                                                     or i = 2l - 1, j = 2k
+    *  6. Fallback on interval-based abstraction
+    *
+    * Notes:
+    *  - [a,b] in Mine06 replaced by c, we don't do range assignments
+    *  - j0, i0 replaced by k, l for readability
+    *  - Always m_ij if not specified
+    */
+  private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+    def inverseVarPlus = inverseVarPlusMinus(VarIndexOps.Positive, this.dimension * 2, _: Int)
+    def inverseVarMinus = inverseVarPlusMinus(VarIndexOps.Negative, this.dimension * 2, _: Int)
+    /**
+      * Computes enhanced fallback abstraction according to Mine06 fig. 21, ie:
+      *
+      * ({ e<= 0?}(m))_{ij} = min(m_{ij}, m'_{ij})
+      *
+      * The cases for m'_{ij} are:
+      *
+      *  1.  2*max (Int (V_j0 - e))
+      *  2. -2*max (int(-V_j0 - e))
+      *  3a. max(Int(V_j0 - V_i0 - e))
+      *  3b.    "   "   "
+      *  4.  max(Int( V_j0 + V_i0- e))
+      *  5.  max(Int(-V_j0 - V_i0- e))
+      *  6. id
+      *
+      * Visually the cases for fallback map as follows:
+      *
+      *     |+ |- |+ |- |+ |- |
+      *   --+=====+--+--+--+--+
+      *    +|id|1 |3b|4 |3b|4 |
+      *   --+--+--+--+--+--+--+
+      *    -| 2|id|5 |3a|5 |3a|
+      *   --+=====+=====+--+--+
+      *    +|3b|4 |id|1 |3b|4 |
+      *   --+--+--+--+--+--+--+
+      *    -|5 |3a| 2|id|5 |3a|
+      *   --+--+--+=====+=====+
+      *    +|3b|4 |3b|1 |id|1 |
+      *   --+--+--+--+--+--+--+
+      *    -|5 |3a|5 |3a| 2|id|
+      *   --+--+--+--+--+=====+
+      */
+    def g (i: Int, j: Int) : Double = {
+      if (inverseVarPlus(i) != None & inverseVarMinus(j) != None
+        & inverseVarPlus(i) == inverseVarMinus(j)
+      ) { // Case 1 with i/2 = j0
+        val j0 = inverseVarPlus(i).get
+        2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+     } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
+       & inverseVarMinus(i) == inverseVarPlus(j)
+      ) { // Case 2 with j/2 = j0
+        val j0 = inverseVarPlus(j).get
+        -2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+      } else if (inverseVarMinus(j) != None & inverseVarMinus(i) != None
+        & inverseVarMinus(i) != inverseVarMinus(j)
+      ) { // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
+        val j0 = inverseVarMinus(j).get
+        val i0 = inverseVarMinus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarPlus(j) != None & inverseVarPlus(i) != None
+        & inverseVarPlus(i) != inverseVarPlus(j)
+      ) { // Case 3b, i/2 = i0, j/2 = j0
+        val j0 = inverseVarPlus(j).get
+        val i0 = inverseVarPlus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarMinus(j) != None & inverseVarPlus(i) != None
+        & inverseVarMinus(j) != inverseVarPlus(i)
+      ) { // Case 4, i0 = i/2, j0 = j+1/2
+        val j0 = inverseVarMinus(j).get
+        val i0 = inverseVarPlus(i).get
+        this.toInterval.maximize(LinearForm.v(j0.i) + LinearForm.v(i0.i) - lf).toDouble
+      } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
+        & inverseVarPlus(j) != inverseVarMinus(i)
+      ) { // Case 5, j0 = j, i0 = (i+1)/2
+        val j0 = inverseVarPlus(j).get
+        val i0 = inverseVarMinus(i).get
+        this.toInterval.maximize(- LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+      } else {
+        e.get(i,j)(dbm).get
+      }
+    }
+    val f = (i : Int, j : Int) => math.min(
+      e.get(i,j)(dbm).get,
+          g(i,j)
+    )
+    e.update(f)(dbm)
+  }
+
+  def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+    val t : AbstractTest = decodeTest(lf)
+    t match {
+      case Fallback() => fallbackUpdate(lf)
+      case et : ExactTest => {
+        val f = et match {
+          case Case1Test(vj, c) => {
+            (i : Int, j : Int) =>
+            if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
+              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case2Test(vj, c) => {
+            (i : Int, j : Int) =>
+            if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
+              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case3Test(vj, vi, c) => {
+            (i : Int, j : Int) =>
+            if ((i == varPlus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
+              | (i == varMinus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case4Test(vj, vi, c) => {
+            (i : Int, j : Int) =>
+            if ((i == varMinus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
+              | (i == varMinus(VarIndex(vj)) & j == varPlus(VarIndex(vi)))
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+          case Case5Test(vj, vi, c) => {
+            (i : Int, j : Int) =>
+            if ((i == varPlus(VarIndex(vi)) & j == varMinus(VarIndex(vj)))
+              | (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
+            )
+              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+            else
+              e.get(i,j)(dbm).get
+          }
+        }
+        e.update(f)(dbm)
+      }
+    }
+  }
 
   def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
     forget(VarIndex(n))
