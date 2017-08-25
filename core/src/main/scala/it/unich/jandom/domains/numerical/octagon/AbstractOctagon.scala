@@ -88,7 +88,6 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 
   //////////////////////// BOOL TESTS //////////////////////////////////////////
 
-  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = ???
   /**
    * Computes intersection with `lf != 0`.
    *
@@ -253,6 +252,55 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         e.update(f)(dbm)
       }
     }
+  }
+
+  //////////////////////// ASSIGNMENTS /////////////////////////////////////////
+
+  // There are only two assignment forms which have an exact abstraction in the
+  // octagon domain: (x := c) and (x := +/- y + c).
+  // Assignments (x := +/- x + c) do not require strongly closed matrix arguments,
+  // but preserve the strong closure.
+  // Assignments (x := +/- y + c) with x =/= y require a strongly closed argument
+  // due to the embedded forget operator. The result is not strongly closed, but
+  // can be strongly closed by merely performing an incremental strong closure
+  // with respect to the assigned variable x.
+  // Thus, a transfer function that keeps matrices in strongly closed form can be
+  // computed in quadratic time, in the worst case.
+
+  def decideLinearForm(assignedVar: VarIndex, lf: LinearForm)
+      : Option[ExactLinearForm] =
+    lf.pairs.toList match {
+      case Nil => Some(ConstExact(lf.known))
+      case ((other, coeff) :: Nil) =>
+        (assignedVar.i == other, coeff == -1, coeff == 1) match {
+          case (true, true, _) => Some(SingleExact(Negative, lf.known))
+          case (true, _, true) => Some(SingleExact(Positive, lf.known))
+          case (false, true, _) => Some(DoubleExact(VarIndex(other), Negative, lf.known))
+          case (false, _, true) => Some(DoubleExact(VarIndex(other), Positive, lf.known))
+          case _ => None
+        }
+      case _ => None
+    }
+
+  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = {
+    val f: M[Closed, Double] => M[Closed, Double] = decideLinearForm(v, lf) match {
+      case Some(ConstExact(const)) => (m) =>
+        e.incrementalClosure(v)(
+          singleConstantExactAssignment(v, const.toDouble)(m, e).elem)
+      case Some(SingleExact(Positive, const)) => (m) =>
+        singlePositiveExactAssignment(v, const.toDouble)(m, e)
+      case Some(SingleExact(Negative, const)) => (m) =>
+        singleNegativeExactAssignment(v, const.toDouble)(m, e)
+      case Some(DoubleExact(other, Positive, const)) => (matrix) =>
+        e.incrementalClosure(v)(
+          doublePositiveExactAssignment(v, other, const.toDouble)(matrix, e).elem)
+      case Some(DoubleExact(other, Negative, const)) => (matrix) =>
+        e.incrementalClosure(v)(
+          doubleNegativeExactAssignment(v, other, const.toDouble)(matrix, e).elem)
+      case None => (matrix) =>
+        e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix).elem)
+    }
+    withDBM(f(dbm))
   }
 
   def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
