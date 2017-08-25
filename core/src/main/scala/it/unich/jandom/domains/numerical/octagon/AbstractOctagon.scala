@@ -524,6 +524,27 @@ object AbstractOctagon {
       }
     }
   }
+
+  def fromInterval[D <: NumericalDomain, M[_,_]]
+    (box: BoxDoubleDomain#Property,
+      d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
+      : AbstractOctagon[D, M] = {
+    require (box.low.size == box.high.size)
+    val indices = (0 until box.high.size).map(x => VarIndex(x))
+    val chooser = forSomeVar(indices) _
+    val f: (Int, Int) => Double = (i, j) => {
+      val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
+      val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)
+      (chooser(g1), chooser(g2)) match {
+        case (Some(VarIndex(k)), _) => 2 * box.asPair(k)._2
+        case (None, Some(VarIndex(k))) => - 2 * box.asPair(k)._1
+        case (None, None) => Double.PositiveInfinity
+      }
+    }
+    AbstractOctagon(e.fromFun(Dimension(box.dimension * 2), f), d, e)
+  }
+
+
   sealed trait OctaVarCoeff
   object Positive extends OctaVarCoeff { }
   object Negative extends OctaVarCoeff { }
