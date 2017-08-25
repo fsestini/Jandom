@@ -263,6 +263,71 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
 }
 
+sealed abstract class AbstractTest
+case class Fallback() extends AbstractTest
+sealed abstract class ExactTest extends AbstractTest
+case class Case1Test(val vj : Int, val c : Rational) extends ExactTest
+case class Case2Test(val vj : Int, val c : Rational) extends ExactTest
+case class Case3Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
+case class Case4Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
+case class Case5Test(val vj : Int, val vi : Int, val c : Rational) extends ExactTest
+
+object AbstractOctagon {
+  /**
+    * Decodes a Linearform into an AbstractTest, ie one of 6 cases discussed in Mine06.
+    */
+  private[octagon] def decodeTest (lf : LinearForm) : AbstractTest = {
+    require (lf.coeffs.size > 0)
+    if ( lf.homcoeffs.exists { !List(1,0,-1).contains(_) }
+       | lf.homcoeffs.filter(_ != 0).size > 2
+       | lf.homcoeffs.filter(_ != 0).size == 0
+       // TODO: perhaps case (c,0,0...,0) needs is a special case of one of the others?
+    ) {
+      Fallback()
+      // Mine06 fig 20 does not give an exact abstraction for > 2
+      // coeffs != 0 or any coeffs != 1, -1
+    } else {
+      val c = lf.known
+      val nonZeroPairs = lf.pairs.filter(_._2 != 0)
+      if (nonZeroPairs.size == 1) {
+        // Cases 1, 2
+        val vl = nonZeroPairs.head
+        if (vl._2 == 1)
+          Case1Test (vl._1, c)
+        else {
+          require(vl._2 == -1)
+          Case2Test (vl._1, c)
+        }
+      } else if (nonZeroPairs.size == 2) {
+        if (nonZeroPairs.exists(_._2 == 1)) {
+          // Cases 3, 4
+          val vl = nonZeroPairs.filter(_._2 == 1).head
+          val vk = nonZeroPairs.diff(List(vl)).head
+          if (vk._2 == -1)
+            Case3Test (vl._1, vk._1, c)
+          else
+            Case4Test (vl._1, vk._1, c)
+        } else {
+          // Case 5
+          val vl = nonZeroPairs.head
+          val vk = nonZeroPairs.diff(List(vl)).head
+          Case5Test (vl._1, vk._1, c)
+        }
+      } else {
+        // TODO: temporary, eventually remove
+        throw new RuntimeException("If you got here my logic is broken, sorry...")
+      }
+    }
+  }
+  sealed trait OctaVarCoeff
+  object Positive extends OctaVarCoeff { }
+  object Negative extends OctaVarCoeff { }
+  sealed trait ExactLinearForm
+  case class ConstExact(const: Rational) extends ExactLinearForm
+  case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+  case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+}
+
 object DBMUtils {
   type ExistsMDouble[M[_,_]] = ExistsDBM[({ type T[S] = M[S, Double]})#T]
 
