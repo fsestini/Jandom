@@ -561,8 +561,8 @@ object DBMUtils {
     (v: VarIndex, const: Double)
     (dbm: M[S, Double], e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
     val f: (Int, Int) => Double = (i, j) =>
-      if (i == varPlus(v) && j == varMinus(v)) 2 * const else
-        if (i == varMinus(v) && j == varPlus(v)) -2 * const else
+      if (i == varPlus(v) && j == varMinus(v)) -2 * const else
+        if (i == varMinus(v) && j == varPlus(v)) 2 * const else
           (e.get(i, j)(e.forget(v)(dbm))).get
     e.update(f)(dbm)
   }
