@@ -26,7 +26,7 @@ class OctagonDomainSuite extends FunSuite {
   val e = FunDBMInstance.funDBM
   val em =  FunMatrixMatrixInstance.funMatrixIsMatrix
   val inf = Double.PositiveInfinity
-  val dom = new OctagonDomain[FunDBM](e)
+  val oct = new OctagonDomain[FunDBM](e)
 
   test ("FunMatrix sanity check") {
     def f (i : Int, j : Int) : Double = ((i + j) % 2)
@@ -95,7 +95,7 @@ class OctagonDomainSuite extends FunSuite {
 
 
   test ("T {v0 <- 2}.toInterval == [2,2]") {
-    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), dom, e)
+    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), oct, e)
     val c = LinearForm.c(2)
     val b = a.linearAssignment(0, c)
     assert(b.toInterval.high.head == 2)
@@ -103,7 +103,7 @@ class OctagonDomainSuite extends FunSuite {
   }
 
   test ("Union of [1,1], [2, 2] == [1, 2]") {
-    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), dom, e)
+    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), oct, e)
     val c2 = LinearForm.c(1)
     val c1 = LinearForm.c(2)
     val b1 = a.linearAssignment(0, c1)
@@ -115,7 +115,7 @@ class OctagonDomainSuite extends FunSuite {
   }
 
   test ("Intersection of [1,1], [2,2] is empty") {
-    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), dom, e)
+    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), oct, e)
     val c2 = LinearForm.c(1)
     val c1 = LinearForm.c(2)
     val b1 = a.linearAssignment(0, c1)
@@ -125,7 +125,7 @@ class OctagonDomainSuite extends FunSuite {
   }
 
   test ("[1,2] <= [0,3]") {
-    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), dom, e)
+    val a = AbstractOctagon(e.topDBM[Double](VarCount(1)), oct, e)
     val c1 = LinearForm.c(1);  val c2 = LinearForm.c(2)
     val c3 = LinearForm.c(0);  val c4 = LinearForm.c(3)
     val b1 = a.linearAssignment(0, c1)
@@ -217,7 +217,7 @@ class OctagonDomainSuite extends FunSuite {
 
   test ("Sanity check for fallbackUpdate") {
     // CAVEAT: Super trivial example, not nearly enough to trust the thing
-    val topoct = AbstractOctagon(e.topDBM[Double](VarCount(3)), dom, e)
+    val topoct = AbstractOctagon(e.topDBM[Double](VarCount(3)), oct, e)
     val assigned =
       topoct.linearAssignment(0, LinearForm.c(1))
       .linearAssignment(1, LinearForm.c(2))
@@ -269,7 +269,7 @@ class OctagonDomainSuite extends FunSuite {
      *   y <- y + x
      * assert(y >= m)
      */
-    val o1 = AbstractOctagon(e.topDBM[Double](VarCount(3)), dom, e)
+    val o1 = AbstractOctagon(e.topDBM[Double](VarCount(3)), oct, e)
 
     // We choose (v0, v1, v2) = (x, y, m)
     // x <- 1
