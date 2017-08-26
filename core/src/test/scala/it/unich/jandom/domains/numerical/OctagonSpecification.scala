@@ -231,6 +231,20 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
     }
   }
 
+
+  property ("T <- c results in [c,c]") {
+    forAll {
+      (c: Int) => {
+        val a = AbstractOctagon(FunDBMInstance.funDBM.topDBM[Double](VarCount(1)), oct, e)
+        val b = a.linearAssignment(0, LinearForm.c(c))
+        (b.toInterval.high.head == c &
+          b.toInterval.low.head == c)
+      }
+    }
+  }
+
+
+
   property ("_|_ <> _|_ for different dim") {
     forAll (GenSmallInt) {
       (d: Int) => {

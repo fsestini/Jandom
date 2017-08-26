@@ -215,6 +215,21 @@ class OctagonDomainSuite extends FunSuite {
     }
   }
 
+  test ("Sanity check for singleConstantExactAssignment") {
+    val v = VarIndex(0)
+    val c = 1
+    val m = FunDBMInstance.funDBM.topDBM[Double](VarCount(1))
+    val r =
+      e.incrementalClosure(v)(DBMUtils.singleConstantExactAssignment(v, c.toDouble)(m, e).elem)
+    // See Vechev p8
+    assert(r.innerMatrix.get(0,0) == 0)
+    assert(r.innerMatrix.get(0,1) >= -2)
+    assert(r.innerMatrix.get(1,1) == 0)
+    assert(r.innerMatrix.get(1,0) >= 2)
+  }
+
+
+
   test ("Sanity check for fallbackUpdate") {
     // CAVEAT: Super trivial example, not nearly enough to trust the thing
     val topoct = AbstractOctagon(e.topDBM[Double](VarCount(3)), oct, e)
