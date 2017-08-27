@@ -375,16 +375,30 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     val indexedVars = vars.zipWithIndex
                           .map({ case (name, i) => (name, VarIndex(i))})
     val str =
-      for ((varj, vj) <- indexedVars;
-           (namej, posj) <- Seq((s"+$varj", varPlus(vj)),
-                                (s"-$varj", varMinus(vj)));
-           (vari, vi) <- indexedVars;
-           (namei, posi) <- Seq((s"+$vari", varPlus(vi)),
-                                (s"-$vari", varMinus(vi)))) yield {
-        val elem = e.get(posi, posj)(dbm)
-        s"$namej - $namei <= $elem"
+       for (
+          (vari, vi) <- indexedVars;
+          (namei, posi) <- Seq((s"+$vari", varPlus(vi)),
+            (s"-$vari", varMinus(vi))))
+      yield {
+        val st2 = for ((varj, vj) <- indexedVars;
+          (namej, posj) <- Seq((s"+$varj", varPlus(vj)),
+            (s"-$varj", varMinus(vj))))
+        yield {
+          val elem = e.get(posi, posj)(dbm) match {
+            case Some(s) =>
+              if (s == Double.PositiveInfinity)
+                "  +" + 0x221E.toChar.toString
+              else
+                s.toString
+            case None => "None"
+          }
+          s"$namej - $namei <= $elem; "
+        }
+
+        st2.mkString("\t")
       }
-    "[ " + str.reduceOption(_ ++ " ; " ++ _).getOrElse("") + " ]"
+    "[ " + str.mkString("\n") + "]"
+
   }
 
   def domain: this.Domain = d
