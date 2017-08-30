@@ -11,8 +11,8 @@ import it.unich.jandom.domains.numerical.octagon.variables
   * Implementation of matrices that are represented by storing only the lower
   * triangular half of it, as explained in Singh et al.
   */
-class HalfMatrix[A] private(private val vec: Vector[A], val dimension: Dimension) {
 
+class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimension: Dimension) {
   def this(dimension: Dimension, elem: A) =
     this(variables.Fast.fill(
       variables.Fast.dimToVecSize(dimension)
