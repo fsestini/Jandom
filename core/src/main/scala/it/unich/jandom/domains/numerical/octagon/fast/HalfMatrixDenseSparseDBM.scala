@@ -286,10 +286,22 @@ object HalfMatrixDenseSparseDBM {
   def sparseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
     SparseStrongClosure.apply(m)
 
-  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])
-                        (implicit ifield: InfField[A]) = ???
-  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])
-                         (implicit ifield: InfField[A]) = ???
+  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
+    DenseStrongClosure.apply(m)
+  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
+    SparseStrongClosure.apply(m)
+}
+
+object DenseIncrementalClosure {
+  // TODO stub
+  def apply[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
+    DenseStrongClosure.apply(m)(ifield)
+}
+
+object SparseIncrementalClosure {
+  // TODO stub
+  def apply[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
+    SparseStrongClosure.apply(m)(ifield)
 }
 
 // Strong closure for dense half matrices.
