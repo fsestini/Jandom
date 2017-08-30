@@ -281,10 +281,10 @@ object HalfMatrixDenseSparseDBM {
     NNI(m.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
 
   def denseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure.closureHalfScalar(m)
+    DenseStrongClosure.apply(m)
 
-  def sparseStrongClosure[A](m: HalfMatrix[A])
-                         (implicit ifield: InfField[A]) = ???
+  def sparseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
+    SparseStrongClosure.apply(m)
 
   def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])
                         (implicit ifield: InfField[A]) = ???
@@ -380,7 +380,7 @@ object DenseStrongClosure {
     if (bottom) None else Some(m)
   }
 
-  def closureHalfScalar[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
+  def apply[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
     val newM = allVars(e.nOfVars(m)).map(_.i).foldLeft(m)((m, k) => {
       val f1 = computeColHalfScalar[A](2 * k, 2 * k + 1) _
       val f2 = computeColHalfScalar[A](2 * k + 1, 2 * k) _
