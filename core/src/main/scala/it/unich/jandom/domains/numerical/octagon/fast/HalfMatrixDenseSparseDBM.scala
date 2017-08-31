@@ -206,7 +206,7 @@ object HalfMatrixDenseSparseInstance {
         m(fromIndexAndCoeff(originalVi, signi),
           fromIndexAndCoeff(originalVj, signj))
       }
-      HalfSubMatrix(HalfMatrix(f, VarCount(subDim)), is)
+      HalfSubMatrix(HalfMatrix(f, VarCount(is.length)), is)
     }
 
     // TODO: not extremely efficient as it is. consider improvements
