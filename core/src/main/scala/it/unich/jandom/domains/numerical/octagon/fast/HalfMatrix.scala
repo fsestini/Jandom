@@ -71,5 +71,13 @@ class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimensi
 }
 
 object HalfMatrix {
-  def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = ???
+  def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = {
+    val vec : Vector[A] = (allIndices(varCountToDim(nOfVars))).map(
+      (i) => (allIndices(varCountToDim(nOfVars))).map(
+        (j) =>
+        f(i,j)
+      )
+    ).flatten.toVector
+    new HalfMatrix[A] (vec, varCountToDim(nOfVars))
+  }
 }
