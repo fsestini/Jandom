@@ -1,7 +1,9 @@
 package it.unich.jandom.domains.numerical.octagon
-
-import VarIndexOps._
-import CountOps._
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndex
+import it.unich.jandom.domains.numerical.octagon.variables.Dimension
+import it.unich.jandom.domains.numerical.octagon.variables.VarCount
+import it.unich.jandom.domains.numerical.octagon.variables.CountOps
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps
 
 // FunMatrix-based raw DBM implementation
 sealed trait FunDBM[S, A] {
@@ -13,8 +15,7 @@ sealed trait FunDBM[S, A] {
 }
 
 case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
-  require (m.dimension.dim % 2 == 0)
-  def noOfVariables : VarCount = halvedDimension(m.dimension)
+  def noOfVariables : VarCount = CountOps.dimToVarCount(m.dimension)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[Closed, A] =
     ClosedFunDBM(f(m))
@@ -37,8 +38,7 @@ case class ClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[Closed, A] {
 }
 
 case class NonClosedFunDBM[A](m: FunMatrix[A]) extends FunDBM[NonClosed, A] {
-  require (m.dimension.dim % 2 == 0)
-  def noOfVariables : VarCount = halvedDimension(m.dimension)
+  def noOfVariables : VarCount = CountOps.dimToVarCount(m.dimension)
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[NonClosed, A] =
     NonClosedFunDBM(f(m))
@@ -62,8 +62,8 @@ case class BottomFunDBM[A](noOfVariables: VarCount) extends FunDBM[Closed, A] {
   override def liftFromInner(f: (FunMatrix[A]) => FunMatrix[A])
                             (implicit ifield: InfField[A]): FunDBM[Closed, A] = {
     val bogus: FunMatrix[A] =
-      FunMatrix((_, _) => ifield.infinity, doubledVarCount(noOfVariables))
-    BottomFunDBM(halvedDimension(f(bogus).dimension))
+      FunMatrix((_, _) => ifield.infinity, CountOps.varCountToDim(noOfVariables))
+    BottomFunDBM(CountOps.dimToVarCount(f(bogus).dimension))
   }
 
   def union(other: FunDBM[Closed, A])(implicit infField: InfField[A]): FunDBM[Closed, A] =
@@ -119,9 +119,9 @@ object FunDBMInstance {
                                 (implicit ifield: InfField[A]): FunDBM[S, A] = {
       m.liftFromInner((inner) => {
         val f: (Int, Int) => A = (i, j) => {
-          if (i != varPlus(vi) && i != varMinus(vi) && j != varPlus(vi) && j != varMinus(vi))
+          if (i != VarIndexOps.varPlus(vi) && i != VarIndexOps.varMinus(vi) && j != VarIndexOps.varPlus(vi) && j != VarIndexOps.varMinus(vi))
             me.get(i, j)(inner)
-          else if (i == j && (i == varPlus(vi) || i == varMinus(vi)))
+          else if (i == j && (i == VarIndexOps.varPlus(vi) || i == VarIndexOps.varMinus(vi)))
             ifield.zero
           else ifield.infinity
         }
@@ -153,7 +153,7 @@ object FunDBMInstance {
     }
 
     def topDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): FunDBM[Closed, A] =
-      ClosedFunDBM(FunMatrix((i, j) => ifield.infinity, doubledVarCount(nOfVars)))
+      ClosedFunDBM(FunMatrix((i, j) => ifield.infinity, CountOps.varCountToDim(nOfVars)))
 
     def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): FunDBM[Closed, A] = BottomFunDBM(nOfVars)
     def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): FunDBM[Closed, A] =
@@ -162,14 +162,14 @@ object FunDBMInstance {
                                  (implicit ifield: InfField[A]): FunDBM[S, A] = {
       dbm.liftFromInner((inner) => {
         val f: (Int, Int) => A = (i, j) => {
-          if (i == varPlus(vi) || i == varMinus(vi)) {
-            if (j == varPlus(vi) || j == varMinus(vi))
-              me.get(signed(i), signed(j))(inner)
+          if (i == VarIndexOps.varPlus(vi) || i == VarIndexOps.varMinus(vi)) {
+            if (j == VarIndexOps.varPlus(vi) || j == VarIndexOps.varMinus(vi))
+              me.get(VarIndexOps.signed(i), VarIndexOps.signed(j))(inner)
             else
-              me.get(signed(i), j)(inner)
+              me.get(VarIndexOps.signed(i), j)(inner)
           } else {
-            if (j == varPlus(vi) || j == varMinus(vi))
-              me.get(i, signed(j))(inner)
+            if (j == VarIndexOps.varPlus(vi) || j == VarIndexOps.varMinus(vi))
+              me.get(i, VarIndexOps.signed(j))(inner)
             else
               me.get(i, j)(inner)
           }
@@ -186,12 +186,12 @@ object FunDBMInstance {
                                         (implicit ifield: InfField[A]): FunDBM[S, A] = {
       fundbm.liftFromInner((dbm) => {
         val f: (Int, Int) => A = (i, j) => {
-          val g1 = (i == varPlus(vi) && j != varPlus(vi) && j != varMinus(vi)) ||
-                   (j == varMinus(vi) && i != varPlus(vi) && i != varMinus(vi))
-          val g2 = (i != varPlus(vi) && i != varMinus(vi) && j == varPlus(vi)) ||
-                   (j != varPlus(vi) && j != varMinus(vi) && i == varMinus(vi))
-          val g3 = i == varPlus(vi) && j == varMinus(vi)
-          val g4 = i == varMinus(vi) && j == varPlus(vi)
+          val g1 = (i == VarIndexOps.varPlus(vi) && j != VarIndexOps.varPlus(vi) && j != VarIndexOps.varMinus(vi)) ||
+                   (j == VarIndexOps.varMinus(vi) && i != VarIndexOps.varPlus(vi) && i != VarIndexOps.varMinus(vi))
+          val g2 = (i != VarIndexOps.varPlus(vi) && i != VarIndexOps.varMinus(vi) && j == VarIndexOps.varPlus(vi)) ||
+                   (j != VarIndexOps.varPlus(vi) && j != VarIndexOps.varMinus(vi) && i == VarIndexOps.varMinus(vi))
+          val g3 = i == VarIndexOps.varPlus(vi) && j == VarIndexOps.varMinus(vi)
+          val g4 = i == VarIndexOps.varMinus(vi) && j == VarIndexOps.varPlus(vi)
           if (g1) ifield.-(me.get(i, j)(dbm), const) else
           if (g2) ifield.+(me.get(i, j)(dbm), const) else
           if (g3) ifield.-(me.get(i, j)(dbm), ifield.double(const)) else
@@ -262,10 +262,10 @@ object FunDBMInstance {
                                      (implicit ifield: InfField[A]): FunDBM[S, A] =
       dbm.liftFromInner((m) => {
         FunMatrix((i, j) => {
-          if (inDimension(i, j, doubledVarCount(dbm.noOfVariables)))
+          if (CountOps.inDimension(i, j, CountOps.varCountToDim(dbm.noOfVariables)))
             m(i, j)
           else ifield.infinity
-        }, doubledVarCount(addOne(dbm.noOfVariables)))
+        }, CountOps.varCountToDim(CountOps.addOne(dbm.noOfVariables)))
       })
 
     // Proved with pen and paper that shuffling variables around preserves
@@ -326,7 +326,7 @@ object BagnaraStrongClosure {
   private def signed(i: Int) = if (i % 2 == 0) i + 1 else i - 1
 
   def nullCheck[A](m: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
-    val negative: Boolean = allIndices(m.dimension).exists((i) =>
+    val negative: Boolean = CountOps.allIndices(m.dimension).exists((i) =>
       ifield.compare(me.get(i, i)(m), ifield.zero) == LT)
     if (negative) None else {
       val updater: (Int, Int) => A = (i, j) =>
@@ -336,7 +336,7 @@ object BagnaraStrongClosure {
   }
 
   def strengthen[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): FunMatrix[A] =
-    grid(dbm.dimension)
+    CountOps.grid(dbm.dimension)
       .foldLeft(dbm)((x, pair) => pair match {
         case (i, j) => {
           val newVal =
@@ -349,8 +349,8 @@ object BagnaraStrongClosure {
 
   def strongClosure[A](dbm: FunMatrix[A])(implicit ifield: InfField[A]): Option[FunMatrix[A]] = {
     val closed: FunMatrix[A] = (for {
-      k <- allIndices(dbm.dimension)
-      (i, j) <- grid(dbm.dimension)
+      k <- CountOps.allIndices(dbm.dimension)
+      (i, j) <- CountOps.grid(dbm.dimension)
     } yield (k, i, j)).foldLeft(dbm)((x, triple) => triple match {
       case (k, i, j) => {
         val newVal =
@@ -374,8 +374,8 @@ object BagnaraStrongClosure {
     }
 
     val iclosed: FunMatrix[A] =
-      (for { k <- allIndices(dbm.dimension) ;
-             (i, j) <- grid(dbm.dimension) } yield (k, i, j))
+      (for { k <- CountOps.allIndices(dbm.dimension) ;
+             (i, j) <- CountOps.grid(dbm.dimension) } yield (k, i, j))
         .filter(p)
         .foldLeft(dbm)((x, triple) => triple match {
           case (k, i, j) => {
@@ -394,7 +394,7 @@ object VarMapping {
 
   def varMapImageSize(f: VarIndex => Option[VarIndex], nOfVars: VarCount): VarCount =
     VarCount(
-      allVars(nOfVars).map((v) => f(v) match {
+      CountOps.allVars(nOfVars).map((v) => f(v) match {
         case Some(_) => 1
         case None => 0
       }).sum)
@@ -403,7 +403,7 @@ object VarMapping {
                         (m: FunMatrix[A]): FunMatrix[A] = {
 
     def inverse(f: VarIndex => Option[VarIndex])(v: VarIndex): VarIndex = {
-      val vars: Seq[VarIndex] = allVars(nOfVars)
+      val vars: Seq[VarIndex] = CountOps.allVars(nOfVars)
       val opts: Seq[Option[VarIndex]] = vars.map(x => f(x) match {
         case Some(vres) => if (v == vres) Some(x) else None
         case None => None
@@ -416,14 +416,14 @@ object VarMapping {
     }
 
     def inverseIx(f: VarIndex => Option[VarIndex])(i: Int): Int =
-      toIndexAndCoeff(i) match {
-        case (v, Positive) => varPlus(inverse(f)(v))
-        case (v, Negative) => varMinus(inverse(f)(v))
+      VarIndexOps.toIndexAndCoeff(i) match {
+        case (v, VarIndexOps.Positive) => VarIndexOps.varPlus(inverse(f)(v))
+        case (v, VarIndexOps.Negative) => VarIndexOps.varMinus(inverse(f)(v))
       }
 
     val newCount: VarCount = varMapImageSize(f, nOfVars)
     FunMatrix((i, j) => {
       m(inverseIx(f)(i), inverseIx(f)(j))
-    }, doubledVarCount(newCount))
+    }, CountOps.varCountToDim(newCount))
   }
 }

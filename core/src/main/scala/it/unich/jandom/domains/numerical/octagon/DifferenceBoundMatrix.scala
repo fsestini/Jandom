@@ -5,6 +5,9 @@ import breeze.math.Field
 
 import scala.language.higherKinds
 import it.unich.jandom.domains.numerical._
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndex
+import it.unich.jandom.domains.numerical.octagon.variables.VarCount
+import it.unich.jandom.domains.numerical.octagon.variables.Dimension
 
 sealed trait DBMState
 sealed trait Closed extends DBMState

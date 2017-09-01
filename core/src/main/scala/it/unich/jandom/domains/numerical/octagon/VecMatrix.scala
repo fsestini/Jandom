@@ -1,6 +1,8 @@
 package it.unich.jandom.domains.numerical.octagon
 import scalaz._
-import CountOps._
+
+import it.unich.jandom.domains.numerical.octagon.variables.Dimension
+import it.unich.jandom.domains.numerical.octagon.variables.CountOps._
 
 import scala.language.higherKinds
 
@@ -54,10 +56,9 @@ object VecMatrixMatrixInstance {
       fa.toList.foldRight(z)((x, y) => f(x, y))
 
     def pure[A](dimension: Dimension, x: A): VecMatrix[A] = {
-      val newV: Vector[Vector[A]] = Vector.fill(dimension.dim, dimension.dim){ x }
+      val newV: Vector[Vector[A]] = fill(dimension)(x)
       new VecMatrix[A](newV, dimension)
     }
 
   }
 }
-

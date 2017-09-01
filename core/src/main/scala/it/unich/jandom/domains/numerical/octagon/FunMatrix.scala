@@ -1,6 +1,9 @@
 package it.unich.jandom.domains.numerical.octagon
 import scalaz._
-import it.unich.jandom.domains.numerical.octagon.CountOps._
+import it.unich.jandom.domains.numerical.octagon.variables.CountOps
+import it.unich.jandom.domains.numerical.octagon.variables.VarCount
+import it.unich.jandom.domains.numerical.octagon.variables.Dimension
+
 
 // Simple implementation of a functional square matrix.
 // For test purposes only.
@@ -12,13 +15,13 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
     else {
       val thisTupled = this.fun.tupled
       val thatTupled = that.fun.tupled
-      grid(dimension).forall(idx => thisTupled(idx) == thatTupled(idx))
+      CountOps.grid(dimension).forall(idx => thisTupled(idx) == thatTupled(idx))
     }
   }
 
   def update(i: Int, j: Int, x: A): FunMatrix[A] = {
-    require(inDimension(i, j, dimension),
-      "Can't update (" + i + "," + j + "), dimension is " + dimension.dim)
+    require(CountOps.inDimension(i, j, dimension),
+      "Can't update (" + i + "," + j + "), dimension is " + dimension)
     update((ii, jj) => if (ii == i && jj == j) x else fun(ii, jj))
   }
 
@@ -26,7 +29,7 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
     new FunMatrix(updater, dimension)
 
   def apply(i: Int, j: Int): A = {
-    require(inDimension(i, j, dimension),
+    require(CountOps.inDimension(i, j, dimension),
       "Can't apply (" + i + "," + j + "), dimension is " + dimension)
     fun(i, j)
   }
@@ -44,7 +47,7 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
     case _ => Nil
   }
 
-  def toList: List[A] = grid(dimension).map(p => fun(p._1, p._2)).toList
+  def toList: List[A] = CountOps.grid(dimension).map(p => fun(p._1, p._2)).toList
 
   override def toString: String = {
     val pad = 4
@@ -53,9 +56,9 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
         .map(_.toString.size)
         .max
 
-    (allIndices(dimension)).map(
+    (CountOps.allIndices(dimension)).map(
       (i: Int) =>
-      (allIndices(dimension)).map(
+      (CountOps.allIndices(dimension)).map(
         (j: Int) => {
           val res =
             if (fun(i,j) == Double.PositiveInfinity)

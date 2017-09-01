@@ -2,6 +2,7 @@ package it.unich.jandom.domains.numerical.octagon
 
 import scala.language.higherKinds
 import scalaz._
+import variables._
 
 trait Matrix[M[_]] // extends Functor[M] with Foldable[M] {
   extends Foldable[M] {

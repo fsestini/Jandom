@@ -4,9 +4,12 @@ import it.unich.jandom.domains.numerical._
 
 import scala.language.higherKinds
 import scala.language.postfixOps
-import VarIndexOps._
-import VarIndexUtils._
-import it.unich.jandom.domains.numerical.octagon.CountOps.allIndices
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndexUtils
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps._
+import it.unich.jandom.domains.numerical.octagon.variables.CountOps
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndex
+import it.unich.jandom.domains.numerical.octagon.variables.Dimension
 import spire.math.Rational
 import it.unich.jandom.utils.numberext.RationalExt
 import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
@@ -36,7 +39,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   private def withDBM(dbm: M[Closed, Double]): AbstractOctagon[D, M] =
     AbstractOctagon(dbm, d, e)
 
-  def dimension: Int = e.nOfVars(dbm).count
+  def dimension: Int = CountOps.Unsafe.varCountToInt(e.nOfVars(dbm))
 
   def union(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
     withDBM(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble))
@@ -76,12 +79,10 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     new dom.Property(low, high, isEmpty)
   }
 
-  import CountOps._
-
   def toInterval: BoxDoubleDomain#Property = {
     val closed = e.strongClosure(dbm)
     val l: List[(Double, Double)] =
-      allVars(e.nOfVars(dbm)).map(v => projectInterval(v, closed)).toList
+      CountOps.allVars(e.nOfVars(dbm)).map(v => projectInterval(v, closed)).toList
     val (low, high) = l.unzip
     createInterval(low.toArray, high.toArray, isEmpty = false)
   }
@@ -336,8 +337,8 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     def temp: Double => RationalExt = ???
     val l: List[Option[LinearForm]] =
       (for {
-        i <- allIndices(doubledVarCount(e.nOfVars(dbm)))
-        j <- allIndices(doubledVarCount(e.nOfVars(dbm)))
+        i <- CountOps.allIndices(CountOps.varCountToDim(e.nOfVars(dbm)))
+        j <- CountOps.allIndices(CountOps.varCountToDim(e.nOfVars(dbm)))
       } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
         .map((c) => mapConstraint(temp)(c))
         .flatMap((c) => constrToLf(dimension)(c)))
@@ -443,7 +444,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         vi != other && ((i == varPlus(other) && j == varMinus(vi)) ||
           (i == varPlus(vi) && j == varMinus(other)))
 
-        val chooser = forSomeVar((0 until dimension).map(VarIndex)) _
+        val chooser = VarIndexUtils.forSomeVar((0 until dimension).map(VarIndex)) _
         val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
           case (Some(other), _, _, _) => {
             val p = toInterval.linearEvaluation(lf - varLf(other, dimension))
@@ -545,7 +546,7 @@ object AbstractOctagon {
       : AbstractOctagon[D, M] = {
     require (box.low.size == box.high.size)
     val indices = (0 until box.high.size).map(x => VarIndex(x))
-    val chooser = forSomeVar(indices) _
+    val chooser = VarIndexUtils.forSomeVar(indices) _
     val f: (Int, Int) => Double = (i, j) => {
       val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
       val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)

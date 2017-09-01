@@ -2,9 +2,9 @@ package it.unich.jandom.domains.numerical.octagon
 
 import scala.language.higherKinds
 import it.unich.jandom.domains.numerical.{DenseLinearForm, LinearForm}
-import it.unich.jandom.domains.numerical.octagon.VarIndexOps.OctaVarCoeff
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndex
+import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps._
 import it.unich.jandom.utils.numberext.RationalExt
-import it.unich.jandom.domains.numerical.octagon.VarIndexOps._
 import spire.math.Rational
 import InfField._
 

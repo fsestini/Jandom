@@ -19,6 +19,7 @@
 package it.unich.jandom.domains.numerical.octagon
 import it.unich.jandom.domains.numerical._
 import it.unich.jandom.domains.numerical.octagon.testutils.Utils._
+import variables._
 import VarIndexOps._
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
@@ -252,8 +253,8 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
           case Some(c) =>
             forAll (
               Gen.zip(
-                Gen.choose(0,c.dimension.dim - 1),
-                Gen.choose(0,c.dimension.dim - 1))) {
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1))) {
               case (i, j) =>
                 val ibar = signed(i)
                 val jbar = signed(j)
@@ -274,9 +275,9 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
           case Some(c) =>
             forAll (
               Gen.zip(
-                Gen.choose(0,c.dimension.dim - 1),
-                Gen.choose(0,c.dimension.dim - 1),
-                Gen.choose(0,c.dimension.dim - 1))) {
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1))) {
               case (i, j, k) =>
                 if (i == j)
                   c(i,j) == 0
@@ -300,8 +301,8 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
           case Some(c) =>
             forAll (
               Gen.zip(
-                Gen.choose(0,c.dimension.dim - 1),
-                Gen.choose(0,c.dimension.dim - 1))) {
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1))) {
               case (i, j) => {
                 val ibar = signed(i)
                 val jbar = signed(j)

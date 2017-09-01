@@ -2,6 +2,8 @@ package it.unich.jandom.domains.numerical.octagon.testutils
 import it.unich.jandom.domains.numerical.octagon._
 import it.unich.jandom.domains.numerical._
 
+import variables._
+
 import org.scalacheck.Gen
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -114,8 +116,8 @@ object Utils {
       }
 
   def checkIsLegal(m : FunMatrix[Double]) : Boolean =
-    (1 until m.dimension.dim).forall(
-      (i)=>(1 until m.dimension.dim).forall(
+    CountOps.allIndices(m.dimension).forall(
+      (i)=> CountOps.allIndices(m.dimension).forall(
         (j)=>
         !m(i,j).isNaN
           &&

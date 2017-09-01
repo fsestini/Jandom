@@ -19,7 +19,7 @@
 package it.unich.jandom.domains.numerical.octagon
 import it.unich.jandom.domains.numerical._
 import org.scalatest.FunSuite
-
+import variables._
 
 class OctagonDomainSuite extends FunSuite {
 

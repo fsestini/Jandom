@@ -1,6 +1,7 @@
 package it.unich.jandom.domains.numerical
 import it.unich.jandom.domains.WideningDescription
 import it.unich.jandom.domains.numerical.octagon._
+import it.unich.jandom.domains.numerical.octagon.variables.VarCount
 import scala.language.higherKinds
 
 class OctagonDomain[M[_,_]] private[numerical] (
