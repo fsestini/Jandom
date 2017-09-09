@@ -75,6 +75,9 @@ package variables {
   }
 
   object Fast {
+    import fast.NNI
+    def sparsityIndex(d: VarCount, is: NNI) =
+      1.0 - (is.nni / (2 * d.count * d.count + 2 * d.count))
 
     case class VecSize (private[variables] val size: Int) {
       require(size % 2 == 0 && size >= 0)
