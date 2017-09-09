@@ -73,4 +73,26 @@ package variables {
     def allIndices(d: Dimension): Seq[Int] = 0 until d.dim
     def allVars(vc: VarCount): Seq[VarIndex] = (0 until vc.count).map(VarIndex)
   }
+
+  object Fast {
+
+    case class VecSize (private[variables] val size: Int) {
+      require(size % 2 == 0 && size >= 0)
+    }
+    /*
+     * Consider d = 2, then |vec| = 2*(2/1+1) = 4, vec =
+     *
+     * 0  1
+     * 2  3
+     *
+     * Consider d = 4, then |vec| = 4*(4/2+1) = 12, vec =
+     * 0  1
+     * 2  3
+     * 4  5  6  7
+     * 8  9 10 11
+     *
+     */
+    def dimToVecSize(d: Dimension) = VecSize(d.dim*(d.dim/2 + 1))
+    def fill[A](v: VecSize)(elem: A) = Vector.fill(v.size)(elem)
+  }
 }
