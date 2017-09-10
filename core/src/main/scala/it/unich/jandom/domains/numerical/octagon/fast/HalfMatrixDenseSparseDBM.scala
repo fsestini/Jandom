@@ -583,6 +583,6 @@ object SparseStrongClosure {
         computeIteration(m4, vi.i, rp1, rm1, cp1, cm1, a, b)
       })
 
-    strengthening(m)
+    strengthening(newMat)
   }
 }
