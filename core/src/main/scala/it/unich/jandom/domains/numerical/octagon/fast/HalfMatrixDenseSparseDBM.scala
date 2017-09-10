@@ -292,10 +292,53 @@ object HalfMatrixDenseSparseDBM {
     SparseStrongClosure.apply(m)
 }
 
-object DenseIncrementalClosure {
-  // TODO stub
-  def apply[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure(m)(ifield)
+object DenseIncrementalClosure extends DenseClosureStrategy {
+  def apply[A](m: HM[A], v: VarIndex)(implicit ifield: InfField[A]): Option[HM[A]] = {
+    def br(v: VarIndex, k: VarIndex) = if (k.i < v.i) 2*k.i else 2*v.i
+    // TODO: Adapt this into something `var`-less?
+    var mutableM = m
+    for (k <- allVars(e.nOfVars(m))) { // 0 to N
+      for (i <- (2*v.i until 2*v.i + 2)) {
+        val ik : A = e.get(i, 2*k.i)(mutableM)
+        val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
+        // TODO We can merge these into a single loop, since e.get takes care of everything?
+        for (j <- 0 until br(v, k)) {
+          val kj : A = e.get(2*k.i, j)(mutableM)
+          val kkj : A = e.get(2*k.i+1, j)(mutableM)
+          mutableM = e.update(i, j,
+            ifield.min(e.get(i,j)(m),
+              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
+            )
+          )(mutableM)
+        }
+        for (j <- br(v, k) until 2*v.i) {
+          val kj : A = e.get(2*k.i, j)(mutableM)
+          val kkj : A = e.get(2*k.i+1, j)(mutableM)
+          mutableM = e.update(i, j,
+            ifield.min(e.get(i,j)(m),
+              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
+            )
+          )(mutableM)
+        }
+      }
+
+      for (j <- 2*v.i until 2*v.i + 2) {
+        val kj : A = e.get(2*k.i, j)(mutableM)
+        val kkj : A = e.get(2*k.i+1, j)(mutableM)
+        for (i <-allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)) { // 2v to n
+          val ik : A = e.get(i, 2*k.i)(mutableM)
+          val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
+          mutableM = e.update(i, j,
+            ifield.min(e.get(i,j)(m),
+              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
+            )
+          )(mutableM)
+        }
+      }
+    }
+    val newM = loopBody(mutableM, v)
+    nullCheck(strengtheningHalfScalar(newM))
+  }
 }
 
 object SparseIncrementalClosure {
