@@ -411,6 +411,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   def tryCompareTo[B >: AbstractOctagon[D, M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
     that match {
       case other: AbstractOctagon[D, M] => {
+        require (dimension == other.dimension, "No ordering for AbstractOctagons of different dimensions")
         e.compare[Double](
           MkEx[Closed, ExistsM](dbm),
           MkEx[Closed, ExistsM](other.dbm)).map {

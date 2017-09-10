@@ -96,10 +96,8 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
             val d1 = d + delta
             val topoct =  AbstractOctagon(e.topDBM[Double](VarCount(d)), oct, e)
             val botoct = AbstractOctagon(e.bottomDBM[Double](VarCount(d1)), oct, e)
-            (
-              !(topoct >= botoct) &
-                !(botoct >= topoct)
-            )
+            intercept[IllegalArgumentException]{topoct >= botoct}
+            intercept[IllegalArgumentException]{botoct >= topoct}
           }
         }
       }
@@ -114,10 +112,8 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
             val d1 = d + delta
             val topoct =  AbstractOctagon(e.topDBM[Double](VarCount(d)), oct, e)
             val topoct2 = AbstractOctagon(e.topDBM[Double](VarCount(d1)), oct, e)
-            (
-              !(topoct >= topoct2) &
-                !(topoct2 >= topoct)
-            )
+            intercept[IllegalArgumentException]{topoct >= topoct2}
+            intercept[IllegalArgumentException]{topoct2 >= topoct}
           }
         }
       }
@@ -146,9 +142,8 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
             val d1 = d + delta
             val botoct =  AbstractOctagon(e.bottomDBM[Double](VarCount(d)), oct, e)
             val botoct2 = AbstractOctagon(e.bottomDBM[Double](VarCount(d1)), oct, e)
-            (!(botoct >= botoct2) &
-              (botoct2 >= botoct)
-            )
+            intercept[IllegalArgumentException]{botoct >= botoct2}
+            intercept[IllegalArgumentException]{botoct2 >= botoct}
           }
         }
       }
