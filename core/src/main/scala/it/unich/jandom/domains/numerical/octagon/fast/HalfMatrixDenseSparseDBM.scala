@@ -281,13 +281,13 @@ object HalfMatrixDenseSparseDBM {
     NNI(m.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
 
   def denseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure.apply(m)
+    DenseStrongClosure(m)
 
   def sparseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
     SparseStrongClosure.apply(m)
 
   def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure.apply(m)
+    DenseStrongClosure(m)
   def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
     SparseStrongClosure.apply(m)
 }
@@ -295,7 +295,7 @@ object HalfMatrixDenseSparseDBM {
 object DenseIncrementalClosure {
   // TODO stub
   def apply[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure.apply(m)(ifield)
+    DenseStrongClosure(m)(ifield)
 }
 
 object SparseIncrementalClosure {
@@ -304,18 +304,25 @@ object SparseIncrementalClosure {
     SparseStrongClosure.apply(m)(ifield)
 }
 
+object DenseStrongClosure extends DenseClosureStrategy {
+  def apply[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
+    val newM = allVars(e.nOfVars(m)).foldLeft(m)(loopBody)
+    nullCheck(strengtheningHalfScalar(newM))
+  }
+}
+
 // Strong closure for dense half matrices.
 // Taken from Singh, Fast Algorithms for Octagon Abstract Domain
-object DenseStrongClosure {
+trait DenseClosureStrategy {
 
   type HM[A] = HalfMatrix[A]
 
-  private val dec: Decomposable[HalfMatrix, HalfSubMatrix] =
+  protected val dec: Decomposable[HalfMatrix, HalfSubMatrix] =
     HalfMatrixDenseSparseInstance.halfMatrixDecomposableInstance
-  private val e: DenseSparse[HalfMatrix] =
+  protected val e: DenseSparse[HalfMatrix] =
     HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
-  private def computeColHalfScalar[A]
+  protected def computeColHalfScalar[A]
     (c: Int, d: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
 
     val s: Int = if (c % 2 == 1) c + 1 else c + 2
@@ -328,7 +335,7 @@ object DenseStrongClosure {
     })
   }
 
-  private def computeRowHalfScalar[A]
+  protected def computeRowHalfScalar[A]
     (r: Int, s: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
 
     val ee: Int = if (r % 2 == 1) r - 1 else r
@@ -340,7 +347,7 @@ object DenseStrongClosure {
     })
   }
 
-  private def computeIterationHalfScalar[A]
+  protected def computeIterationHalfScalar[A]
     (k: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
 
     def loop(m: HM[A], i: Int)(implicit ifield: InfField[A]): HM[A] = {
@@ -385,25 +392,21 @@ object DenseStrongClosure {
     })
   }
 
-  private def nullCheck[A](m : HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
+  protected def nullCheck[A](m : HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
     val bottom: Boolean = allIndices(varCountToDim(e.nOfVars(m))) // 0 until n
       .exists(
       i => ifield.compare(e.get(i, i)(m), ifield.zero) == LT)
     if (bottom) None else Some(m)
   }
 
-  def apply[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
-    val newM = allVars(e.nOfVars(m)).map(_.i).foldLeft(m)((m, k) => {
-      val f1 = computeColHalfScalar[A](2 * k, 2 * k + 1) _
-      val f2 = computeColHalfScalar[A](2 * k + 1, 2 * k) _
-      val f3 = computeRowHalfScalar[A](2 * k, 2 * k + 1) _
-      val f4 = computeRowHalfScalar[A](2 * k + 1, 2 * k) _
-      val f5 = computeIterationHalfScalar[A](k) _
-      (f1 andThen f2 andThen f3 andThen f4 andThen f5)(m)
-    })
-    nullCheck(strengtheningHalfScalar(newM))
+  def loopBody[A](m: HM[A], k: VarIndex)(implicit ifield: InfField[A]) = {
+    val f1 = computeColHalfScalar[A](2 * k.i, 2 * k.i + 1) _
+    val f2 = computeColHalfScalar[A](2 * k.i + 1, 2 * k.i) _
+    val f3 = computeRowHalfScalar[A](2 * k.i, 2 * k.i + 1) _
+    val f4 = computeRowHalfScalar[A](2 * k.i + 1, 2 * k.i) _
+    val f5 = computeIterationHalfScalar[A](k.i) _
+    (f1 andThen f2 andThen f3 andThen f4 andThen f5)(m)
   }
-
 }
 
 object SparseStrongClosure {
