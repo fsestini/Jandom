@@ -452,14 +452,23 @@ trait DenseClosureStrategy {
   }
 }
 
-object SparseStrongClosure {
+object SparseStrongClosure extends SparseClosureStrategy {
+  def apply[A](m: HalfMatrix[A])
+              (implicit ifield: InfField[A])
+              : Option[HalfMatrix[A]] = {
+    val newMat = indices(m).foldLeft(m)(loopBody)
+    strengthening(newMat)
+  }
+}
+
+trait SparseClosureStrategy {
 
   val e: DenseSparse[HalfMatrix] = HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
   def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
 
   // returns (r, r', c, c')
-  private def computeIndex[A](m: HalfMatrix[A], k: Int)
+  protected def computeIndex[A](m: HalfMatrix[A], k: Int)
                              (implicit ifield: InfField[A])
                              : (Seq[Int], Seq[Int], Seq[Int], Seq[Int]) = {
     val cIndices = indices(m).filter(_ > VarIndex(k))
@@ -476,7 +485,7 @@ object SparseStrongClosure {
   }
 
   // returns (m, cp, t)
-  private def computeColumn[A](m: HalfMatrix[A],
+  protected def computeColumn[A](m: HalfMatrix[A],
                                k: Int,
                                kk: Int,
                                cp: Seq[Int],
@@ -503,7 +512,7 @@ object SparseStrongClosure {
   }
 
   // returns (m, rp)
-  private def computeRow[A](m: HalfMatrix[A],
+  protected def computeRow[A](m: HalfMatrix[A],
                             k: Int,
                             kk: Int,
                             rp: Seq[Int],
@@ -525,7 +534,7 @@ object SparseStrongClosure {
     }
   }
 
-  private def computeIteration[A](m: HalfMatrix[A],
+  protected def computeIteration[A](m: HalfMatrix[A],
                                   k: Int,
                                   cp: Seq[Int],
                                   cm: Seq[Int],
@@ -602,7 +611,7 @@ object SparseStrongClosure {
   }
 
 
-  private def strengthening[A](m: HalfMatrix[A])
+  protected def strengthening[A](m: HalfMatrix[A])
                               (implicit ifield: InfField[A])
                               : Option[HalfMatrix[A]] = {
     val indicess = indices(m).flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
@@ -628,19 +637,12 @@ object SparseStrongClosure {
       Some(newMat)
   }
 
-  def apply[A](m: HalfMatrix[A])
-              (implicit ifield: InfField[A])
-              : Option[HalfMatrix[A]] = {
-    val newMat =
-      indices(m).foldLeft(m)((m, vi) => {
-        val (rp, rm, cp, cm) = computeIndex(m, vi.i)
-        val (m1, cp1, a) = computeColumn(m, 2*vi.i, 2*vi.i + 1, cp, cm)
-        val (m2, cm1, b) = computeColumn(m1, 2*vi.i + 1, 2*vi.i, cm, cp1)
-        val (m3, rp1) = computeRow(m2, 2*vi.i, 2*vi.i + 1, rp, rm)
-        val (m4, rm1) = computeRow(m3, 2*vi.i + 1, 2*vi.i, rm, rp1)
-        computeIteration(m4, vi.i, rp1, rm1, cp1, cm1, a, b)
-      })
-
-    strengthening(newMat)
+  def loopBody[A] (m: HalfMatrix[A], vi: VarIndex)(implicit ifield: InfField[A]) = {
+    val (rp, rm, cp, cm) = computeIndex(m, vi.i)
+    val (m1, cp1, a) = computeColumn(m, 2*vi.i, 2*vi.i + 1, cp, cm)
+    val (m2, cm1, b) = computeColumn(m1, 2*vi.i + 1, 2*vi.i, cm, cp1)
+    val (m3, rp1) = computeRow(m2, 2*vi.i, 2*vi.i + 1, rp, rm)
+    val (m4, rm1) = computeRow(m3, 2*vi.i + 1, 2*vi.i, rm, rp1)
+    computeIteration(m4, vi.i, rp1, rm1, cp1, cm1, a, b)
   }
 }
