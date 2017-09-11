@@ -287,9 +287,9 @@ object HalfMatrixDenseSparseDBM {
     SparseStrongClosure(m)
 
   def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure(m)
+    DenseIncrementalClosure(m, vi)
   def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    SparseStrongClosure.apply(m)
+    SparseIncrementalClosure(m, vi)
 }
 
 object DenseIncrementalClosure extends DenseClosureStrategy {
