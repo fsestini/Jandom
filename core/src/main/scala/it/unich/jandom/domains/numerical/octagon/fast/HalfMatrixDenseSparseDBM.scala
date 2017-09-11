@@ -341,12 +341,6 @@ object DenseIncrementalClosure extends DenseClosureStrategy {
   }
 }
 
-object SparseIncrementalClosure {
-  // TODO stub
-  def apply[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    SparseStrongClosure.apply(m)(ifield)
-}
-
 object DenseStrongClosure extends DenseClosureStrategy {
   def apply[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
     val newM = allVars(e.nOfVars(m)).foldLeft(m)(loopBody)
@@ -457,6 +451,67 @@ object SparseStrongClosure extends SparseClosureStrategy {
               (implicit ifield: InfField[A])
               : Option[HalfMatrix[A]] = {
     val newMat = indices(m).foldLeft(m)(loopBody)
+    strengthening(newMat)
+  }
+}
+
+object SparseIncrementalClosure extends SparseClosureStrategy {
+  def apply[A](m: HalfMatrix[A], v: VarIndex)
+    (implicit ifield: InfField[A])
+      : Option[HalfMatrix[A]] = {
+    def br(v: VarIndex, k: VarIndex) = if (k.i < v.i) 2*k.i else 2*v.i
+    // TODO: Adapt this into something `var`-less?
+    var mutableM = m
+    for (k <- allIndices(varCountToDim(e.nOfVars(m)))) { // 0 to N
+      for (i <- (2*v.i until 2*v.i + 2)) {
+        val ik : A = e.get(i, 2*k)(mutableM)
+        if (ik != ifield.infinity) {
+          for (j <- 0 until 2*v.i) {
+            val kj : A = e.get(2*k, j)(mutableM)
+            mutableM = e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ik, kj))
+            )(mutableM)
+          }
+        }
+        val ikk : A = e.get(i, 2*k + 1)(mutableM)
+        if (ikk != ifield.infinity) {
+          for (j <- 0 until 2*v.i) {
+            val kkj : A = e.get(2*k+1, j)(mutableM)
+            mutableM = e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ikk, kkj))
+            )(mutableM)
+          }
+        }
+      }
+
+      for (j <- (2*v.i until 2*v.i + 2)) {
+        val kj : A = e.get(2*k, j)(mutableM)
+        if (kj != ifield.infinity) {
+          for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)) { // 2v to n
+            val kj : A = e.get(2*k, j)(mutableM)
+            val ik : A = e.get(i, 2*k)(mutableM)
+            mutableM = e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ik, kj))
+            )(mutableM)
+          }
+        }
+        val kkj : A = e.get(2*k+1, j)(mutableM)
+        if (kkj != ifield.infinity) {
+          for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(j)) { // j to n
+            val kkj : A = e.get(2*k+1, j)(mutableM)
+            val ikk : A = e.get(i, 2*k + 1)(mutableM)
+            mutableM = e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ikk, kkj))
+            )(mutableM)
+          }
+        }
+      }
+    }
+    val newMat = loopBody(mutableM, v)
     strengthening(newMat)
   }
 }
