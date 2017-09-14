@@ -21,19 +21,19 @@ import it.unich.jandom.domains.numerical._
 import org.scalatest.FunSuite
 import variables._
 
-class OctagonDomainSuite extends FunSuite {
-  val FunDBMInstance = (new DBMInstance[FunMatrix]()(FunMatrixMatrixInstance.funMatrixIsMatrix))
-  type FunDBM[B,C] = (DBM[FunMatrix, B, C])
-  type ClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
-  type NonClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
-  val e = FunDBMInstance.funDBM
-  val em =  FunMatrixMatrixInstance.funMatrixIsMatrix
+class VecDBMSuite extends FunSuite {
+  val VecDBMInstance = (new DBMInstance[VecMatrix]()(VecMatrixMatrixInstance.vecMatrixIsMatrix))
+  type VecDBM[B,C] = (DBM[VecMatrix, B, C])
+  type ClosedVecDBM[A] = ClosedDBM[VecMatrix, A]
+  type NonClosedVecDBM[A] = ClosedDBM[VecMatrix, A]
+  val e = VecDBMInstance.funDBM
+  val em =  VecMatrixMatrixInstance.vecMatrixIsMatrix
   val inf = Double.PositiveInfinity
-  val oct = new OctagonDomain[FunDBM](e)
+  val oct = new OctagonDomain[VecDBM](e)
 
-  test ("FunMatrix sanity check") {
+  test ("VecMatrix sanity check") {
     def f (i : Int, j : Int) : Double = ((i + j) % 2)
-    val m = FunMatrix[Double](f, Dimension(4))
+    val m = em.make(f, Dimension(4))
     assert(m(0,0) == 0)
     assert(m(0,1) == 1)
     assert(m(3,3) == 0)
@@ -51,13 +51,13 @@ class OctagonDomainSuite extends FunSuite {
       1,1,1,1))
   }
 
-  test ("FunMatrixIsMatrix sanity check") {
+  test ("VecMatrixIsMatrix sanity check") {
     def f (i : Int, j : Int) : Double = ((i + j) % 2)
     def g (i : Int, j : Int) : Double = ((i + j + 1) % 2)
     def h(a : Double, b : Double) = a + b
     def i (x : Double, z : => Double) = (x + z)
-    val m = FunMatrix[Double](f, Dimension(4))
-    val n = FunMatrix[Double](g, Dimension(4))
+    val m = em.make(f, Dimension(4))
+    val n = em.make(g, Dimension(4))
     val fourfours = (em.pure(Dimension(2), 4.0))
     assert((em.combine(h)(m,n))(0,0) == 1)
     assert(fourfours.toList == List(4,4,4,4))
@@ -75,8 +75,8 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
 
-    val o4dbm : ClosedFunDBM[Double] = ClosedDBM[FunMatrix, Double](
-      FunMatrix((i : Int, j : Int) => o4(i)(j), Dimension(6))
+    val o4dbm : ClosedVecDBM[Double] = ClosedDBM[VecMatrix, Double](
+      em.make((i : Int, j : Int) => o4(i)(j), Dimension(6))
     )(em)
 
     val expectedo4star = Array[Array[Double]](
@@ -91,7 +91,7 @@ class OctagonDomainSuite extends FunSuite {
     val o4star = e.strongClosure(o4dbm)
 
     o4star match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4star(i)(j), Dimension(6)))
+      case dbm : ClosedVecDBM[Double] => assert(dbm.m == em.make((i,j) => expectedo4star(i)(j), Dimension(6)))
       case _ => assert(false)
     }
   }
@@ -221,7 +221,7 @@ class OctagonDomainSuite extends FunSuite {
   test ("Sanity check for singleConstantExactAssignment") {
     val v = VarIndex(0)
     val c = 1
-    val m = FunDBMInstance.funDBM.topDBM[Double](VarCount(1))
+    val m = VecDBMInstance.funDBM.topDBM[Double](VarCount(1))
     val r =
       e.incrementalClosure(v)(DBMUtils.singleConstantExactAssignment(v, c.toDouble)(m, e).elem)
     // See Vechev p8
@@ -253,7 +253,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     assigned.dbm match {
-      case dbm : ClosedFunDBM[Double] =>  assert(dbm.m == new FunMatrix((i,j) => expectedassignment(i)(j), Dimension(6)))
+      case dbm : ClosedVecDBM[Double] =>  assert(dbm.m == em.make((i,j) => expectedassignment(i)(j), Dimension(6)))
       case (other) => assert(false, "Got " + other)
     }
 
@@ -270,15 +270,15 @@ class OctagonDomainSuite extends FunSuite {
       Array(-10, -8, -11, -7,   6,  0)
     )
 
-    def peek[S, A](m: FunDBM[S, A]): Unit = m match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expected(i)(j), Dimension(6)))
-      case dbm : NonClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expected(i)(j), Dimension(6)))
-      case _ => assert(false)
+    def peek[S, A](m: VecDBM[S, A]): Unit = m match {
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expected(i)(j), Dimension(6)))
+      case dbm : NonClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expected(i)(j), Dimension(6)))
+      case _ => assert(false, m)
     }
     peek(updated.elem)
   }
 
-  test ("FunDBM-based AbstractOctagon matches example from www.srl.inf.ethz.ch/pa2015/Octagon.pdf p. 24") {
+  test ("VecDBM-based AbstractOctagon matches example from www.srl.inf.ethz.ch/pa2015/Octagon.pdf p. 24") {
     /*
      * x <- 1
      * y <- x
@@ -301,7 +301,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
     o2star.dbm match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo2star(i)(j), Dimension(6)))
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo2star(i)(j), Dimension(6)))
       case _ => assert(false)
     }
 
@@ -317,7 +317,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     o3star.dbm match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo3star(i)(j), Dimension(6)))
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo3star(i)(j), Dimension(6)))
       case _ => assert(false)
     }
 
@@ -340,9 +340,9 @@ class OctagonDomainSuite extends FunSuite {
        Array(inf, inf, inf, inf, inf, 0)
     )
 
-    def peek[S, A](m: FunDBM[S, A]): Unit = m match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4(i)(j), Dimension(6)))
-      case dbm : NonClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4(i)(j), Dimension(6)))
+    def peek[S, A](m: VecDBM[S, A]): Unit = m match {
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo4(i)(j), Dimension(6)))
+      case dbm : NonClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo4(i)(j), Dimension(6)))
       case _ => assert(false)
     }
     peek(o4.elem)
@@ -358,7 +358,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
     o4star.dbm match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo4star(i)(j), Dimension(6)))
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo4star(i)(j), Dimension(6)))
       case _ => assert(false)
     }
 
@@ -376,7 +376,7 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf,  0)
     )
     o5star.dbm match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo5star(i)(j), Dimension(6)))
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo5star(i)(j), Dimension(6)))
       case _ => assert(false)
     }
 
@@ -392,7 +392,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     // o6star.dbm match {
-    //   case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo6star(i)(j), 6))
+    //   case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo6star(i)(j), 6))
     //   case _ => assert(false)
     // }
     //
@@ -408,7 +408,7 @@ class OctagonDomainSuite extends FunSuite {
     )
 
     o6star.union(o3star).dbm match {
-      case dbm : ClosedFunDBM[Double] => assert(dbm.m == new FunMatrix((i,j) => expectedo3star2(i)(j), Dimension(6)))
+      case dbm : ClosedDBM[VecMatrix, Double] => assert(dbm.m == em.make((i,j) => expectedo3star2(i)(j), Dimension(6)))
       case _ => assert(false)
     }
   }

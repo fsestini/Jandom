@@ -29,6 +29,6 @@ class OctagonDomain[M[_,_]] private[numerical] (
 }
 
 object OctagonDomain {
-  val FunDBMInstance = (new DBMInstance[FunMatrix]()(FunMatrixMatrixInstance.funMatrixIsMatrix))
+  val FunDBMInstance = (new DBMInstance[VecMatrix]()(VecMatrixMatrixInstance.vecMatrixIsMatrix))
   def apply() = new OctagonDomain(FunDBMInstance.funDBM)
 }

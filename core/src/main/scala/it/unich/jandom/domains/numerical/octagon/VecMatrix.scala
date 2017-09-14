@@ -7,7 +7,7 @@ import it.unich.jandom.domains.numerical.octagon.variables.CountOps._
 import scala.language.higherKinds
 
 // Simple implementation of a square matrix by means of nested vectors.
-class VecMatrix[A](private val vec: Vector[Vector[A]], val dimension: Dimension) {
+case class VecMatrix[A](private val vec: Vector[Vector[A]], val dimension: Dimension) {
 
   def update(i: Int, j: Int, x: A): VecMatrix[A] = {
     require(inDimension(i, j, dimension))
