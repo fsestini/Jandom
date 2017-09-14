@@ -97,59 +97,6 @@ class FastOctagonSpecification extends PropSpec with PropertyChecks {
     }
   }
 
-  property ("T <> _|_ for different dim") {
-    forAll (GenSmallInt) {
-      (d: Int) => {
-        forAll (GenSmallInt) {
-          (delta: Int) => {
-            val d1 = d + delta
-            val topoct =  AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.topDBM[Double](VarCount(d)), oct, e)
-            val botoct = AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.bottomDBM[Double](VarCount(d1)), oct, e)
-            (
-              !(topoct >= botoct) &
-                !(botoct >= topoct)
-            )
-          }
-        }
-      }
-    }
-  }
-
-  property ("T <> T for different dim") {
-    forAll (GenSmallInt) {
-      (d: Int) => {
-        forAll (GenSmallInt) {
-          (delta: Int) => {
-            val d1 = d + delta
-            val topoct =  AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.topDBM[Double](VarCount(d)), oct, e)
-            val topoct2 = AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.topDBM[Double](VarCount(d1)), oct, e)
-            (
-              !(topoct >= topoct2) &
-                !(topoct2 >= topoct)
-            )
-          }
-        }
-      }
-    }
-  }
-
-  property ("_|_ <> _|_ for different dim") {
-    forAll (GenSmallInt) {
-      (d: Int) => {
-        forAll (GenSmallInt) {
-          (delta: Int) => {
-            val d1 = d + delta
-            val botoct =  AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.bottomDBM[Double](VarCount(d)), oct, e)
-            val botoct2 = AbstractOctagon[OctagonDomain[FastDBM], FastDBM](e.bottomDBM[Double](VarCount(d1)), oct, e)
-            (!(botoct >= botoct2) &
-              (botoct2 >= botoct)
-            )
-          }
-        }
-      }
-    }
-  }
-
   property ("T >= T") {
     forAll (GenSmallInt) {
       (d: Int) => {

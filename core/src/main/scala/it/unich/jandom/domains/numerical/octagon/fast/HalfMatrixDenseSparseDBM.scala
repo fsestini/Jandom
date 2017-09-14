@@ -318,11 +318,11 @@ object DenseStrongClosure {
   private def computeColHalfScalar[A]
     (c: Int, d: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
 
-    val n: Int = Unsafe.dimToInt(varCountToDim(e.nOfVars(m)))
     val s: Int = if (c % 2 == 1) c + 1 else c + 2
     val kj: A = e.get(d, c)(m)
 
-    (s until n).foldLeft(m)((mm, i) => {
+    allIndices(varCountToDim(e.nOfVars(m))).drop(s). // s until n
+      foldLeft(m)((mm, i) => {
       val ik: A = e.get(i, d)(mm)
       e.update(i, c, ifield.min(e.get(i,c)(mm), ifield.+(ik, kj)))(mm)
     })
@@ -342,8 +342,6 @@ object DenseStrongClosure {
 
   private def computeIterationHalfScalar[A]
     (k: Int)(m: HM[A])(implicit ifield: InfField[A]): HM[A] = {
-
-    val n: Int = Unsafe.dimToInt(varCountToDim(e.nOfVars(m)))
 
     def loop(m: HM[A], i: Int)(implicit ifield: InfField[A]): HM[A] = {
       val i2: Int = if (i % 2 == 0) i + 2 else i + 1
@@ -365,15 +363,17 @@ object DenseStrongClosure {
             ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))))(m)
       })
     }
-
-    val first = (0 until 2 * k).foldLeft(m)(loop)
-    val second = (2 * k + 2 until n).foldLeft(first)(loop)
+    val indices = allIndices(varCountToDim(e.nOfVars(m)))
+    val first = indices.take(2 * k). // 0 until 2k
+      foldLeft(m)(loop)
+    val second = indices.drop(2 * k + 2). // 2k+2 until n
+      foldLeft(first)(loop)
     second
   }
 
   def strengtheningHalfScalar[A](m : HM[A])(implicit ifield: InfField[A]): HM[A] = {
-    val n: Int = Unsafe.dimToInt(varCountToDim(e.nOfVars(m)))
-    (0 until n).foldLeft(m)((m, i) => {
+    allIndices(varCountToDim(e.nOfVars(m))) // 0 until n
+      .foldLeft(m)((m, i) => {
       val i2 : Int = if (i % 2 == 0) i + 2 else i + 1
       val ii: A = e.get(i, signed(i))(m)
       (0 until i2).foldLeft(m)((m, j) => {
@@ -386,8 +386,8 @@ object DenseStrongClosure {
   }
 
   private def nullCheck[A](m : HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
-    val n: Int = Unsafe.dimToInt(varCountToDim(e.nOfVars(m)))
-    val bottom: Boolean = (0 until n).exists(
+    val bottom: Boolean = allIndices(varCountToDim(e.nOfVars(m))) // 0 until n
+      .exists(
       i => ifield.compare(e.get(i, i)(m), ifield.zero) == LT)
     if (bottom) None else Some(m)
   }
