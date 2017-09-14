@@ -31,10 +31,15 @@ import spire.math.Rational
 import spire.math.RationalAlgebra
 
 class OctagonSpecification extends PropSpec with PropertyChecks {
+  val FunDBMInstance = (new DBMInstance[FunMatrix]()(FunMatrixMatrixInstance.funMatrixIsMatrix))
   val r = new RationalAlgebra()
+  type FunDBM[B,C] = (DBM[FunMatrix, B, C])
+  type ClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
+  type NonClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
   val e = FunDBMInstance.funDBM
   val oct = new OctagonDomain(e)
   val box = BoxDoubleDomain(false)
+  val me =  FunMatrixMatrixInstance.funMatrixIsMatrix
 
   implicit def arbBox : Arbitrary[box.Property] =
     Arbitrary {
@@ -243,7 +248,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[Double]) =>
-        BagnaraStrongClosure.strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix, Double]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
@@ -265,7 +270,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[Double]) =>
-        BagnaraStrongClosure.strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix, Double]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
@@ -291,7 +296,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[Double]) =>
-        BagnaraStrongClosure.strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix, Double]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
@@ -316,7 +321,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
   //     (d: Int) =>
   //     forAll (GenFunMatrix(d)) {
   //       case (m : FunMatrix[Double]) =>
-  //         BagnaraStrongClosure.strongClosure(m) match {
+  //         (new BagnaraStrongClosure[FunMatrix, Double]).strongClosure(m) match {
   //           case None =>
   //             false
   //           case Some(c) =>
@@ -374,7 +379,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       forAll(GenClosedFunDBMOrTop(d)) {
         case dbm : FunDBM[Closed, Double] =>
           {
-            val o = new AbstractOctagon(dbm, oct, e)
+            val o = new AbstractOctagon[OctagonDomain[FunDBM], FunDBM](dbm, oct, e)
             forAll(GenLf(o.dimension)) {
               case lf : LinearForm =>
                 forAll(Gen.choose(0, o.dimension - 1)) {
@@ -395,11 +400,11 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       forAll(GenClosedFunDBMOrTop(d)) {
         case dbmx : FunDBM[Closed, Double] =>
           {
-            val x = new AbstractOctagon(dbmx, oct, e)
+            val x = new AbstractOctagon[OctagonDomain[FunDBM], FunDBM](dbmx, oct, e)
             forAll(GenClosedFunDBMOrTop(d)) {
               case dbmy : FunDBM[Closed, Double] =>
                 {
-                  val y = new AbstractOctagon(dbmy, oct, e)
+                  val y = new AbstractOctagon[OctagonDomain[FunDBM], FunDBM](dbmy, oct, e)
                   (x widening y) >= x
                   (x widening y) >= y
                 }

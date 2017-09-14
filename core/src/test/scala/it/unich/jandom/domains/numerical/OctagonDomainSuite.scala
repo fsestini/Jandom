@@ -22,7 +22,10 @@ import org.scalatest.FunSuite
 import variables._
 
 class OctagonDomainSuite extends FunSuite {
-
+  val FunDBMInstance = (new DBMInstance[FunMatrix]()(FunMatrixMatrixInstance.funMatrixIsMatrix))
+  type FunDBM[B,C] = (DBM[FunMatrix, B, C])
+  type ClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
+  type NonClosedFunDBM[A] = ClosedDBM[FunMatrix, A]
   val e = FunDBMInstance.funDBM
   val em =  FunMatrixMatrixInstance.funMatrixIsMatrix
   val inf = Double.PositiveInfinity
@@ -72,9 +75,9 @@ class OctagonDomainSuite extends FunSuite {
       Array(inf, inf, inf, inf, inf, 0)
     )
 
-    val o4dbm : ClosedFunDBM[Double] = ClosedFunDBM(
+    val o4dbm : ClosedFunDBM[Double] = ClosedDBM[FunMatrix, Double](
       FunMatrix((i : Int, j : Int) => o4(i)(j), Dimension(6))
-    )
+    )(em)
 
     val expectedo4star = Array[Array[Double]](
       Array(0, -2, 0, -2, inf, -2),

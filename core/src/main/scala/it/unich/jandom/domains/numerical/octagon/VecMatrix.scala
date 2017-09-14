@@ -59,6 +59,19 @@ object VecMatrixMatrixInstance {
       val newV: Vector[Vector[A]] = fill(dimension)(x)
       new VecMatrix[A](newV, dimension)
     }
+    def make[A](f: ((Int, Int) => A), dimension: Dimension): VecMatrix[A] = {
+      new VecMatrix(
+        (allIndices(dimension)).map(
+          (i: Int) =>
+          (allIndices(dimension)).map(
+            (j: Int) => f(i,j)
+          ).toVector
+        ).toVector
+          ,
+        dimension
+      )
+    }
+    def dimension[A](m: VecMatrix[A]): Dimension = m.dimension
 
   }
 }

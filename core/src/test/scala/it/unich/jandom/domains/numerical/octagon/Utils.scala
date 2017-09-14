@@ -11,6 +11,8 @@ import spire.math.Rational
 import spire.math.RationalAlgebra
 
 object Utils {
+  val me =  FunMatrixMatrixInstance.funMatrixIsMatrix
+  type FunDBM[B,C] = (DBM[FunMatrix, B, C])
   val box = BoxDoubleDomain(false)
   val r = new RationalAlgebra()
   implicit def arbRational: Arbitrary[Rational] =
@@ -88,11 +90,11 @@ object Utils {
         if (i == j) 0
         else arrayOfRows(i)(j)), Dimension(d))
 
-  def GenTop(nOfVars: Int): Gen[FunDBM[Closed, Double]] = Gen.const(new ClosedFunDBM(
+  def GenTop(nOfVars: Int): Gen[FunDBM[Closed, Double]] = Gen.const(new ClosedDBM[FunMatrix, Double](
     // Caveat: top is not strongly closed from the defn, but we have it as an instance of FunDBM[Closed,_].
         FunMatrix[Double]((i: Int, j: Int) =>
         if (i == j) 0 // If (i,i) != 0 we have bottom
-        else Double.PositiveInfinity, Dimension(nOfVars*2)))
+        else Double.PositiveInfinity, Dimension(nOfVars*2)))(me)
   )
 
   def GenClosedFunDBMOrTop(nOfVars: Int, pBot: Int = 10, pTop: Int = 20, pInf: Int = 30) : Gen[FunDBM[Closed, Double]] =
@@ -107,11 +109,11 @@ object Utils {
       yield
       {
         // caveat: there is no guarantee re: the distribution of bottoms, should probably include a few pre-computed non-bottom ones?
-        val closure = BagnaraStrongClosure.strongClosure(m)
+        val closure = (new BagnaraStrongClosure[FunMatrix, Double]()(me)).strongClosure(m)
         if (closure == None) {
-          new BottomFunDBM(VarCount(nOfVars))
+          new BottomDBM(VarCount(nOfVars))
         } else {
-          new ClosedFunDBM(closure.get)
+          new ClosedDBM[FunMatrix, Double](closure.get)(me)
         }
       }
 

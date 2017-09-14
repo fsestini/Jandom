@@ -95,5 +95,7 @@ object FunMatrixMatrixInstance {
 
     def pure[A](dimension: Dimension, x: A): FunMatrix[A] =
       new FunMatrix[A]((_, _) => x, dimension)
+    def make[A](f: (Int, Int) => A, dimension: Dimension): FunMatrix[A] = FunMatrix(f, dimension)
+    def dimension[A](m: FunMatrix[A]): Dimension = m.dimension
   }
 }

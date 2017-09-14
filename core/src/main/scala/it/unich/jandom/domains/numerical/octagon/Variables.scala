@@ -56,6 +56,7 @@ package variables {
   object CountOps {
     object Unsafe {
       def varCountToInt(v: VarCount) = v.count
+      def dimToInt(d: Dimension) = d.dim
     }
     def fill[A](d: Dimension)(elem: A) = Vector.fill(d.dim)(Vector.fill(d.dim)(elem))
     def dimToVarCount(d: Dimension): VarCount = VarCount(d.dim / 2)

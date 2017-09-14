@@ -12,4 +12,6 @@ trait Matrix[M[_]] // extends Functor[M] with Foldable[M] {
   def get[A](i: Int, j: Int)(m: M[A]): A
   def combine[A, B, C](f: (A, B) => C)(ma: M[A], mb: M[B]): M[C]
   def pure[A](dimension: Dimension, x: A): M[A]
+  def make[A](f: ((Int, Int) => A), dimension: Dimension): M[A]
+  def dimension[A](m: M[A]): Dimension
 }
