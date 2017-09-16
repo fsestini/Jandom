@@ -2,7 +2,7 @@
 
 libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-lang3" % "3.5",
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test",
+  "org.scalatest" %% "scalatest" % "3.0.2" % "test",
   "org.scalacheck" %% "scalacheck" % "1.13.3" % "test",
   "org.mockito" % "mockito-core" % "2.2.9" % "test",
   "org.spire-math" %% "spire" % "0.12.0",
