@@ -14,6 +14,7 @@ trait InfField[@specialized(Double) A] extends Field[A] with Toset[A] {
   def min(x: A, y: A): A
   def half(x: A): A
   def double(x: A): A
+  def neg(x: A): A
 }
 
 object InfField {
@@ -49,6 +50,7 @@ object InfField {
         case (_, true) => EQ
         case _ => GT
     }
+    def neg(x: Double) = -x
   }
 
   implicit object ifieldRationalExt extends InfField[RationalExt] {
@@ -72,6 +74,7 @@ object InfField {
     def *(a: RationalExt, b: RationalExt): RationalExt = a * b
     def ==(a: RationalExt, b: RationalExt): Boolean = a == b
     def !=(a: RationalExt, b: RationalExt): Boolean = a != b
+    def neg(x: RationalExt) = -x
   }
 
   implicit object fieldRational extends Field[Rational] {
@@ -90,5 +93,6 @@ object InfField {
     def *(a: Rational, b: Rational): Rational = a * b
     def ==(a: Rational, b: Rational): Boolean = a == b
     def !=(a: Rational, b: Rational): Boolean = a != b
+    def neg(x: Rational) = -x
   }
 }
