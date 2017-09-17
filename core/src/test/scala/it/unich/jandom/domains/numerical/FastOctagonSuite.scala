@@ -22,6 +22,7 @@ import it.unich.jandom.domains.numerical.octagon._
 import it.unich.jandom.domains.numerical.octagon.variables.VarCount
 import InfField._
 import org.scalatest.FunSuite
+import spire.math.Rational
 import it.unich.jandom.utils.numberext.RationalExt
 
 class FastOctagonSuite extends FunSuite {
@@ -51,5 +52,14 @@ class FastOctagonSuite extends FunSuite {
     assert(t.dbm == top)
     val a = t.linearAssignment(0, LinearForm.c(123))
     assert(a.toInterval.high.head == 123 & a.toInterval.low.head == 123)
+  }
+
+  // TODO Once found the cause, rename
+  test("bug #697659 - failing requirement") {
+    val top = e.topDBM[RationalExt](VarCount(2))
+    val t = AbstractOctagon[DOM, FastDBM, RationalExt, BoxRationalDomain](top, oct, box, e)
+    assert(t.dbm == top)
+    val working = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(1)/Rational(1))))
+    val failing = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(2)/Rational(1))))
   }
 }
