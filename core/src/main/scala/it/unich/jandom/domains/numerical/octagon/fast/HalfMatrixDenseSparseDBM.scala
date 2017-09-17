@@ -617,24 +617,18 @@ trait SparseClosureStrategy {
   protected def strengthening[A](m: HalfMatrix[A])
                               (implicit ifield: InfField[A])
                               : Option[HalfMatrix[A]] = {
-    val indicess = indices(m).flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
-    val d = indicess.filter(i => m(signed(i), i) != ifield.infinity)
-    val t = indicess.map(i => m(signed(i), i))
+    val idxs = allIndices(varCountToDim(e.nOfVars(m)))
+    val d = idxs.filter(i => m(signed(i), i) != ifield.infinity)
 
     val newMat: HalfMatrix[A] =
       d.foldLeft(m)((m, i) => {
-        val ii = t(i)
+        val ii = m(signed(i), i)
         d.foldLeft(m)((m, j) => {
-          val jj = t(j)
-          val min = ifield.min(m(signed(i), j),
-                               ifield.half(ifield.+(ii,jj)))
+          val jj = m(signed(j), j)
+          val min = ifield.min(m(signed(i), j), ifield.half(ifield.+(ii,jj)))
+          m.update(signed(i), j, min) }) })
 
-          m.update(signed(i), j, min)
-        })
-      })
-
-    if (indicess.exists(i =>
-            ifield.compare(newMat(i, i), ifield.zero) == LT))
+    if (idxs.exists(i => ifield.compare(newMat(i, i), ifield.zero) == LT))
       None
     else
       Some(newMat)
