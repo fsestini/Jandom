@@ -575,79 +575,41 @@ trait SparseClosureStrategy {
       (m, r)
   }
 
-  protected def computeIteration[A](m: HalfMatrix[A],
-                                  k: Int,
-                                  cp: Seq[Int],
-                                  cm: Seq[Int],
-                                  rp: Seq[Int],
-                                  rm: Seq[Int],
-                                  a: Seq[A],
-                                  b: Seq[A])
-                                 (implicit ifield: InfField[A]) = {
-    val mat1 =
-      rp.foldLeft(m)((m, i) => {
-        val ik = m(2*k, i)
-        val zero =
-          rm.foldLeft(m)((m, j) => {
-            val kj = m(2*k + 1, j)
-            val min = ifield.min(m(signed(i), j), ifield.+(ik, kj))
-            m.update(signed(i), j, min)
-          })
-        cp.foldLeft(zero)((m, j) => {
-            val kj = b(j)
-            val min = ifield.min(m(signed(i), signed(j)), ifield.+(ik, kj))
-            m.update(signed(i), signed(j), min)
-          })
-      })
+  // Uses the indices obtained after 2k and 2k+1 -th row and column to compute
+  // the remaining elements.
+  protected def computeIteration[A]
+    (m: HalfMatrix[A], k: Int, cp: Seq[Int], cm: Seq[Int],
+     rp: Seq[Int], rm: Seq[Int], a: Seq[A], b: Seq[A])
+    (implicit ifield: InfField[A]) = {
 
-    val mat2 =
-      rm.foldLeft(mat1)((m, i) => {
-        val ikk = m(2*k + 1, i)
-        val zero =
-          rp.foldLeft(m)((m, j) => {
-            val kkj = m(2*k, j)
-            val min = ifield.min(m(signed(i), j), ifield.+(ikk, kkj))
-            m.update(signed(i), j, min)
-          })
-        cm.foldLeft(zero)((m, j) => {
-            val kkj = a(j)
-            val min = ifield.min(m(signed(i), signed(j)), ifield.+(ikk, kkj))
-            m.update(signed(i), signed(j), min)
-          })
-      })
+    def buildLoop
+      (ikBldr: (HM[A], Int) => A, coll1: Seq[Int], coll2: Seq[Int],
+       kjBldr1: (HM[A], Int) => A, kjBldr2: (HM[A], Int) => A,
+       lMod1: Int => Int, rMod1: Int => Int, lMod2: Int => Int, rMod2: Int => Int)
+      (m: HM[A], i1: Int): HM[A] = {
 
-    val mat3 =
-      cm.foldLeft(mat2)((m, i) => {
-        val ik = m(i, 2*k + 1)
-        val zero =
-          rm.foldLeft(m)((m, j) => {
-            val kj = m(2*k+1, j)
-            val min = ifield.min(m(i, j), ifield.+(ik, kj))
-            m.update(i, j, min)
-          })
-        cp.foldLeft(zero)((m, j) => {
-            val kj = b(j)
-            val min = ifield.min(m(i, signed(j)), ifield.+(ik, kj))
-            m.update(i, signed(j), min)
-          })
-      })
+      val ik = ikBldr(m, i1)
+      val m2  = coll1.foldLeft(m)((m, j1) => {
+        val kj = kjBldr1(m, j1) ; val i = lMod1(i1) ; val j = rMod1(j1)
+        m.update(i, j, ifield.min(m(i, j), ifield.+(ik, kj))) })
+      val m3 = coll2.foldLeft(m2)((m, j1) => {
+        val kj = kjBldr2(m, j1) ; val i = lMod2(i1) ; val j = rMod2(j1)
+        m.update(i, j, ifield.min(m(i, j), ifield.+(ik, kj))) })
+      m3
+    }
 
-    val mat4 =
-      cp.foldLeft(mat3)((m, i) => {
-        val ikk = m(i, 2*k)
-        val zero =
-          rp.foldLeft(m)((m, j) => {
-            val kkj = m(2*k, j)
-            val min = ifield.min(m(i, j), ifield.+(ikk, kkj))
-            m.update(i, j, min)
-          })
-        cm.foldLeft(zero)((m, j) => {
-            val kkj = a(j)
-            val min = ifield.min(m(i, signed(j)), ifield.+(ikk, kkj))
-            m.update(i, signed(j), min)
-          })
-      })
-
+    val mat1 = rp.foldLeft(m)(
+      buildLoop((m, i1) => m(2 * k, i1), rm, cp, (m, j1) => m(2 * k + 1, j1),
+        (m, j1) => b(j1), signed, id, signed, signed))
+    val mat2 = rm.foldLeft(mat1)(
+      buildLoop((m, i1) => m(2 * k + 1, i1), rp, cm, (m, j1) => m(2 * k, j1),
+        (m, j1) => a(j1), signed, id, signed, signed))
+    val mat3 = cm.foldLeft(mat2)(
+      buildLoop((m, i1) => m(i1, 2 * k + 1), rm, cp, (m, j1) => m(2 * k + 1, j1),
+        (m, j1) => b(j1), id, id, id, signed))
+    val mat4 = cp.foldLeft(mat3)(
+      buildLoop((m, i1) => m(i1, 2 * k), rp, cm, (m, j1) => m(2 * k, j1),
+        (m, j1) => a(j1), id, id, id, signed))
     mat4
   }
 
