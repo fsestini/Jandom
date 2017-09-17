@@ -518,6 +518,8 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
 
 trait SparseClosureStrategy {
 
+  type HM[A] = HalfMatrix[A]
+
   val e: DenseSparse[HalfMatrix] =
     HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
