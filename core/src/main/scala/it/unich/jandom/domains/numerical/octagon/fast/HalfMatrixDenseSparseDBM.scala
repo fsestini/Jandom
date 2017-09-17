@@ -560,27 +560,19 @@ trait SparseClosureStrategy {
     (newM, newC, t)
   }
 
-  // returns (m, rp)
-  protected def computeRow[A](m: HalfMatrix[A],
-                            k: Int,
-                            kk: Int,
-                            rp: Seq[Int],
-                            rm: Seq[Int])
-                            (implicit ifield: InfField[A]) = {
-    if (m(k, kk) != ifield.infinity) {
-      rm.foldLeft((m, rp))((pair, j) => {
-        val (m, rp) = pair
+  protected def computeRow[A]
+    (m: HalfMatrix[A], k: Int, kk: Int, r: Seq[Int], rm: Seq[Int])
+    (implicit ifield: InfField[A]) = {
+
+    if (m(k, kk) != ifield.infinity)
+      rm.foldLeft((m, r))((pair, j) => {
+        val (m, r) = pair
         val min = ifield.min(m(k, j), ifield.+(m(k, kk), m(kk, j)))
         val newMat = m.update(k, j, min)
-        if (m(k, j) != ifield.infinity) {
-          (newMat, rp)
-        } else {
-          (newMat, rp :+ j)
-        }
+        if (m(k, j) != ifield.infinity) (newMat, r) else (newMat, r :+ j)
       })
-    } else {
-      (m, rp)
-    }
+    else
+      (m, r)
   }
 
   protected def computeIteration[A](m: HalfMatrix[A],
