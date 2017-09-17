@@ -13,6 +13,7 @@ import it.unich.jandom.domains.numerical.octagon.variables.Dimension
 import spire.math.Rational
 import it.unich.jandom.utils.numberext.RationalExt
 import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
+import scala.reflect.ClassTag
 
 /**
   * Created by fsestini on 7/11/17.
@@ -28,60 +29,61 @@ import it.unich.jandom.domains.numerical.octagon.OctagonalConstraint._
   *       operation, if we want to construct a new abstract octagon.
   */
 
-case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
-  dbm: M[Closed, Double],
-  d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
-    extends NumericalProperty[AbstractOctagon[D, M]] {
+case class AbstractOctagon[D <: NumericalDomain, M[_, _], N, B <: BoxGenericDomain[N]](
+  dbm: M[Closed, N],
+  d: D, b: B, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })(implicit ifield: InfField[N], ratToN: (RationalExt => N), ct: ClassTag[N])
+    extends NumericalProperty[AbstractOctagon[D, M, N, B]] {
 
   import AbstractOctagon._
-  import DBMUtils._
+  val utils = new DBMUtils[N]
+  import utils._
 
-  private def withDBM(dbm: M[Closed, Double]): AbstractOctagon[D, M] =
-    AbstractOctagon(dbm, d, e)
+  private def withDBM(dbm: M[Closed, N]): AbstractOctagon[D, M, N, B] =
+    AbstractOctagon(dbm, d, b, e)
 
   def dimension: Int = CountOps.Unsafe.varCountToInt(e.nOfVars(dbm))
 
-  def union(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
-    withDBM(e.dbmUnion(dbm, other.dbm)(InfField.infFieldDouble))
+  def union(other: AbstractOctagon[D, M, N, B]): AbstractOctagon[D, M, N, B] =
+    withDBM(e.dbmUnion(dbm, other.dbm)(ifield))
 
-  def intersection(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
+  def intersection(other: AbstractOctagon[D, M, N, B]): AbstractOctagon[D, M, N, B] =
     withDBM(e.strongClosure(e.dbmIntersection(dbm, other.dbm).elem))
 
-  def forget(vi: VarIndex): AbstractOctagon[D, M] = withDBM(e.forget(vi)(dbm))
+  def forget(vi: VarIndex): AbstractOctagon[D, M, N, B] = withDBM(e.forget(vi)(dbm))
 
-  def top = withDBM(e.topDBM[Double](e.nOfVars(dbm)))
-  def bottom = withDBM(e.bottomDBM[Double](e.nOfVars(dbm)))
+  def top = withDBM(e.topDBM[N](e.nOfVars(dbm)))
+  def bottom = withDBM(e.bottomDBM[N](e.nOfVars(dbm)))
 
-  def widening(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
+  def widening(other: AbstractOctagon[D, M, N, B]): AbstractOctagon[D, M, N, B] =
     withDBM(e.strongClosure(e.widening(dbm, other.dbm).elem))
 
-  def narrowing(other: AbstractOctagon[D, M]): AbstractOctagon[D, M] =
+  def narrowing(other: AbstractOctagon[D, M, N, B]): AbstractOctagon[D, M, N, B] =
     withDBM(e.strongClosure(e.narrowing(dbm, other.dbm).elem))
 
-  def projectInterval(v: VarIndex, closed: M[Closed, Double]): (Double, Double) = {
-    val maybeInterval: Option[(Double, Double)] = for {
+  def projectInterval(v: VarIndex, closed: M[Closed, N]): (N, N) = {
+    val maybeInterval: Option[(N, N)] = for {
       p1 <- e.get(varPlus(v), varMinus(v))(closed)
       p2 <- e.get(varMinus(v), varPlus(v))(closed)
-    } yield (- p1 / 2, p2 / 2)
+    } yield (ifield.neg(ifield.half(p1)), ifield.half(p2))
     maybeInterval match {
       case Some(interval) => interval
-      case None => (Double.PositiveInfinity, Double.NegativeInfinity)
+      case None => (ifield.infinity, ifield.neg(ifield.infinity)) // TODO not sure if
     }
   }
 
   private def createInterval(
-    low: Array[Double], high: Array[Double], isEmpty: Boolean)
-      : BoxDoubleDomain#Property = {
+    low: Array[N], high: Array[N], isEmpty: Boolean)
+      : B#Property = {
     val isEmpty : Boolean =
-      low.forall(_ == Double.PositiveInfinity) &&
-      high.forall(_ == Double.NegativeInfinity)
-    val dom: BoxDoubleDomain = BoxDoubleDomain(false)
-    new dom.Property(low, high, isEmpty)
+      low.forall(_ == ifield.infinity) &&
+      high.forall(_ == ifield.neg(ifield.infinity))
+    // val dom: B = B(false)
+    b.makeBox(low, high, isEmpty)
   }
 
-  def toInterval: BoxDoubleDomain#Property = {
+  def toInterval: B#Property = {
     val closed = e.strongClosure(dbm)
-    val l: List[(Double, Double)] =
+    val l: List[(N, N)] =
       CountOps.allVars(e.nOfVars(dbm)).map(v => projectInterval(v, closed)).toList
     val (low, high) = l.unzip
     createInterval(low.toArray, high.toArray, isEmpty = false)
@@ -121,7 +123,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
     *  - j0, i0 replaced by k, l for readability
     *  - Always m_ij if not specified
     */
-  private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+  private [numerical] def fallbackUpdate (lf: LinearForm) : ExistsDBM[({ type T[S] = M[S, N]})#T] = {
     def inverseVarPlus = inverseVarPlusMinus(VarIndexOps.Positive, this.dimension * 2, _: Int)
     def inverseVarMinus = inverseVarPlusMinus(VarIndexOps.Negative, this.dimension * 2, _: Int)
     /**
@@ -156,53 +158,53 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
       *    -|5 |3a|5 |3a| 2|id|
       *   --+--+--+--+--+=====+
       */
-    def g (i: Int, j: Int) : Double = {
+    def g (i: Int, j: Int) : N = {
       if (inverseVarPlus(i) != None & inverseVarMinus(j) != None
         & inverseVarPlus(i) == inverseVarMinus(j)
       ) { // Case 1 with i/2 = j0
         val j0 = inverseVarPlus(i).get
-        2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+        ratToN(2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)))
      } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
        & inverseVarMinus(i) == inverseVarPlus(j)
       ) { // Case 2 with j/2 = j0
         val j0 = inverseVarPlus(j).get
-        -2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)).toDouble
+        ratToN(-2*(this.toInterval.maximize(LinearForm.v(j0.i) - lf)))
       } else if (inverseVarMinus(j) != None & inverseVarMinus(i) != None
         & inverseVarMinus(i) != inverseVarMinus(j)
       ) { // Case 3a, (i+1)/2 = i0, (j+1)/2 = j0
         val j0 = inverseVarMinus(j).get
         val i0 = inverseVarMinus(i).get
-        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+        ratToN(this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf))
       } else if (inverseVarPlus(j) != None & inverseVarPlus(i) != None
         & inverseVarPlus(i) != inverseVarPlus(j)
       ) { // Case 3b, i/2 = i0, j/2 = j0
         val j0 = inverseVarPlus(j).get
         val i0 = inverseVarPlus(i).get
-        this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+        ratToN(this.toInterval.maximize(LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf))
       } else if (inverseVarMinus(j) != None & inverseVarPlus(i) != None
         & inverseVarMinus(j) != inverseVarPlus(i)
       ) { // Case 4, i0 = i/2, j0 = j+1/2
         val j0 = inverseVarMinus(j).get
         val i0 = inverseVarPlus(i).get
-        this.toInterval.maximize(LinearForm.v(j0.i) + LinearForm.v(i0.i) - lf).toDouble
+        ratToN(this.toInterval.maximize(LinearForm.v(j0.i) + LinearForm.v(i0.i) - lf))
       } else if (inverseVarMinus(i) != None & inverseVarPlus(j) != None
         & inverseVarPlus(j) != inverseVarMinus(i)
       ) { // Case 5, j0 = j, i0 = (i+1)/2
         val j0 = inverseVarPlus(j).get
         val i0 = inverseVarMinus(i).get
-        this.toInterval.maximize(- LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf).toDouble
+        ratToN(this.toInterval.maximize(- LinearForm.v(j0.i) - LinearForm.v(i0.i) - lf))
       } else {
         e.get(i,j)(dbm).get
       }
     }
-    val f = (i : Int, j : Int) => math.min(
+    val f = (i : Int, j : Int) => ifield.min(
       e.get(i,j)(dbm).get,
           g(i,j)
     )
     e.update(f)(dbm)
   }
 
-  def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+  def linearInequalityEx (lf: LinearForm): ExistsDBM[({ type T[S] = M[S, N]})#T] = {
     val t : AbstractTest = decodeTest(lf)
     t match {
       case Fallback() => fallbackUpdate(lf)
@@ -211,14 +213,14 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
           case Case1Test(vj, c) => {
             (i : Int, j : Int) =>
             if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
-              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+              ifield.min(ratToN(-2*c), e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
           case Case2Test(vj, c) => {
             (i : Int, j : Int) =>
             if (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vj)))
-              math.min(-2*c.toDouble, e.get(i,j)(dbm).get)
+              ifield.min(ratToN(-2*c), e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
@@ -227,7 +229,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
             if ((i == varPlus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
               | (i == varMinus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
             )
-              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+              ifield.min(ratToN(-1*c), e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
@@ -236,7 +238,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
             if ((i == varMinus(VarIndex(vi)) & j == varPlus(VarIndex(vj)))
               | (i == varMinus(VarIndex(vj)) & j == varPlus(VarIndex(vi)))
             )
-              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+              ifield.min(ratToN(-1*c), e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
@@ -245,7 +247,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
             if ((i == varPlus(VarIndex(vi)) & j == varMinus(VarIndex(vj)))
               | (i == varPlus(VarIndex(vj)) & j == varMinus(VarIndex(vi)))
             )
-              math.min(-1*c.toDouble, e.get(i,j)(dbm).get)
+              ifield.min(ratToN(-1*c), e.get(i,j)(dbm).get)
             else
               e.get(i,j)(dbm).get
           }
@@ -276,41 +278,41 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         (assignedVar.i == other, coeff == -1, coeff == 1) match {
           case (true, true, _) => Some(SingleExact(Negative, lf.known))
           case (true, _, true) => Some(SingleExact(Positive, lf.known))
-          case (false, true, _) => Some(DoubleExact(VarIndex(other), Negative, lf.known))
-          case (false, _, true) => Some(DoubleExact(VarIndex(other), Positive, lf.known))
+          case (false, true, _) => Some(NExact(VarIndex(other), Negative, lf.known))
+          case (false, _, true) => Some(NExact(VarIndex(other), Positive, lf.known))
           case _ => None
         }
       case _ => None
     }
 
-  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M] = {
-    val f: M[Closed, Double] => M[Closed, Double] = decideLinearForm(v, lf) match {
+  def assignment(v: VarIndex, lf: LinearForm): AbstractOctagon[D, M, N, B] = {
+    val f: M[Closed, N] => M[Closed, N] = decideLinearForm(v, lf) match {
       case Some(ConstExact(const)) => (m) =>
         e.incrementalClosure(v)(
-          singleConstantExactAssignment(v, const.toDouble)(m, e).elem)
+          singleConstantExactAssignment(v, ratToN(const))(m, e).elem)
       case Some(SingleExact(Positive, const)) => (m) =>
-        singlePositiveExactAssignment(v, const.toDouble)(m, e)
+        singlePositiveExactAssignment(v, ratToN(const))(m, e)
       case Some(SingleExact(Negative, const)) => (m) =>
-        singleNegativeExactAssignment(v, const.toDouble)(m, e)
-      case Some(DoubleExact(other, Positive, const)) => (matrix) =>
+        singleNegativeExactAssignment(v, ratToN(const))(m, e)
+      case Some(NExact(other, Positive, const)) => (matrix) =>
         e.incrementalClosure(v)(
-          doublePositiveExactAssignment(v, other, const.toDouble)(matrix, e).elem)
-      case Some(DoubleExact(other, Negative, const)) => (matrix) =>
+          doublePositiveExactAssignment(v, other, ratToN(const))(matrix, e).elem)
+      case Some(NExact(other, Negative, const)) => (matrix) =>
         e.incrementalClosure(v)(
-          doubleNegativeExactAssignment(v, other, const.toDouble)(matrix, e).elem)
+          doubleNegativeExactAssignment(v, other, ratToN(const))(matrix, e).elem)
       case None => (matrix) =>
         e.incrementalClosure(v)(thruIntervals(v, lf, dimension)(matrix).elem)
     }
     withDBM(f(dbm))
   }
 
-  def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M] =
+  def nonDeterministicAssignment(n: Int): AbstractOctagon[D, M, N, B] =
     forget(VarIndex(n))
 
-  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[D, M] =
+  def linearAssignment(n: Int, lf: LinearForm): AbstractOctagon[D, M, N, B] =
     assignment(VarIndex(n), lf)
 
-  def linearInequality(lf: LinearForm): AbstractOctagon[D, M] =
+  def linearInequality(lf: LinearForm): AbstractOctagon[D, M, N, B] =
     e.decideState(linearInequalityEx(lf).elem) match {
       case CIxed(closed) => withDBM(closed)
       case NCIxed(nc) => withDBM(e.strongClosure(nc))
@@ -334,12 +336,12 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   // Every octagonal constraint in a strongly closed DBM defines a half-space
   // that actually touches the octagon. [Mine06]
   def constraints: Seq[LinearForm] = {
-    def temp: Double => RationalExt = ???
+    def temp: N => RationalExt = ???
     val l: List[Option[LinearForm]] =
       (for {
         i <- CountOps.allIndices(CountOps.varCountToDim(e.nOfVars(dbm)))
         j <- CountOps.allIndices(CountOps.varCountToDim(e.nOfVars(dbm)))
-      } yield octaConstrAt(i, j, dbm)(InfField.infFieldDouble, e)
+      } yield octaConstrAt(i, j, dbm)(ifield, e)
         .map((c) => mapConstraint(temp)(c))
         .flatMap((c) => constrToLf(dimension)(c)))
         .toList
@@ -351,21 +353,21 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 
   type Domain = D
 
-  private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, Double]})#T]): AbstractOctagon[D, M] =
+  private def fromExDBM(eDBM: ExistsDBM[({ type T[S] = M[S, N]})#T]): AbstractOctagon[D, M, N, B] =
     e.decideState(eDBM.elem) match {
       case CIxed(closed) => withDBM(closed)
       case NCIxed(nclosed) => withDBM(e.strongClosure(nclosed))
     }
 
-  def addVariable(): AbstractOctagon[D, M] = withDBM(e.addVariable(dbm))
+  def addVariable(): AbstractOctagon[D, M, N, B] = withDBM(e.addVariable(dbm))
 
   def isTop: Boolean = e.isTopDBM(dbm)
   def isBottom: Boolean = e.isBottomDBM(dbm)
 
-  def delVariable(v: Int): AbstractOctagon[D, M] =
+  def delVariable(v: Int): AbstractOctagon[D, M, N, B] =
     withDBM(e.deleteVariable(VarIndex(v))(dbm))
 
-  def mapVariables(rho: Seq[Int]): AbstractOctagon[D, M] = {
+  def mapVariables(rho: Seq[Int]): AbstractOctagon[D, M, N, B] = {
     def converted: VarIndex => Option[VarIndex] = (vi) =>
       if (vi.i >= rho.length || rho(vi.i) == -1) None
       else Some(VarIndex(rho(vi.i)))
@@ -387,7 +389,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         yield {
           val elem = e.get(posi, posj)(dbm) match {
             case Some(s) =>
-              if (s == Double.PositiveInfinity)
+              if (s == ifield.infinity)
                 "  +" + 0x221E.toChar.toString
               else
                 s.toString
@@ -406,13 +408,13 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
 
   def isEmpty = isBottom
 
-  type ExistsM[S] = M[S, Double]
+  type ExistsM[S] = M[S, N]
 
-  def tryCompareTo[B >: AbstractOctagon[D, M]](that: B)(implicit evidence$1: (B) => PartiallyOrdered[B]): Option[Int] =
+  def tryCompareTo[O >: AbstractOctagon[D, M, N, B]](that: O)(implicit evidence$1: (O) => PartiallyOrdered[O]): Option[Int] =
     that match {
-      case other: AbstractOctagon[D, M] => {
+      case other: AbstractOctagon[D, M, N, B] => {
         require (dimension == other.dimension, "No ordering for AbstractOctagons of different dimensions")
-        e.compare[Double](
+        e.compare[N](
           MkEx[Closed, ExistsM](dbm),
           MkEx[Closed, ExistsM](other.dbm)).map {
           case EQ => 0
@@ -422,15 +424,15 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
       }
     }
   def thruIntervals(vi: VarIndex, lf: LinearForm, dimension: Int)
-    (dbm: M[Closed, Double]): ExistsDBM[({ type T[S] = M[S, Double]})#T] = {
+    (dbm: M[Closed, N]): ExistsDBM[({ type T[S] = M[S, N]})#T] = {
     // val v = vi.i
-    val f: (Int, Int) => Double = (i, j) => {
+    val f: (Int, Int) => N = (i, j) => {
       if (i == varMinus(vi) && j == varPlus(vi)) {
         val p = toInterval.linearEvaluation(lf)
-        2 * math.max(p _1, p _2)
+        ifield.double(ifield.max(p _1, p _2))
       } else if (i == varPlus(vi) && j == varMinus(vi)) {
         val p = toInterval.linearEvaluation(lf)
-        - 2 * math.min(p _1, p _2)
+        ifield.neg(ifield.double(ifield.min(p _1, p _2)))
       } else {
         val g1: VarIndex => Boolean = other =>
         vi != other && ((i == varPlus(other) && j == varPlus(vi)) ||
@@ -449,19 +451,19 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
         val r = (chooser(g1), chooser(g2), chooser(g3), chooser(g4)) match {
           case (Some(other), _, _, _) => {
             val p = toInterval.linearEvaluation(lf - varLf(other, dimension))
-            Some(math.max(p _1, p _2))
+            Some(ifield.max(p _1, p _2))
           }
           case (_, Some(other), _, _) => {
             val p = toInterval.linearEvaluation(lf + varLf(other, dimension))
-            Some(math.max(p _1, p _2))
+            Some(ifield.max(p _1, p _2))
           }
           case (_, _, Some(other), _) => {
             val p = toInterval.linearEvaluation(varLf(other, dimension) - lf)
-            Some(math.max(p _1, p _2))
+            Some(ifield.max(p _1, p _2))
           }
           case (_, _, _, Some(other)) => {
             val p = toInterval.linearEvaluation(- lf - varLf(other, dimension))
-            Some(math.max(p _1, p _2))
+            Some(ifield.max(p _1, p _2))
           }
           case _ => None
         }
@@ -481,7 +483,7 @@ case class AbstractOctagon[D <: NumericalDomain, M[_, _]](
   }
 
   // Evaluation of linear assignment using interval arithmetics.
-  def lfAsInterval(v: VarIndex, lf: LinearForm): (Double, Double) = ???
+  def lfAsInterval(v: VarIndex, lf: LinearForm): (N, N) = ???
 }
 
 sealed abstract class AbstractTest
@@ -541,23 +543,23 @@ object AbstractOctagon {
     }
   }
 
-  def fromInterval[D <: NumericalDomain, M[_,_]]
-    (box: BoxDoubleDomain#Property,
-      d: D, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })
-      : AbstractOctagon[D, M] = {
+  def fromInterval[D <: NumericalDomain, M[_, _], N, B <: BoxGenericDomain[N]]
+    (box: B#Property,
+      d: D, b: B, e: DifferenceBoundMatrix[M] { type PosetConstraint[A] = InfField[A] })(implicit ifield: InfField[N], ratToN: (RationalExt => N), ct: ClassTag[N])
+      : AbstractOctagon[D, M, N, B] = {
     require (box.low.size == box.high.size)
     val indices = (0 until box.high.size).map(x => VarIndex(x))
     val chooser = VarIndexUtils.forSomeVar(indices) _
-    val f: (Int, Int) => Double = (i, j) => {
+    val f: (Int, Int) => N = (i, j) => {
       val g1: VarIndex => Boolean = k => i == varMinus(k) && j == varPlus(k)
       val g2: VarIndex => Boolean = k => j == varMinus(k) && i == varPlus(k)
       (chooser(g1), chooser(g2)) match {
-        case (Some(VarIndex(k)), _) => 2 * box.asPair(k)._2
-        case (None, Some(VarIndex(k))) => - 2 * box.asPair(k)._1
-        case (None, None) => Double.PositiveInfinity
+        case (Some(VarIndex(k)), _) => ifield.double(box.asPair(k)._2)
+        case (None, Some(VarIndex(k))) => ifield.neg(ifield.double(box.asPair(k)._1))
+        case (None, None) => ifield.infinity
       }
     }
-    AbstractOctagon(e.fromFun(Dimension(box.dimension * 2), f), d, e)
+    AbstractOctagon(e.fromFun(Dimension(box.dimension * 2), f), d, b, e)
   }
 
 
@@ -567,37 +569,37 @@ object AbstractOctagon {
   sealed trait ExactLinearForm
   case class ConstExact(const: Rational) extends ExactLinearForm
   case class SingleExact(varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
-  case class DoubleExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
+  case class NExact(other: VarIndex, varCoeff: OctaVarCoeff, const: Rational) extends ExactLinearForm
 }
 
-object DBMUtils {
-  type ExistsMDouble[M[_,_]] = ExistsDBM[({ type T[S] = M[S, Double]})#T]
+class DBMUtils[N](implicit ifield: InfField[N]) {
+  type ExistsMN[M[_,_]] = ExistsDBM[({ type T[S] = M[S, N]})#T]
 
   def singleConstantExactAssignment[M[_,_], S <: DBMState]
-    (v: VarIndex, const: Double)
-    (dbm: M[S, Double], e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
-    val f: (Int, Int) => Double = (i, j) =>
-      if (i == varPlus(v) && j == varMinus(v)) -2 * const else
-        if (i == varMinus(v) && j == varPlus(v)) 2 * const else
+    (v: VarIndex, const: N)
+    (dbm: M[S, N], e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
+    val f: (Int, Int) => N = (i, j) =>
+      if (i == varPlus(v) && j == varMinus(v)) ifield.neg(ifield.double(const)) else
+        if (i == varMinus(v) && j == varPlus(v)) ifield.double(const) else
           (e.get(i, j)(e.forget(v)(dbm))).get
     e.update(f)(dbm)
   }
 
   // single exact assignments preserve strong closure
   def singlePositiveExactAssignment[M[_,_], S <: DBMState]
-    (v: VarIndex, const: Double)
-    (dbm: M[S, Double], e: DifferenceBoundMatrix[M]) : M[S, Double] = e.addScalarOnVar(v, const)(dbm)
+    (v: VarIndex, const: N)
+    (dbm: M[S, N], e: DifferenceBoundMatrix[M]) : M[S, N] = e.addScalarOnVar(v, const)(dbm)
 
   def doublePositiveExactAssignment[M[_,_], S <: DBMState]
-    (vi: VarIndex, vother: VarIndex, const: Double)
-    (dbm: M[S, Double], e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
+    (vi: VarIndex, vother: VarIndex, const: N)
+    (dbm: M[S, N], e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
 
-    val f: (Int, Int) => Double = (i, j) => {
+    val f: (Int, Int) => N = (i, j) => {
       val g1 = (i == varPlus(vi) && j == varPlus(vother)) ||
                (i == varMinus(vother) && j == varMinus(vi))
       val g2 = (i == varPlus(vother) && j == varPlus(vi)) ||
                (i == varMinus(vi) && j == varMinus(vother))
-      if (g1) -const else
+      if (g1) ifield.neg(const) else
         if (g2) const else
           (e.get(i, j)(e.forget(vi)(e.strongClosure(dbm)))).get
     }
@@ -607,28 +609,28 @@ object DBMUtils {
   // x := - x
   // this preserves strong closure
   def singleNegativeZeroAssignment[M[_,_], S <: DBMState]
-    (v: VarIndex)(dbm: M[S, Double], e: DifferenceBoundMatrix[M]): M[S, Double] = e.flipVar(v)(dbm)
+    (v: VarIndex)(dbm: M[S, N], e: DifferenceBoundMatrix[M]): M[S, N] = e.flipVar(v)(dbm)
 
   // x := - y
   def doubleNegativeZeroAssignment[M[_,_], S <: DBMState]
-    (v: VarIndex, other: VarIndex)(dbm: M[S, Double], e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
-    val m = doublePositiveExactAssignment(v, other, 0)(dbm, e)
+    (v: VarIndex, other: VarIndex)(dbm: M[S, N], e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
+    val m = doublePositiveExactAssignment(v, other, ifield.zero)(dbm, e)
     val mm = singleNegativeZeroAssignment(v)(m.elem, e)
-    MkEx[m.State, ({ type T[A] = M[A, Double] })#T](mm)
+    MkEx[m.State, ({ type T[A] = M[A, N] })#T](mm)
   }
 
   // x := - x + c
-  def singleNegativeExactAssignment[M[_,_], S <: DBMState] (v: VarIndex, const: Double)
-                                   (dbm: M[Closed, Double],  e: DifferenceBoundMatrix[M]): M[Closed, Double] =
+  def singleNegativeExactAssignment[M[_,_], S <: DBMState] (v: VarIndex, const: N)
+                                   (dbm: M[Closed, N],  e: DifferenceBoundMatrix[M]): M[Closed, N] =
     singlePositiveExactAssignment(v, const)(
       singleNegativeZeroAssignment(v)(dbm, e), e)
 
   // x := - y + c
   def doubleNegativeExactAssignment[M[_,_], S <: DBMState]
-    (v: VarIndex, other: VarIndex, const: Double)
-    (dbm: M[S, Double],  e: DifferenceBoundMatrix[M]): ExistsMDouble[M] = {
+    (v: VarIndex, other: VarIndex, const: N)
+    (dbm: M[S, N],  e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
     val m = doubleNegativeZeroAssignment(v, other)(dbm, e)
     val mm = singlePositiveExactAssignment(v, const)(m.elem, e)
-    MkEx[m.State, ({ type T[A] = M[A, Double] })#T](mm)
+    MkEx[m.State, ({ type T[A] = M[A, N] })#T](mm)
   }
 }
