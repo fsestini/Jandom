@@ -62,4 +62,15 @@ class FastOctagonSuite extends FunSuite {
     val working = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(1)/Rational(1))))
     val failing = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(2)/Rational(1))))
   }
+
+  // TODO Once found the cause, rename
+  test("bug #697684 - failing requirement") {
+    val top = e.topDBM[RationalExt](VarCount(2))
+    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    assert(t.dbm == top)
+    val foo = DenseLinearForm(Seq(Rational(0), Rational(1)))
+    val bar = DenseLinearForm(Seq(Rational(-1)/Rational(1), Rational(-1)/Rational(1)))
+    val first = t.linearAssignment(1, foo)
+    val second = first.linearInequality(bar)
+  }
 }
