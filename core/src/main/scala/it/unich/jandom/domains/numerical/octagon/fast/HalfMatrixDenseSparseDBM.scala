@@ -522,6 +522,7 @@ trait SparseClosureStrategy {
     HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
   def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
+  def id[A](x: A) = x
 
   // returns (r, r', c, c')
   protected def computeIndex[A](m: HalfMatrix[A], k: Int)
