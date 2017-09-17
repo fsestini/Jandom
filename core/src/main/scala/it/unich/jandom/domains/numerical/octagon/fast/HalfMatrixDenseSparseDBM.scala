@@ -518,7 +518,8 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
 
 trait SparseClosureStrategy {
 
-  val e: DenseSparse[HalfMatrix] = HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
+  val e: DenseSparse[HalfMatrix] =
+    HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
   def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
 
