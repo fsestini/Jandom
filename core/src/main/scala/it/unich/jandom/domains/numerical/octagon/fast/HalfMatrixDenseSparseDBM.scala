@@ -462,22 +462,22 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
     def br(v: VarIndex, k: VarIndex) = if (k.i < v.i) 2*k.i else 2*v.i
     // TODO: Adapt this into something `var`-less?
     var mutableM = m
-    for (k <- allIndices(varCountToDim(e.nOfVars(m)))) { // 0 to N
+    for (k <- allVars(e.nOfVars(m))) { // 0 to N
       for (i <- (2*v.i until 2*v.i + 2)) {
-        val ik : A = e.get(i, 2*k)(mutableM)
+        val ik : A = e.get(i, 2*k.i)(mutableM)
         if (ik != ifield.infinity) {
           for (j <- 0 until 2*v.i) {
-            val kj : A = e.get(2*k, j)(mutableM)
+            val kj : A = e.get(2*k.i, j)(mutableM)
             mutableM = e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ik, kj))
             )(mutableM)
           }
         }
-        val ikk : A = e.get(i, 2*k + 1)(mutableM)
+        val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
         if (ikk != ifield.infinity) {
           for (j <- 0 until 2*v.i) {
-            val kkj : A = e.get(2*k+1, j)(mutableM)
+            val kkj : A = e.get(2*k.i+1, j)(mutableM)
             mutableM = e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ikk, kkj))
@@ -487,22 +487,22 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
       }
 
       for (j <- (2*v.i until 2*v.i + 2)) {
-        val kj : A = e.get(2*k, j)(mutableM)
+        val kj : A = e.get(2*k.i, j)(mutableM)
         if (kj != ifield.infinity) {
           for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)) { // 2v to n
-            val kj : A = e.get(2*k, j)(mutableM)
-            val ik : A = e.get(i, 2*k)(mutableM)
+            val kj : A = e.get(2*k.i, j)(mutableM)
+            val ik : A = e.get(i, 2*k.i)(mutableM)
             mutableM = e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ik, kj))
             )(mutableM)
           }
         }
-        val kkj : A = e.get(2*k+1, j)(mutableM)
+        val kkj : A = e.get(2*k.i+1, j)(mutableM)
         if (kkj != ifield.infinity) {
           for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(j)) { // j to n
-            val kkj : A = e.get(2*k+1, j)(mutableM)
-            val ikk : A = e.get(i, 2*k + 1)(mutableM)
+            val kkj : A = e.get(2*k.i+1, j)(mutableM)
+            val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
             mutableM = e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ikk, kkj))
