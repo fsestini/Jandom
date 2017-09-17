@@ -526,19 +526,17 @@ trait SparseClosureStrategy {
   def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
   def id[A](x: A) = x
 
-  // returns (r, r', c, c')
-  protected def computeIndex[A](m: HalfMatrix[A], k: Int)
-                             (implicit ifield: InfField[A])
-                             : (Seq[Int], Seq[Int], Seq[Int], Seq[Int]) = {
-    val cIndices = indices(m).filter(_ > VarIndex(k))
-              .flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
-    val rIndices = indices(m).filter(_ < VarIndex(k))
-              .flatMap(vi => Seq(varPlus(vi), varMinus(vi)))
+  // Computes the location of finite values for 2k and 2k+1 -th row and column.
+  protected def computeIndex[A]
+    (m: HalfMatrix[A], k: Int)(implicit ifield: InfField[A])
+    : (Seq[Int], Seq[Int], Seq[Int], Seq[Int]) = {
 
-    val cp = cIndices.filter(i => m(i, 2*k) == ifield.infinity)
-    val cm = cIndices.filter(i => m(signed(i), 2*k + 1) == ifield.infinity)
-    val rp = rIndices.filter(j => m(2*k, j) == ifield.infinity)
-    val rm = rIndices.filter(j => m(2*k + 1, signed(j)) == ifield.infinity)
+    val idxs = allIndices(varCountToDim(e.nOfVars(m)))
+
+    val cp = idxs.drop(2 * k + 2).filter(i => m(i, 2*k) != ifield.infinity)
+    val cm = idxs.drop(2 * k + 2).filter(i => m(i, 2*k + 1) != ifield.infinity)
+    val rp = idxs.take(2 * k).filter(j => m(2*k, j) != ifield.infinity)
+    val rm = idxs.take(2 * k).filter(j => m(2*k + 1, j) != ifield.infinity)
 
     (rp, rm, cp, cm)
   }
