@@ -450,7 +450,7 @@ object SparseStrongClosure extends SparseClosureStrategy {
   def apply[A](m: HalfMatrix[A])
               (implicit ifield: InfField[A])
               : Option[HalfMatrix[A]] = {
-    val newMat = indices(m).foldLeft(m)(loopBody)
+    val newMat = allVars(e.nOfVars(m)).foldLeft(m)(loopBody)
     strengthening(newMat)
   }
 }
@@ -523,7 +523,6 @@ trait SparseClosureStrategy {
   val e: DenseSparse[HalfMatrix] =
     HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
 
-  def indices[A](m:HalfMatrix[A]): Seq[VarIndex] = allVars(e.nOfVars(m))
   def id[A](x: A) = x
 
   // Computes the location of finite values for 2k and 2k+1 -th row and column.
