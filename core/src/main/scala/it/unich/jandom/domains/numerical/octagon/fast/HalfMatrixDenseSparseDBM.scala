@@ -540,22 +540,22 @@ trait SparseClosureStrategy {
     (rp, rm, cp, cm)
   }
 
-  // Uses the column indices to update the elements in 2k and 2k+1 -th column.
+  // Uses the column indices to update the elements in j and j+1 -th column.
   protected def computeColumn[A]
-    (m: HalfMatrix[A], k: Int, kk: Int, c: Seq[Int], cm: Seq[Int])
+    (m: HalfMatrix[A], j: Int, jj: Int, c: Seq[Int], cm: Seq[Int])
     (implicit ifield: InfField[A]) = {
 
     // update both m and c
     val (newM, newC) =
-      if (m(k, kk) != ifield.infinity)
+      if (m(j, jj) != ifield.infinity)
         cm.foldLeft((m, c))((pair, i) => {
           val (m, c) = pair
-          val min = ifield.min(m(i, k), ifield.+(m(i, kk), m(kk, k)))
-          val newMat = m.update(i, k, min)
-          if (m(i, k) != ifield.infinity) (newMat, c) else (newMat, c :+ i)
+          val min = ifield.min(m(i, j), ifield.+(m(i, jj), m(jj, j)))
+          val newMat = m.update(i, j, min)
+          if (m(i, j) != ifield.infinity) (newMat, c) else (newMat, c :+ i)
         }) else (m, c)
 
-    val t = (allIndices(m.dimension)).drop(2 * k + 2).map(i => newM(i, k))
+    val t = (allIndices(m.dimension)).map(i => newM(i, j))
     (newM, newC, t)
   }
 
