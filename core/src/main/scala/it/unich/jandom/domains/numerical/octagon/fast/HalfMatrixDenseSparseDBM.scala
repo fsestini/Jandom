@@ -541,31 +541,23 @@ trait SparseClosureStrategy {
     (rp, rm, cp, cm)
   }
 
-  // returns (m, cp, t)
-  protected def computeColumn[A](m: HalfMatrix[A],
-                               k: Int,
-                               kk: Int,
-                               cp: Seq[Int],
-                               cm: Seq[Int])
-                               (implicit ifield: InfField[A]) = {
-    // update both m and cm
-    val newVals =
-      if (m(k, kk) != ifield.infinity) {
-        cm.foldLeft((m, cp))((pair, i) => {
-          val (m, cp) = pair
+  // Uses the column indices to update the elements in 2k and 2k+1 -th column.
+  protected def computeColumn[A]
+    (m: HalfMatrix[A], k: Int, kk: Int, c: Seq[Int], cm: Seq[Int])
+    (implicit ifield: InfField[A]) = {
+
+    // update both m and c
+    val (newM, newC) =
+      if (m(k, kk) != ifield.infinity)
+        cm.foldLeft((m, c))((pair, i) => {
+          val (m, c) = pair
           val min = ifield.min(m(i, k), ifield.+(m(i, kk), m(kk, k)))
           val newMat = m.update(i, k, min)
-          if (m(i, k) != ifield.infinity) {
-            (newMat, cp)
-          } else {
-            (newMat, cp :+ i)
-          }
-        })
-      } else {
-        (m, cp)
-      }
-    val t = for (i <- allIndices(m.dimension)) yield newVals._1(i, k)
-    (newVals._1, newVals._2, t)
+          if (m(i, k) != ifield.infinity) (newMat, c) else (newMat, c :+ i)
+        }) else (m, c)
+
+    val t = (allIndices(m.dimension)).drop(2 * k + 2).map(i => newM(i, k))
+    (newM, newC, t)
   }
 
   // returns (m, rp)
