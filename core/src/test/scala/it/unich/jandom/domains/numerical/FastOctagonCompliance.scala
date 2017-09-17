@@ -62,9 +62,19 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
     Gen.zip (GenLf(n), Gen.choose(0, n-1))
   }
 
-  def GenListOfLf(n: Int) : Gen[Seq[(LinearForm, Int)]] = Gen.listOfN(LFORMS, GenVarAndLf(n))
+  def GenVarAndLfAndIneq(n: Int) : Gen[(LinearForm, Int, IsInequality)] = {
+    require (n > 0)
+    Gen.zip (GenLf(n), Gen.choose(0, n-1), arbitrary[Boolean])
+  }
+
+  def GenListOfVarAndLf(n: Int) : Gen[Seq[(LinearForm, Int)]] = Gen.listOfN(LFORMS, GenVarAndLf(n))
+
+  type IsInequality = Boolean
+  def GenListOfVarAndLfAndIneq(n: Int) : Gen[Seq[(LinearForm, Int, IsInequality)]] = Gen.listOfN(LFORMS, GenVarAndLfAndIneq(n))
+
   type FDOM = OctagonDomain[FastDBM, RationalExt, BoxRationalDomain]
   type DOM = OctagonDomain[VecDBM, RationalExt, BoxRationalDomain]
+
   //////////////////////////////////////////////////////////////////////////////
   // Begin properties
   //////////////////////////////////////////////////////////////////////////////
@@ -77,7 +87,7 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
   property ("Fast octagons match Mine octagons in their response to linear assignment") {
       forAll(GenSmallInt) {
         (d: Int) => {
-          forAll(GenListOfLf(d)) {
+          forAll(GenListOfVarAndLf(d)) {
             (s: Seq[(LinearForm, Int)]) => {
               val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
               val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
@@ -106,6 +116,62 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
                       octf.linearAssignment(s.head._2, s.head._1),
                       octmine.linearAssignment(s.head._2, s.head._1)
                     )
+                  }
+                  else
+                    false
+              }
+
+
+              f(s, topf, topmine)
+            }
+          }
+        }
+      }
+  }
+
+
+
+  property ("Fast octagons match Mine octagons in their response to linear assignment AND inequality") {
+      forAll(GenSmallInt) {
+        (d: Int) => {
+          forAll(GenListOfVarAndLfAndIneq(d)) {
+            (s: Seq[(LinearForm, Int, IsInequality)]) => {
+              val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
+              val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
+
+              def compare(
+                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
+                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
+                if (octf.dimension != octmine.dimension) false
+                else
+                  (0 until octf.dimension).forall{
+                    (i: Int) =>
+                    (0 until octf.dimension).forall{
+                      (j: Int) => fe.get(i,j)(octf.dbm) == e.get(i,j)(octmine.dbm)
+                    }
+                  }
+              }
+
+              def f(s: Seq[(LinearForm, Int, IsInequality)],
+                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
+                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
+                if (s.size == 0)
+                  true
+                else
+                  if (compare(octf, octmine)) {
+                    if (s.head._3) {
+                      f(
+                        s.tail,
+                        octf.linearInequality(s.head._1),
+                        octmine.linearInequality(s.head._1)
+                      )
+                    } else {
+                      f(
+                        s.tail,
+                        octf.linearAssignment(s.head._2, s.head._1),
+                        octmine.linearAssignment(s.head._2, s.head._1)
+                      )
+                    }
                   }
                   else
                     false
