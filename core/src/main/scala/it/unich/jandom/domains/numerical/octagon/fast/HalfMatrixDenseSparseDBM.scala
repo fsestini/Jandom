@@ -301,17 +301,7 @@ object DenseIncrementalClosure extends DenseClosureStrategy {
       for (i <- (2*v.i until 2*v.i + 2)) {
         val ik : A = e.get(i, 2*k.i)(mutableM)
         val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
-        // TODO We can merge these into a single loop, since e.get takes care of everything?
-        for (j <- 0 until br(v, k)) {
-          val kj : A = e.get(2*k.i, j)(mutableM)
-          val kkj : A = e.get(2*k.i+1, j)(mutableM)
-          mutableM = e.update(i, j,
-            ifield.min(e.get(i,j)(m),
-              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
-            )
-          )(mutableM)
-        }
-        for (j <- br(v, k) until 2*v.i) {
+        for (j <- 0 until 2*v.i) {
           val kj : A = e.get(2*k.i, j)(mutableM)
           val kkj : A = e.get(2*k.i+1, j)(mutableM)
           mutableM = e.update(i, j,
