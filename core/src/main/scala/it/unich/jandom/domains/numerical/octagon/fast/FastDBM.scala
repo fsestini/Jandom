@@ -50,12 +50,8 @@ object CFDBMInstance {
         }
 
       def forget[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, SM, S, A])
-                                  (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
-        Utils.mapFastDBM[M, SM, S, A](fast =>
-          Utils.mapInnerMatrix[M, SM, A](inner =>
-            mev.ds.forget(vi)(inner)
-          )(fast)
-        )(m)
+                                  (implicit f: InfField[A]): CFastDBM[M, SM, S, A] =
+        Utils.mapFastDBM[M, SM, S, A](Utils.mapInnerMatrix(mev.ds.forget(vi)))(m)
 
       def nOfVars[S <: DBMState, A](m: CFastDBM[M, SM, S, A]): VarCount = Utils.nOfVars(m)
 
