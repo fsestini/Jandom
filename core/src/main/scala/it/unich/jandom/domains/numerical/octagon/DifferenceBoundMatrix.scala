@@ -54,9 +54,16 @@ trait DifferenceBoundMatrix[M[_, _]]
     (m1: M[S, A], m2: M[T, A])(implicit ifield: InfField[A]): ExistsM[A]
   def bottomDBM[A](nOfVars : VarCount)(implicit ifield: InfField[A]) : M[Closed, A]
 
+  // Tests whether dbm is a top DBM, i.e. if it has all elements == +\infty.
+  // It is provided as primitive, and not implemented in terms of get,
+  // to allow more efficient implementations.
   def isTopDBM[A, S <: DBMState](dbm: M[S, A])(implicit ifield: InfField[A]): Boolean
   def isBottomDBM[A, S <: DBMState](dbm: M[S, A])(implicit ifield: InfField[A]): Boolean
 
+  // Returns a *closed* version of the top DBM, namely one with +\infty on
+  // all elements except the diagonal, which is set to 0.
+  // This differs from the *real* top DBM, which has +\infty on all elements.
+  // In particular, isTop(topDBM(n)) == false.
   def topDBM[A](nOfVars : VarCount)(implicit ifield: InfField[A]) : M[Closed, A]
   def fromFun[A] (d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]) : M[Closed, A]
 
