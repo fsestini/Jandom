@@ -15,6 +15,10 @@ import scalaz.std.list._
 // quadratic worst case complexity, so we only perform it by piggybacking on
 // the closure operator. We also use closure computations as switching points.
 
+
+case class MEvidence[M[_], SM[_]](dec: Decomposable[M, SM],
+                                  ds: DenseSparse[M],
+                                  sub: SubMatrix[SM])
 object CFDBMInstance {
   def instance[M[_], SM[_]](implicit mev: MEvidence[M, SM]) =
     new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, SM, S, A] })#T] {
@@ -320,10 +324,6 @@ object CFDBMInstance {
       }
     }
 }
-
-case class MEvidence[M[_], SM[_]](dec: Decomposable[M, SM],
-                                  ds: DenseSparse[M],
-                                  sub: SubMatrix[SM])
 
 // ADT of "closable" DBMs in their fast implementation from Vechev et al.
 // They are "closable" in the sense that they augment the ADT of fast DBMs with
