@@ -261,11 +261,8 @@ object CFDBMInstance {
           (implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
             case BottomFast(n) => BottomFast(subOne(n))
             case m =>
-              Utils.mapFastDBM[M, SM, S, A](fast =>
-                Utils.mapInnerMatrix[M, SM, A](inner =>
-                  mev.dec.deleteVariable(inner)
-                )(fast)
-              )(dbm)
+              Utils.mapFastDBM[M, SM, S, A](
+                Utils.mapInnerMatrix[M, SM, A](mev.dec.deleteVariable))(dbm)
           }
 
       def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])
