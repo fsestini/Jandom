@@ -63,46 +63,19 @@ object CFDBMInstance {
         (m1: CFastDBM[M, SM, R, A], m2: CFastDBM[M, SM, S, A])
         (implicit ifield: InfField[A]): ExistsM[A] = {
 
-        def aux(m1: FastDBM[M, SM, A], m2: FastDBM[M, SM, A]): FastDBM[M, SM, A] =
-          (m1, m2) match {
-            case (FullDBM(dbm1, mev), FullDBM(dbm2, _)) =>
-              FullDBM(mev.ds.dbmUnion(dbm1, dbm2), mev)
-            case (DecomposedDBM(dbm1, comps1, mev), DecomposedDBM(dbm2, comps2, _)) =>
-              // compute sets of initialized variables, i.e., variables
-              // that can be different from infinity
-              val vars1 = comps1.foldRight(Seq[VarIndex]())(_ ++ _).toSet
-              val vars2 = comps2.foldRight(Seq[VarIndex]())(_ ++ _).toSet
-
-              // create a new component with the variables that can be
-              // different from infinity in the intersection
-              val vars = vars1 union vars2
-              val component = vars.toSeq
-
-              // create new submatrices with the same components
-              val sub1 = mev.dec.extract(component)(dbm1)
-              val sub2 = mev.dec.extract(component)(dbm2)
-
-              val newMat = mev.sub.dbmIntersection(sub1, sub2)
-              ??? // DecomposedDBM(newMat, Seq(component), mev)
-            case (dbm1 @ DecomposedDBM(_, _, _), dbm2 @ FullDBM(_, _)) =>
-              aux(dbm1.toFull, dbm2)
-            case (dbm1 @ FullDBM(_, _), dbm2 @ DecomposedDBM(_, _, _)) =>
-              aux(dbm1, dbm2.toFull)
-          }
-
         (m1, m2) match {
           case (BottomFast(nOfVars), _) =>
             Utils.packEx(BottomFast(nOfVars))
           case (_, BottomFast(nOfVars)) =>
             Utils.packEx(BottomFast(nOfVars))
           case (CFast(dbm1), CFast(dbm2)) =>
-            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+            Utils.packEx(NCFast(dbm1.intersection(dbm2)))
           case (CFast(dbm1), NCFast(dbm2)) =>
-            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+            Utils.packEx(NCFast(dbm1.intersection(dbm2)))
           case (NCFast(dbm1), CFast(dbm2)) =>
-            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+            Utils.packEx(NCFast(dbm1.intersection(dbm2)))
           case (NCFast(dbm1), NCFast(dbm2)) =>
-            Utils.packEx(NCFast(aux(dbm1, dbm2)))
+            Utils.packEx(NCFast(dbm1.intersection(dbm2)))
         }
       }
 
@@ -413,6 +386,10 @@ sealed trait FastDBM[M[_], SM[_], A] {
       CFastDBM[M, SM, Closed, A]
 
   def toFull: FullDBM[M, SM, A]
+
+  def intersection(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A]
+
 }
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
@@ -455,6 +432,15 @@ case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
       case Some(m) => CFast(FullDBM(m, mev))
       case None    => BottomFast(mev.ds.nOfVars(dbm))
     }
+
+  def intersection(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A] =
+    other match {
+      case FullDBM(otherDbm, _) => FullDBM(mev.ds.dbmIntersection(dbm, otherDbm), mev)
+      case otherDec @ DecomposedDBM(_,_,_) =>
+        FullDBM(mev.ds.dbmIntersection(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
+    }
+
 }
 
 // We store the independent components as a linked list of linked lists of
@@ -518,6 +504,32 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
         }
       }
       case None => CFast(this)
+    }
+
+  def intersection(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A] =
+    other match {
+
+      case FullDBM(otherFull, _) =>
+        FullDBM(mev.ds.dbmIntersection(Utils.fastInnerMatrix(this.toFull), otherFull), mev)
+
+      case DecomposedDBM(otherCompleteDBM, otherComponents, _) =>
+
+        // TODO: maybe too approximate?
+
+        // Compute the union of all independent components, yielding the set of
+        // all variables that can be different from infinity (assuming that
+        // all operators preserve soundness of the components index.)
+        val vars1 = indepComponents.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+        val vars2 = otherComponents.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+        val component = (vars1 union vars2).toSeq
+
+        // create new submatrices with the same components
+        val sub1 = mev.dec.extract(component)(completeDBM)
+        val sub2 = mev.dec.extract(component)(otherCompleteDBM)
+
+        val newMat = mev.sub.dbmIntersection(sub1, sub2)
+        DecomposedDBM(mev.dec.pour(newMat)(completeDBM), Seq(component), mev)
     }
 
 }
