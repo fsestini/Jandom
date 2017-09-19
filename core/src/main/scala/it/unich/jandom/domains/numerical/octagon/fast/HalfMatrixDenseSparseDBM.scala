@@ -537,8 +537,9 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
         )
       )
 
-    val newMat = loopBody(updated2, v)
-    strengthening(newMat)
+    strengthening(
+      loopBody(updated2, v)
+    )
   }
 }
 
