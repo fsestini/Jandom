@@ -18,7 +18,7 @@ class Utils(val box: BoxRationalDomain) {
 
   val r = new RationalAlgebra()
 
-  def GenSmallInt : Gen[Int] = Gen.choose(1, 5)
+  def GenSmallInt : Gen[Int] = Gen.choose(1, 10)
   def GenSmallEvenInt : Gen[Int] = for (n <- GenSmallInt) yield (n * 2)
   def GenInf : Gen[RationalExt] = Gen.const(RationalExt.PositiveInfinity)
   def GenRational : Gen[Rational] = for {

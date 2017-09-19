@@ -56,7 +56,7 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
   val oct = new OctagonDomain[VecDBM, RationalExt, BoxRationalDomain](e, box)
   type VecDBM[B,C] = (DBM[VecMatrix, B, C])
 
-  val LFORMS = 10
+  val LFORMS = 20
   def GenVarAndLf(n: Int) : Gen[(LinearForm, Int)] = {
     require (n > 0)
     Gen.zip (GenLf(n), Gen.choose(0, n-1))
