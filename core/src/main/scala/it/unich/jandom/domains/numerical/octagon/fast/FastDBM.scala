@@ -37,7 +37,6 @@ object CFDBMInstance {
         (implicit evidence: InfField[A]): CFastDBM[M, SM, Closed, A] =
         dbm match {
           case BottomFast(n) => BottomFast(n)
-          case TopFast(n) => TopFast(n)
           case CFast(m: FastDBM[M, SM, A]) => CFast(m)
           case NCFast(m: FastDBM[M, SM, A]) => m.incrementalClosure(v)
         }
@@ -46,7 +45,6 @@ object CFDBMInstance {
                           (implicit evidence: InfField[A]): CFastDBM[M, SM, Closed, A] =
         dbm match {
           case BottomFast(n) => BottomFast(n)
-          case TopFast(n) => TopFast(n)
           case CFast(m: FastDBM[M, SM, A]) => CFast(m)
           case NCFast(m: FastDBM[M, SM, A]) => m.strongClosure
         }
@@ -101,10 +99,6 @@ object CFDBMInstance {
             Utils.packEx(BottomFast(nOfVars))
           case (_, BottomFast(nOfVars)) =>
             Utils.packEx(BottomFast(nOfVars))
-          case (TopFast(_), other) =>
-            Utils.packEx(other)
-          case (other, TopFast(_)) =>
-            Utils.packEx(other)
           case (CFast(dbm1), CFast(dbm2)) =>
             Utils.packEx(NCFast(aux(dbm1, dbm2)))
           case (CFast(dbm1), NCFast(dbm2)) =>
@@ -116,8 +110,13 @@ object CFDBMInstance {
         }
       }
 
-      def topDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
-        TopFast(nOfVars)
+      def topDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]):
+          CFastDBM[M, SM, Closed, A] = {
+        val top = mev.dec.pure(nOfVars, ifield.infinity)
+        val cTop = allIndices(varCountToDim(nOfVars))
+          .foldLeft(top)((m, i) => mev.ds.update(i, i, ifield.zero)(m))
+        CFast(FullDBM(cTop, mev))
+      }
 
       def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
         BottomFast(nOfVars)
@@ -165,10 +164,6 @@ object CFDBMInstance {
             BottomFast(nOfVars)
           case (_, BottomFast(nOfVars)) =>
             BottomFast(nOfVars)
-          case (TopFast(nOfVars), _) =>
-            TopFast(nOfVars)
-          case (_, TopFast(nOfVars)) =>
-            TopFast(nOfVars)
           case (CFast(dbm1), CFast(dbm2)) =>
             CFast(aux(dbm1, dbm2))
           case (CFast(dbm1), NCFast(dbm2)) =>
@@ -228,10 +223,6 @@ object CFDBMInstance {
             Utils.packEx(BottomFast(nOfVars))
           case (_, BottomFast(nOfVars)) =>
             Utils.packEx(BottomFast(nOfVars))
-          case (TopFast(nOfVars), _) =>
-            Utils.packEx(TopFast(nOfVars))
-          case (_, TopFast(nOfVars)) =>
-            Utils.packEx(TopFast(nOfVars))
           case (CFast(m1), CFast(m2)) =>
             Utils.packEx(NCFast(aux(m1, m2)))
           case (CFast(m1), NCFast(m2)) =>
@@ -256,16 +247,12 @@ object CFDBMInstance {
         }
       }
 
-      def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,SM, S,A])(implicit ifield: InfField[A]): Boolean =
-        dbm match {
-          case TopFast(_) => true
-          case _ => false
-        }
+      def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,SM, S,A])
+        (implicit ifield: InfField[A]): Boolean = ???
 
       def addVariable[S <: DBMState, A](dbm: CFastDBM[M,SM, S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,SM, S,A] = dbm match {
             case BottomFast(n) => BottomFast(addOne(n))
-            case TopFast(n) => TopFast(addOne(n))
             case _ =>
               Utils.mapFastDBM[M, SM, S, A](fast =>
                 Utils.mapInnerMatrix[M, SM, A](inner =>
@@ -278,8 +265,6 @@ object CFDBMInstance {
           DBMIxed[({ type T[W,B] = CFastDBM[M, SM, W, B]})#T, A] =  dbm match {
           case m @ BottomFast(_) =>
             CIxed[({ type T[W,B] = CFastDBM[M, SM, W, B]})#T, A](m)
-          case m @ TopFast(_) =>
-            CIxed[({ type T[W,B] = CFastDBM[M, SM, W, B]})#T, A](m)
           case m @ CFast(_) =>
             CIxed[({ type T[W,B] = CFastDBM[M, SM, W, B]})#T, A](m)
           case m @ NCFast(_) =>
@@ -289,7 +274,6 @@ object CFDBMInstance {
       def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,SM,S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
             case BottomFast(n) => BottomFast(subOne(n))
-            case TopFast(n) => TopFast(subOne(n))
             case m =>
               Utils.mapFastDBM[M, SM, S, A](fast =>
                 Utils.mapInnerMatrix[M, SM, A](inner =>
@@ -301,9 +285,6 @@ object CFDBMInstance {
       def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])
           (dbm: CFastDBM[M,SM,S,A])(implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
         case BottomFast(n) =>
-          val newN = allVars(n).count(f(_).isDefined)
-          BottomFast(VarCount(newN))
-        case TopFast(n) =>
           val newN = allVars(n).count(f(_).isDefined)
           BottomFast(VarCount(newN))
         case _ =>
@@ -336,7 +317,6 @@ sealed trait CFastDBM[M[_], SM[_], _, A]
 case class CFast[M[_], SM[_], A](m: FastDBM[M, SM, A]) extends CFastDBM[M, SM, Closed, A]
 // Constructor of *non-closed* fast DBMs.
 case class NCFast[M[_], SM[_], A](m: FastDBM[M, SM, A]) extends CFastDBM[M, SM, NonClosed, A]
-case class TopFast[M[_], SM[_], A](nOfVars: VarCount) extends CFastDBM[M, SM, Closed, A]
 case class BottomFast[M[_], SM[_], A](nOfVars: VarCount) extends CFastDBM[M, SM, Closed, A]
 
 object Utils {
@@ -350,7 +330,6 @@ object Utils {
     dbm match {
       case CFast(m: FastDBM[M, SM, A]) => mev.ds.nOfVars(fastInnerMatrix(m))
       case NCFast(m: FastDBM[M, SM, A]) => mev.ds.nOfVars(fastInnerMatrix(m))
-      case TopFast(n) => n
       case BottomFast(n) => n
     }
 
@@ -366,7 +345,6 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => Some(fastInnerMatrix(m))
       case NCFast(m: FastDBM[M, SM, A]) => Some(fastInnerMatrix(m))
-      case TopFast(n) => Some(mev.dec.pure(n, ifield.infinity))
       case BottomFast(_) => None
     }
   }
@@ -392,7 +370,6 @@ object Utils {
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => CFast(f(m))
       case NCFast(m: FastDBM[M, SM, A]) => NCFast(f(m))
-      case TopFast(n) => CFast(f(FullDBM(mev.dec.pure(n, ifield.infinity), mev)))
       case BottomFast(n) => BottomFast(n)
     }
   }
