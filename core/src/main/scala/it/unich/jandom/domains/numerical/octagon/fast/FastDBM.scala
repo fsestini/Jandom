@@ -386,25 +386,22 @@ object Utils {
 
 object FastDbmUtils {
 
-  def calculateComponents[M[_], SM[_], A](dbm: FastDBM[M, SM, A])
-                                  (implicit mev: MEvidence[M, SM],
-                                    ifield: InfField[A]): List[List[VarIndex]] = {
-    val innerMatrix = Utils.fastInnerMatrix(dbm)
-    def related(vi: VarIndex, vj: VarIndex): Boolean = {
-      import VarIndexOps._
-      Set(
-        (varPlus(vi), varPlus(vj)),
-        (varPlus(vi), varMinus(vj)),
-        (varMinus(vi), varPlus(vj)),
-        (varMinus(vi), varMinus(vj))
-      ).filter({ case (i, j) =>
-        i != j
-      }).exists({ case (i, j) =>
-        ifield.!=(mev.ds.get(i, j)(innerMatrix), ifield.infinity)
-      })
-    }
+  def calculateComponents[M[_], SM[_], A]
+    (dbm: FastDBM[M, SM, A])
+    (implicit mev: MEvidence[M, SM], ifield: InfField[A]): List[List[VarIndex]] = {
 
+    import VarIndexOps._
     import CountOps._
+
+    val innerMatrix = Utils.fastInnerMatrix(dbm)
+    def related(vi: VarIndex, vj: VarIndex): Boolean =
+      Set((varPlus(vi), varPlus(vj)),
+          (varPlus(vi), varMinus(vj)),
+          (varMinus(vi), varPlus(vj)),
+          (varMinus(vi), varMinus(vj)))
+        .filter({ case (i, j) => i != j})
+        .exists({ case (i, j) =>
+          ifield.!=(mev.ds.get(i, j)(innerMatrix), ifield.infinity)})
 
     val nOfVars = mev.ds.nOfVars(innerMatrix)
     val rels = for (vi <- allVars(nOfVars);
