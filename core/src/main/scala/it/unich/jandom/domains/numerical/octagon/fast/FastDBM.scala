@@ -169,14 +169,11 @@ object CFDBMInstance {
         }
       }
 
-      def addScalarOnVar[S <: DBMState, A](vi: VarIndex, const: A)
-                                          (m: CFastDBM[M, SM, S, A])
-                                          (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
-        Utils.mapFastDBM[M, SM, S, A](fast =>
-          Utils.mapInnerMatrix[M, SM, A](inner =>
-            mev.ds.addScalarOnVar(vi, const)(inner)
-          )(fast)
-        )(m)
+      def addScalarOnVar[S <: DBMState, A]
+        (vi: VarIndex, const: A)(m: CFastDBM[M, SM, S, A])
+        (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
+        Utils.mapFastDBM[M, SM, S, A](
+          Utils.mapInnerMatrix(mev.ds.addScalarOnVar(vi, const)))(m)
 
       def isBottomDBM[A, S <: DBMState](m: CFastDBM[M, SM, S, A])
                                       (implicit ifield: InfField[A]): Boolean =
