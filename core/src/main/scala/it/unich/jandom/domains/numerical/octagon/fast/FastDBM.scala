@@ -243,11 +243,8 @@ object CFDBMInstance {
           (implicit ifield: InfField[A]): CFastDBM[M,SM, S,A] = dbm match {
             case BottomFast(n) => BottomFast(addOne(n))
             case _ =>
-              Utils.mapFastDBM[M, SM, S, A](fast =>
-                Utils.mapInnerMatrix[M, SM, A](inner =>
-                  mev.dec.addVariable(inner)
-                )(fast)
-              )(dbm)
+              Utils.mapFastDBM[M, SM, S, A](
+                Utils.mapInnerMatrix[M, SM, A](mev.dec.addVariable))(dbm)
           }
 
       def decideState[S <: DBMState, A](dbm: CFastDBM[M,SM, S,A]):
