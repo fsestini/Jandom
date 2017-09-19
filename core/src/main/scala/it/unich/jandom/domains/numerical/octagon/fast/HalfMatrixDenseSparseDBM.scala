@@ -460,58 +460,93 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
     (implicit ifield: InfField[A])
       : Option[HalfMatrix[A]] = {
     def br(v: VarIndex, k: VarIndex) = if (k.i < v.i) 2*k.i else 2*v.i
-    // TODO: Adapt this into something `var`-less?
-    var mutableM = m
-    for (k <- allVars(e.nOfVars(m))) { // 0 to N
-      for (i <- (2*v.i until 2*v.i + 2)) {
-        val ik : A = e.get(i, 2*k.i)(mutableM)
-        if (ik != ifield.infinity) {
-          for (j <- 0 until 2*v.i) {
-            val kj : A = e.get(2*k.i, j)(mutableM)
-            mutableM = e.update(i, j,
-              ifield.min(e.get(i,j)(m),
-                ifield.+(ik, kj))
-            )(mutableM)
-          }
-        }
-        val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
-        if (ikk != ifield.infinity) {
-          for (j <- 0 until 2*v.i) {
-            val kkj : A = e.get(2*k.i+1, j)(mutableM)
-            mutableM = e.update(i, j,
-              ifield.min(e.get(i,j)(m),
-                ifield.+(ikk, kkj))
-            )(mutableM)
-          }
-        }
-      }
 
-      for (j <- (2*v.i until 2*v.i + 2)) {
-        val kj : A = e.get(2*k.i, j)(mutableM)
-        if (kj != ifield.infinity) {
-          for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)) { // 2v to n
-            val kj : A = e.get(2*k.i, j)(mutableM)
-            val ik : A = e.get(i, 2*k.i)(mutableM)
-            mutableM = e.update(i, j,
+    def doik(k:VarIndex, i:Int, ik:A, mm:HalfMatrix[A]) =
+      if (ik != ifield.infinity)
+        (0 until 2*v.i).foldLeft(mm)(
+          (m, j) =>
+          {
+            val kj : A = e.get(2*k.i, j)(m)
+            e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ik, kj))
-            )(mutableM)
+            )(m)
           }
-        }
-        val kkj : A = e.get(2*k.i+1, j)(mutableM)
-        if (kkj != ifield.infinity) {
-          for (i <- allIndices(varCountToDim(e.nOfVars(m))).drop(j)) { // j to n
-            val kkj : A = e.get(2*k.i+1, j)(mutableM)
-            val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
-            mutableM = e.update(i, j,
+        )
+      else
+        mm
+
+    def doikk(k:VarIndex, i:Int, ikk: A,  mm:HalfMatrix[A]) =
+      if (ikk != ifield.infinity)
+        (0 until 2*v.i).foldLeft(mm)(
+          (m, j) =>
+          {
+            val kkj : A = e.get(2*k.i+1, j)(m)
+            e.update(i, j,
               ifield.min(e.get(i,j)(m),
                 ifield.+(ikk, kkj))
-            )(mutableM)
+            )(m)
           }
+        )
+      else
+        mm
+
+    def dokj (k: VarIndex, j: Int, kj: A, mm: HalfMatrix[A]) =
+      if (kj != ifield.infinity)
+        (allIndices(varCountToDim(e.nOfVars(mm))).drop(2*v.i)).foldLeft(mm)(
+          (m, i) => {
+            val kj : A = e.get(2*k.i, j)(m)
+            val ik : A = e.get(i, 2*k.i)(m)
+            e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ik, kj))
+            )(m)
+          }
+        )
+      else
+        mm
+
+    def dokkj (k: VarIndex, j: Int, kkj: A, mm: HalfMatrix[A]) =
+      if (kkj != ifield.infinity)
+        (allIndices(varCountToDim(e.nOfVars(m))).drop(j)).foldLeft(mm)(
+          (m,i) =>
+          {
+            val kkj : A = e.get(2*k.i+1, j)(m)
+            val ikk : A = e.get(i, 2*k.i + 1)(m)
+            e.update(i, j,
+              ifield.min(e.get(i,j)(m),
+                ifield.+(ikk, kkj))
+            )(m)
+          }
+        )
+      else
+        mm
+
+    val updated1 =
+      (allVars(e.nOfVars(m))).foldLeft(m)((m,k) =>
+        (2*v.i until 2*v.i + 2).foldLeft(m)((m,i) => {
+          val ik : A = e.get(i, 2*k.i)(m)
+          val ikk : A = e.get(i, 2*k.i + 1)(m)
+          doik(k,i, ik,
+            doikk(k, i, ikk, m)
+          )
         }
-      }
-    }
-    val newMat = loopBody(mutableM, v)
+        )
+      )
+
+    val updated2 =
+      (allVars(e.nOfVars(m))).foldLeft(updated1)((m,k) =>
+        (2*v.i until 2*v.i + 2).foldLeft(m)((m,j) => {
+          val kj : A = e.get(2*k.i, j)(m)
+          val kkj : A = e.get(2*k.i+1, j)(m)
+          dokj(k,j,kj,
+            dokkj(k, j, kkj, m)
+          )
+        }
+        )
+      )
+
+    val newMat = loopBody(updated2, v)
     strengthening(newMat)
   }
 }
