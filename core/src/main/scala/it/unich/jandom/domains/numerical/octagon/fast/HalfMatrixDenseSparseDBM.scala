@@ -295,39 +295,40 @@ object HalfMatrixDenseSparseDBM {
 object DenseIncrementalClosure extends DenseClosureStrategy {
   def apply[A](m: HM[A], v: VarIndex)(implicit ifield: InfField[A]): Option[HM[A]] = {
     def br(v: VarIndex, k: VarIndex) = if (k.i < v.i) 2*k.i else 2*v.i
-    // TODO: Adapt this into something `var`-less?
-    var mutableM = m
-    for (k <- allVars(e.nOfVars(m))) { // 0 to N
-      for (i <- (2*v.i until 2*v.i + 2)) {
-        val ik : A = e.get(i, 2*k.i)(mutableM)
-        val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
-        for (j <- 0 until 2*v.i) {
-          val kj : A = e.get(2*k.i, j)(mutableM)
-          val kkj : A = e.get(2*k.i+1, j)(mutableM)
-          mutableM = e.update(i, j,
-            ifield.min(e.get(i,j)(m),
-              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
-            )
-          )(mutableM)
-        }
-      }
+    val updated =
+      (allVars(e.nOfVars(m))).foldLeft(m)((m, k) => {
+        val updatei = (2*v.i until 2*v.i + 2).foldLeft(m)((m, i) => {
+          val ik : A = e.get(i, 2*k.i)(m)
+          val ikk : A = e.get(i, 2*k.i + 1)(m)
+            (0 until 2*v.i).foldLeft(m)((m, j) => {
+              val kj : A = e.get(2*k.i, j)(m)
+              val kkj : A = e.get(2*k.i+1, j)(m)
+              e.update(i, j,
+                ifield.min(e.get(i,j)(m),
+                  ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
+                )
+              )(m)
+            })
+        })
 
-      for (j <- 2*v.i until 2*v.i + 2) {
-        val kj : A = e.get(2*k.i, j)(mutableM)
-        val kkj : A = e.get(2*k.i+1, j)(mutableM)
-        for (i <-allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)) { // 2v to n
-          val ik : A = e.get(i, 2*k.i)(mutableM)
-          val ikk : A = e.get(i, 2*k.i + 1)(mutableM)
-          mutableM = e.update(i, j,
-            ifield.min(e.get(i,j)(m),
-              ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
-            )
-          )(mutableM)
-        }
-      }
-    }
-    val newM = loopBody(mutableM, v)
-    nullCheck(strengtheningHalfScalar(newM))
+        (2*v.i until 2*v.i + 2).foldLeft(updatei)((m, j) => {
+          val kj : A = e.get(2*k.i, j)(m)
+          val kkj : A = e.get(2*k.i+1, j)(m)
+            (allIndices(varCountToDim(e.nOfVars(m))).drop(2*v.i)).foldLeft(m)((m, i) => {
+              val ik : A = e.get(i, 2*k.i)(m)
+              val ikk : A = e.get(i, 2*k.i + 1)(m)
+              e.update(i, j,
+                ifield.min(e.get(i,j)(m),
+                  ifield.min(ifield.+(ik, kj), ifield.+(ikk, kkj))
+                )
+              )(m)
+            })
+        })
+      })
+
+    nullCheck(
+      strengtheningHalfScalar(
+        loopBody(updated, v)))
   }
 }
 
