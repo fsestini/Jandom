@@ -405,6 +405,8 @@ sealed trait FastDBM[M[_], SM[_], A] {
 
   def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A]):
       CFastDBM[M, SM, Closed, A]
+
+  def toFull: FullDBM[M, SM, A]
 }
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
@@ -418,6 +420,8 @@ sealed trait FastDBM[M[_], SM[_], A] {
 // they provide the needed DBM-like operations?)
 case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
     extends FastDBM[M, SM, A] {
+
+  def toFull = this
 
   def performStrongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
       CFastDBM[M, SM, Closed, A] =
