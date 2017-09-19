@@ -19,7 +19,10 @@ import scalaz.std.list._
 case class MEvidence[M[_], SM[_]](dec: Decomposable[M, SM],
                                   ds: DenseSparse[M],
                                   sub: SubMatrix[SM])
+
+// DifferenceBoundMatrix instance for CFastDBM.
 object CFDBMInstance {
+
   def instance[M[_], SM[_]](implicit mev: MEvidence[M, SM]) =
     new DifferenceBoundMatrix[({ type T[S, A] = CFastDBM[M, SM, S, A] })#T] {
 
