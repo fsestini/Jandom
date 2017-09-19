@@ -13,6 +13,35 @@ import it.unich.jandom.domains.numerical.octagon.variables
   */
 
 class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimension: Dimension) {
+
+  def toList: List[A] = grid(dimension).map(p =>  vec(elementIndex(p._1, p._2))).toList
+  override def toString: String = {
+    val pad = 4
+    val maxLength =
+      toList
+        .map(_.toString.size)
+        .max
+
+    (allIndices(dimension)).map(
+      (i: Int) =>
+      (allIndices(dimension)).map(
+        (j: Int) => {
+            val el = vec(elementIndex(i,j))
+          val res =
+            if (i / 2 < j / 2) {
+              ""
+            } else {
+              if (el.toString == "Infinity")
+                0x221E.toChar.toString // infty
+              else
+                el.toString
+            }
+            (" " * ((maxLength + pad) - res.length)) + res
+        }
+      ).mkString("")
+    ).mkString("\n")
+  }
+
   def this(dimension: Dimension, elem: A) =
     this(variables.Fast.fill(
       variables.Fast.dimToVecSize(dimension)
