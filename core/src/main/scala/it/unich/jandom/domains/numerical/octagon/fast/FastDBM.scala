@@ -258,24 +258,23 @@ object CFDBMInstance {
         }
 
       def deleteVariable[S <: DBMState, A](v: VarIndex)(dbm: CFastDBM[M,SM,S,A])
-          (implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
-            case BottomFast(n) => BottomFast(subOne(n))
-            case m =>
-              Utils.mapFastDBM[M, SM, S, A](
-                Utils.mapInnerMatrix[M, SM, A](mev.dec.deleteVariable))(dbm)
-          }
+        (implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = {
+        def f(w: VarIndex): Option[VarIndex] =
+          if (w == v) None else
+            if (w < v) Some(w) else
+              Some(VarIndex(w.i - 1))
+        mapVariables(f)(dbm)
+      }
 
-      def mapVariables[S <: DBMState, A](f: VarIndex => Option[VarIndex])
-          (dbm: CFastDBM[M,SM,S,A])(implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
+      def mapVariables[S <: DBMState, A]
+        (f: VarIndex => Option[VarIndex])(dbm: CFastDBM[M,SM,S,A])
+        (implicit ifield: InfField[A]): CFastDBM[M,SM,S,A] = dbm match {
         case BottomFast(n) =>
           val newN = allVars(n).count(f(_).isDefined)
           BottomFast(VarCount(newN))
         case _ =>
           Utils.mapFastDBM[M, SM, S, A](fast =>
-            Utils.mapInnerMatrix[M, SM, A](inner =>
-              mev.dec.mapVariables(f)(inner)
-            )(fast)
-          )(dbm)
+            Utils.mapInnerMatrix[M, SM, A](mev.dec.mapVariables(f))(fast.toFull))(dbm)
       }
 
       def compare[A](x: ExistsM[A], y: ExistsM[A])
