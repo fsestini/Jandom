@@ -354,7 +354,8 @@ object Utils {
     }
 
   def mapFastDBM[M[_], SM[_], S <: DBMState, A](f: FastDBM[M, SM, A] => FastDBM[M, SM, A])
-    (cfdbm: CFastDBM[M, SM, S, A])(implicit mev: MEvidence[M, SM], ifield: InfField[A]): CFastDBM[M, SM, S, A] = {
+    (cfdbm: CFastDBM[M, SM, S, A])(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
+      CFastDBM[M, SM, S, A] = {
 
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => CFast(f(m))
