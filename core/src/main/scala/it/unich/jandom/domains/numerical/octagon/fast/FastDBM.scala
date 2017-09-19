@@ -386,28 +386,21 @@ object Utils {
 
 object FastDbmUtils {
 
-  def calculateComponents[M[_], SM[_], A]
-    (dbm: FastDBM[M, SM, A])
-    (implicit mev: MEvidence[M, SM], ifield: InfField[A]): List[List[VarIndex]] = {
+  def calculateComponents[M[_], A](m: M[A], ds: DenseSparse[M])
+    (implicit ifield: InfField[A]): List[List[VarIndex]] = {
 
-    import VarIndexOps._
-    import CountOps._
+    import VarIndexOps._, CountOps._
 
-    val innerMatrix = Utils.fastInnerMatrix(dbm)
     def related(vi: VarIndex, vj: VarIndex): Boolean =
-      Set((varPlus(vi), varPlus(vj)),
-          (varPlus(vi), varMinus(vj)),
-          (varMinus(vi), varPlus(vj)),
-          (varMinus(vi), varMinus(vj)))
+      Set((varPlus(vi), varPlus(vj)), (varPlus(vi), varMinus(vj)),
+          (varMinus(vi), varPlus(vj)), (varMinus(vi), varMinus(vj)))
         .filter({ case (i, j) => i != j})
-        .exists({ case (i, j) =>
-          ifield.!=(mev.ds.get(i, j)(innerMatrix), ifield.infinity)})
+        .exists({ case (i, j) => ifield.!=(ds.get(i, j)(m), ifield.infinity)})
 
-    val nOfVars = mev.ds.nOfVars(innerMatrix)
-    val rels = for (vi <- allVars(nOfVars);
-                    vj <- allVars(nOfVars);
-                    if related(vi, vj))
-                  yield (vi, vj)
+    val nOfVars = ds.nOfVars(m)
+    val rels =
+      for (vi <- allVars(nOfVars); vj <- allVars(nOfVars); if related(vi, vj))
+      yield (vi, vj)
 
     val indComps =
       rels.foldLeft(Set[Set[VarIndex]]())({ case (comps, (vi, vj)) =>
@@ -423,36 +416,8 @@ object FastDbmUtils {
 }
 
 sealed trait FastDBM[M[_], SM[_], A] {
-  // Skeleton of strong closure for fast matrices.
   def strongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
       CFastDBM[M, SM, Closed, A]
-
- // {
-
- //    val dbm = Utils.fastInnerMatrix(this)
- //    val indepComponents: List[List[VarIndex]] =
- //          FastDbmUtils.calculateComponents(this)
-
- //    val submatrices = indepComponents.map(seq => mev.dec.extract(seq)(dbm))
- //    Applicative[Option].sequence(
- //      submatrices.map(m => mev.sub.strongClosure(m))) match {
-
- //      case Some(closedSubs) => {
- //        val newMatrix = closedSubs.foldRight(dbm)({
- //            case (sub, full) => mev.dec.pour(sub)(full)
- //          })
-
- //        if (indepComponents.size > 1)
- //          CFast(DecomposedDBM(newMatrix, indepComponents, mev))
- //        else
- //          // might be that we have to compute the index of non-infinite terms
- //          // during the strong closure above, and pass them to the dbm
- //          // constructor.
- //          CFast(FullDBM(newMatrix, mev))
- //      }
- //      case None => BottomFast(mev.ds.nOfVars(dbm))
- //    }
- //  }
 
   def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A]):
       CFastDBM[M, SM, Closed, A]
@@ -470,11 +435,29 @@ sealed trait FastDBM[M[_], SM[_], A] {
 case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
     extends FastDBM[M, SM, A] {
 
-  def strongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
-      CFastDBM[M, SM, Closed, A] = ???
+  def performStrongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
+      CFastDBM[M, SM, Closed, A] =
+    mev.ds.strongClosure(dbm)(ifield) match {
+      case Some(closed) => CFast(FullDBM(closed, mev))
+      case None         => BottomFast(mev.ds.nOfVars(dbm))
+    }
 
+  def strongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
+      CFastDBM[M, SM, Closed, A] = {
+    val indepComponents: Seq[Seq[VarIndex]] =
+      FastDbmUtils.calculateComponents(dbm, mev.ds)
+
+    if (indepComponents.length >= 2)
+      DecomposedDBM(dbm, indepComponents, mev).performStrongClosure(mev, ifield)
+    else this.performStrongClosure(mev, ifield)
+  }
+
+  // Incremental closures are supposed to take advantage of the few modified
+  // variables to perform a lightweight closure. We therefore do not try to
+  // switch to a decomposed representation.
   def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
-    : CFastDBM[M, SM, Closed, A] = mev.ds.incrementalClosure(v)(dbm) match {
+      : CFastDBM[M, SM, Closed, A] =
+    mev.ds.incrementalClosure(v)(dbm) match {
       case Some(m) => CFast(FullDBM(m, mev))
       case None    => BottomFast(mev.ds.nOfVars(dbm))
     }
@@ -497,25 +480,50 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
 
   def toFull: FullDBM[M, SM, A] = FullDBM(completeDBM, mev)
 
-  def strongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
-      CFastDBM[M, SM, Closed, A] = ???
+  def performStrongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
+      CFastDBM[M, SM, Closed, A] = {
 
-  def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A])
-    : CFastDBM[M, SM, Closed, A] = {
-      val maybeComp = indepComponents.find(_.contains(v))
-      maybeComp match {
-        case Some(comp) =>
-          val subMat = mev.dec.extract(comp)(completeDBM)
-          mev.sub.incrementalClosure(v)(subMat) match {
-            case Some(closed) =>
-              val newMat = mev.dec.pour(closed)(completeDBM)
-              CFast(DecomposedDBM(newMat, indepComponents, mev))
-            case None         =>
-              BottomFast(mev.ds.nOfVars(completeDBM))
-          }
-        case None       =>
-          CFast(this)
+    val submatrices = indepComponents.map(seq => mev.dec.extract(seq)(completeDBM))
+    val closed = submatrices.map(m => mev.sub.strongClosure(m))
+
+    Applicative[Option].sequence(closed.toList) match {
+
+      case Some(closedSubs) => {
+        val newMatrix = closedSubs.foldRight(completeDBM)(
+          (sub, full) => mev.dec.pour(sub)(full))
+        CFast(DecomposedDBM(newMatrix, indepComponents, mev))
       }
+
+      case None => BottomFast(mev.ds.nOfVars(completeDBM))
+    }
+
+  }
+
+  def strongClosure(implicit mev: MEvidence[M, SM], ifield: InfField[A]):
+      CFastDBM[M, SM, Closed, A] = {
+    val indepComponents: Seq[Seq[VarIndex]] =
+      FastDbmUtils.calculateComponents(completeDBM, mev.ds)
+
+    if (indepComponents.length >= 2)
+      DecomposedDBM(completeDBM, indepComponents, mev).performStrongClosure(mev, ifield)
+    else toFull.performStrongClosure(mev, ifield)
+  }
+
+  def incrementalClosure(v: VarIndex)(implicit ifield: InfField[A]):
+      CFastDBM[M, SM, Closed, A] =
+
+    indepComponents.find(_.contains(v)) match {
+      case Some(comp) => {
+        val subMat = mev.dec.extract(comp)(completeDBM)
+        mev.sub.incrementalClosure(v)(subMat) match {
+          case Some(closed) => {
+            val newMat = mev.dec.pour(closed)(completeDBM)
+            CFast(DecomposedDBM(newMat, indepComponents, mev))
+          }
+          case None => BottomFast(mev.ds.nOfVars(completeDBM))
+        }
+      }
+      case None => CFast(this)
     }
 
 }
