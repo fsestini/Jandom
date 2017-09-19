@@ -122,11 +122,7 @@ object CFDBMInstance {
 
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, SM, S, A])
                                    (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
-        Utils.mapFastDBM[M, SM, S, A](fast =>
-          Utils.mapInnerMatrix[M, SM, A](inner =>
-            mev.ds.flipVar(vi)(inner)
-          )(fast)
-        )(m)
+        Utils.mapFastDBM[M, SM, S, A](Utils.mapInnerMatrix(mev.ds.flipVar(vi)))(m)
 
       def dbmUnion[S <: DBMState, A](m1: CFastDBM[M, SM, S, A], m2: CFastDBM[M, SM, S, A])
                                     (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] = {
