@@ -88,12 +88,12 @@ class FastOctagonSuite extends FunSuite {
       }
       case _ => assert(false)
     }
-    // T_4 [v0 <- c][v3 <- c] has 2 independent components
-    val second = first.linearAssignment(3, DenseLinearForm(Seq(Rational(0))))
+    // T_4 [v0 <- c][v3 <- c] has 1 independent component
+    val second = first.linearAssignment(3, DenseLinearForm(Seq(Rational(1))))
     second.dbm match {
       case CFast(m) => {
         val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
-        assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0)), Set(VarIndex(3))))
+        assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(3))))
       }
       case _ => assert(false)
     }
