@@ -24,6 +24,7 @@ import InfField._
 import org.scalatest.FunSuite
 import spire.math.Rational
 import it.unich.jandom.utils.numberext.RationalExt
+import variables.{VarIndex, Dimension}
 
 class FastOctagonSuite extends FunSuite {
 
@@ -72,5 +73,64 @@ class FastOctagonSuite extends FunSuite {
     val bar = DenseLinearForm(Seq(Rational(-1)/Rational(1), Rational(-1)/Rational(1)))
     val first = t.linearAssignment(1, foo)
     val second = first.linearInequality(bar)
+  }
+
+  test("Sanity check for calculateComponents") {
+    val top = e.topDBM[RationalExt](VarCount(4))
+    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    assert(t.dbm == top)
+    // At first, T_4 [v0 <- c] has 1 independent component
+    val first = t.linearAssignment(0, DenseLinearForm(Seq(Rational(0))))
+    first.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp == List(List(VarIndex(0))))
+      }
+      case _ => assert(false)
+    }
+    // T_4 [v0 <- c][v3 <- c] has 2 independent components
+    val second = first.linearAssignment(3, DenseLinearForm(Seq(Rational(0))))
+    second.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0)), Set(VarIndex(3))))
+      }
+      case _ => assert(false)
+    }
+    // T_4 [v0 <- c][v3 <- c][v3 <- v0] has 1 independent component again
+    val third = second.linearAssignment(3, DenseLinearForm(Seq(Rational(0), Rational(1))))
+    third.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(3))))
+      }
+      case _ => assert(false)
+    }
+  }
+
+  test ("Check calculateComponents works with fig 3 from Singh, Pueschel, Vechev 2015") {
+    val oo = ifieldRationalExt.infinity
+    val a = Array[Array[RationalExt]](
+      Array(0, oo),
+      Array(oo, 0),
+      Array(oo, oo, 0, 1),
+      Array(oo, oo, 0, 0),
+      Array(2,   1, oo, oo, 0, oo),
+      Array(oo, oo, oo, oo, 2,  0),
+      Array(oo, oo, oo, oo, oo, oo, 0, oo),
+      Array(oo, oo, oo, oo, oo, oo, oo, 0),
+      Array(oo, oo, oo, oo,  1, oo, oo, oo, 0,  4),
+      Array(oo, oo, oo, oo,  2, oo, oo, oo, oo, 0)
+    )
+
+    val example = e.fromFun(Dimension(10), (i,j) => a(i)(j))
+
+    example match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents[HalfMatrix, HalfSubMatrix, RationalExt](m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(2), VarIndex(4)), Set(VarIndex(1))))
+      }
+      case _ => assert(false)
+    }
   }
 }
