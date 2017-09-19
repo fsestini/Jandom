@@ -336,7 +336,8 @@ object Utils {
     }
 
   def cfastInnerMatrix[M[_], SM[_], S <: DBMState, A]
-    (cfdbm: CFastDBM[M, SM, S, A])(implicit mev: MEvidence[M, SM], ifield: InfField[A]): Option[M[A]] = {
+    (cfdbm: CFastDBM[M, SM, S, A])
+    (implicit mev: MEvidence[M, SM], ifield: InfField[A]): Option[M[A]] = {
 
     cfdbm match {
       case CFast(m: FastDBM[M, SM, A]) => Some(fastInnerMatrix(m))
