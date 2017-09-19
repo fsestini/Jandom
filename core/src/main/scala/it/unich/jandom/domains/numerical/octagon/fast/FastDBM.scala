@@ -56,7 +56,8 @@ object CFDBMInstance {
         // indep. component including it (if any).
         Utils.mapFastDBM[M, SM, S, A](Utils.mapInnerMatrix(mev.ds.forget(vi)))(m)
 
-      def nOfVars[S <: DBMState, A](m: CFastDBM[M, SM, S, A]): VarCount = Utils.nOfVars(m)
+      def nOfVars[S <: DBMState, A](m: CFastDBM[M, SM, S, A]): VarCount =
+        Utils.nOfVars(m)
 
       def get[S <: DBMState, A](i: Int, j: Int)(m: CFastDBM[M, SM, S, A])
                                (implicit ifield: InfField[A]): Option[A] =
