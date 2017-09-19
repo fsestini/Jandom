@@ -303,6 +303,12 @@ case class BottomFast[M[_], SM[_], A](nOfVars: VarCount) extends CFastDBM[M, SM,
 
 object Utils {
 
+  // TODO: find a better definition.
+  // For example, consider nuff decomposed those components
+  // with size <= 50% of the total.
+  def nuffDecomposed(indepComps: Seq[Seq[VarIndex]], count: VarCount): Boolean =
+    indepComps.length >= 2
+
   def packEx[M[_], SM[_], S <: DBMState, A](fastDBM: CFastDBM[M, SM, S, A])
   : ExistsDBM[({ type T[W] = CFastDBM[M, SM, W, A]})#T] =
     MkEx[S, ({ type T[S] = CFastDBM[M, SM, S, A]})#T](fastDBM)
@@ -434,7 +440,7 @@ case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
     val indepComponents: Seq[Seq[VarIndex]] =
       FastDbmUtils.calculateComponents(dbm, mev.ds)
 
-    if (indepComponents.length >= 2)
+    if (Utils.nuffDecomposed(indepComponents, mev.ds.nOfVars(dbm)))
       DecomposedDBM(dbm, indepComponents, mev).performStrongClosure(mev, ifield)
     else this.performStrongClosure(mev, ifield)
   }
@@ -491,7 +497,7 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
     val indepComponents: Seq[Seq[VarIndex]] =
       FastDbmUtils.calculateComponents(completeDBM, mev.ds)
 
-    if (indepComponents.length >= 2)
+    if (Utils.nuffDecomposed(indepComponents, mev.ds.nOfVars(completeDBM)))
       DecomposedDBM(completeDBM, indepComponents, mev).performStrongClosure(mev, ifield)
     else toFull.performStrongClosure(mev, ifield)
   }
