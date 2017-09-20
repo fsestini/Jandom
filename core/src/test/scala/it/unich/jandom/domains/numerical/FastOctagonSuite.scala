@@ -133,4 +133,41 @@ class FastOctagonSuite extends FunSuite {
       case _ => assert(false)
     }
   }
+
+  test ("Union of T, T == T") {
+    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val union = top union top
+    assert(union.toInterval.isEmpty == false)
+    assert(union == top)
+  }
+
+  test ("Union of T, _|_ == _|_") {
+    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val bot = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.bottomDBM[RationalExt](VarCount(1)), oct, box, e)
+    val union = top union bot
+    assert(union.toInterval.isEmpty == true)
+    assert(union == bot)
+  }
+
+  test ("Union of [1,1], [2, 2] == [1, 2]") {
+    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val c2 = LinearForm.c(1)
+    val c1 = LinearForm.c(2)
+    val b1 = top.linearAssignment(0, c1)
+    val b2 = top.linearAssignment(0, c2)
+    val union = b1 union b2
+    assert(union.toInterval.isEmpty == false)
+    assert(union.toInterval.high.head == 2)
+    assert(union.toInterval.low.head == 1)
+  }
+
+  test ("Intersection of [1,1], [2,2] is empty") {
+    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val c2 = LinearForm.c(1)
+    val c1 = LinearForm.c(2)
+    val b1 = top.linearAssignment(0, c1)
+    val b2 = top.linearAssignment(0, c2)
+    val intersection = b1 intersection b2
+    assert(intersection.toInterval.isEmpty == true)
+  }
 }
