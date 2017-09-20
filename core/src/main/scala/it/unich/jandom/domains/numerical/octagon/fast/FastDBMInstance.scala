@@ -96,8 +96,8 @@ object CFDBMInstance {
           CFastDBM[M, SM, Closed, A] = BottomFast(nOfVars)
 
       def fromFun[A](d: Dimension, f: ((Int, Int) => A))
-        (implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
-        CFast(FullDBM(mev.ds.update(f)(
+        (implicit ifield: InfField[A]): CFastDBM[M, SM, NonClosed, A] =
+        NCFast(FullDBM(mev.ds.update(f)(
           mev.dec.pure(dimToVarCount(d), ifield.infinity)), mev))
 
       def flipVar[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, SM, S, A])

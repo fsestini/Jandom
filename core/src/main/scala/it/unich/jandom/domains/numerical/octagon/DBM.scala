@@ -154,8 +154,9 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
       ClosedDBM[M,A](me.make((i, j) => ifield.infinity, CountOps.varCountToDim(nOfVars)))
 
     def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): DBM[M, Closed, A] = BottomDBM[M,A](nOfVars)
-    def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): DBM[M, Closed, A] =
-      strongClosure(NonClosedDBM[M,A](me.make(f, d)))
+    def fromFun[A](d: Dimension, f: ((Int, Int) => A))
+      (implicit ifield: InfField[A]): DBM[M, NonClosed, A] =
+        NonClosedDBM[M,A](me.make(f, d))
     def flipVar[S <: DBMState, A](vi: VarIndex)(dbm: DBM[M, S, A])
                                  (implicit ifield: InfField[A]): DBM[M, S, A] = {
       dbm.liftFromInner((inner) => {

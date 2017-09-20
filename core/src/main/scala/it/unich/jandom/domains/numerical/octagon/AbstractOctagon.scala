@@ -559,7 +559,8 @@ object AbstractOctagon {
         case (None, None) => ifield.infinity
       }
     }
-    AbstractOctagon(e.fromFun(Dimension(box.dimension * 2), f), d, b, e)
+    AbstractOctagon(
+      e.strongClosure(e.fromFun(Dimension(box.dimension * 2), f)), d, b, e)
   }
 
 
