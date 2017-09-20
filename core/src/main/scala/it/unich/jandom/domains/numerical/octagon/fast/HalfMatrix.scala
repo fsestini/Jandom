@@ -52,26 +52,11 @@ class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimensi
   val lowerIndices: Seq[(Int, Int)] =
     grid(dimension).filter(p => p._1 >= p._2 || p._1 == VarIndexOps.signed(p._2))
 
-  private def getIndex(i: Int, j: Int): Int = j + ((i+1)*(i+1))/2
-
-  private def fromIndex(x: Int): (Int, Int) = {
-    def aux(i: Int, j: Int): (Int, Int) = {
-      if (getIndex(i, j) == x)
-        (i, j)
-      else if (getIndex(i + 1, j) <= x)
-        aux(i + 1, j)
-      else
-        aux(i, j + 1)
-    }
-
-    aux(0,0)
-  }
-
   private def elementIndex(i: Int, j: Int): Int =
     if (i < j)
-      getIndex(j^1, i^1)
+      HalfMatrix.getIndex(j^1, i^1)
     else
-      getIndex(i, j)
+      HalfMatrix.getIndex(i, j)
 
   def update(i: Int, j: Int, x: A): HalfMatrix[A] = {
     require(inDimension(i, j, dimension))
@@ -80,7 +65,7 @@ class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimensi
 
   def update(updater: (Int, Int) => A): HalfMatrix[A] = {
     val newValues = for (i <- 0 until vec.length)
-                       yield (updater.tupled(fromIndex(i)))
+                       yield (updater.tupled(HalfMatrix.fromIndex(i)))
     new HalfMatrix(newValues.toVector, dimension)
   }
 
@@ -100,6 +85,21 @@ class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimensi
 }
 
 object HalfMatrix {
+
+  private def getIndex(i: Int, j: Int): Int = j + ((i+1)*(i+1))/2
+  private def fromIndex(x: Int): (Int, Int) = {
+    def aux(i: Int, j: Int): (Int, Int) = {
+      if (getIndex(i, j) == x)
+        (i, j)
+      else if (getIndex(i + 1, j) <= x)
+        aux(i + 1, j)
+      else
+        aux(i, j + 1)
+    }
+
+    aux(0,0)
+  }
+
   def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = {
     val vec : Vector[A] = (allIndices(varCountToDim(nOfVars))).map(
       (i) => (allIndices(varCountToDim(nOfVars))).map(
