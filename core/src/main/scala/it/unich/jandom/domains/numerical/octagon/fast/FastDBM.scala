@@ -160,7 +160,13 @@ object CFDBMInstance {
       }
 
       def isTopDBM[A, S <: DBMState](dbm: CFastDBM[M,SM, S,A])
-        (implicit ifield: InfField[A]): Boolean = ???
+        (implicit ifield: InfField[A]): Boolean =
+        Utils.cfastInnerMatrix(dbm) match {
+          case Some(m) =>
+            grid(varCountToDim(mev.ds.nOfVars(m)))
+              .forall({ case (i, j) => mev.ds.get(i, j)(m) == ifield.infinity })
+          case None => false
+        }
 
       def addVariable[S <: DBMState, A](dbm: CFastDBM[M,SM, S,A])
           (implicit ifield: InfField[A]): CFastDBM[M,SM, S,A] = dbm match {
