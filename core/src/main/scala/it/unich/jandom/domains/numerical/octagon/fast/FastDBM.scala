@@ -91,8 +91,8 @@ object CFDBMInstance {
         CFast(FullDBM(cTop, mev))
       }
 
-      def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
-        BottomFast(nOfVars)
+      def bottomDBM[A](nOfVars: VarCount)(implicit ifield: InfField[A]):
+          CFastDBM[M, SM, Closed, A] = BottomFast(nOfVars)
 
       def fromFun[A](d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] =
         CFast(FullDBM(mev.ds.update(f)(mev.dec.pure(dimToVarCount(d), ifield.infinity)), mev))
