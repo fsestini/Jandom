@@ -270,7 +270,7 @@ object Utils {
   // Applying an arbitrary map destroys every knowledge about relations between
   // variables, so we just return DBM with unknown closure state (because it
   // could be either non-closed or bottom, which is closed).
-  // WARNING: input and output matrices of f as assumed to be of the same
+  // WARNING: input and output matrices of f are assumed to be of the same
   // dimension!
   def liftFromInner[M[_], SM[_], S <: DBMState, A]
     (f : M[A] => M[A])(dbm: CFastDBM[M, SM, S, A])
