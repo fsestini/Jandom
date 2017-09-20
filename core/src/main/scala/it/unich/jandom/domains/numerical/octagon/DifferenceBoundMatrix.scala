@@ -29,7 +29,13 @@ case class NCIxed[M[_,_], A](x: M[NonClosed, A]) extends DBMIxed[M, A]
 // (closed/non-closed) and the type of the elements.
 // Most operators require the type of elements to be a ring.
 trait DifferenceBoundMatrix[M[_, _]]
-  extends Poset1[({ type T[A] = ExistsDBM[({ type Q[S] = M[S, A]})#Q]})#T] {
+
+  // If m1 and m2 are closed, then
+  // compare(m1, m2) == compare(\gamma(m1), \gamma(m2)), i.e.,
+  // dbm comparison corresponds to concrete octagon comparison.
+  // This is not true in general for non-closed dbms [Mine06],
+  // so we require them to be closed when comparing.
+  extends Poset1[({ type T[A] = M[Closed, A] })#T] {
 
   type ExistsM[A] = ExistsDBM[({ type T[S] = M[S, A]})#T]
 
