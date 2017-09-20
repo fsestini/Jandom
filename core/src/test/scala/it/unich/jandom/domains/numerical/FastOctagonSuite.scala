@@ -231,4 +231,27 @@ class FastOctagonSuite extends FunSuite {
       case _ => assert(false)
     }
   }
+
+
+  test ("T[v1 <- v0 - 1][v3 <- v2 - 1] has 2 independent components {{v1, v0}, {v2, v3}}; [v0 >= 123] performs closure and results in a DecomposedDBM with independent components") {
+    val top = e.topDBM[RationalExt](VarCount(4))
+    val expectedComponents = Set(Set(VarIndex(0), VarIndex(1)), Set(VarIndex(2), VarIndex(3)))
+    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    val ass = t.linearAssignment(1, DenseLinearForm(Seq(1,1))).linearAssignment(3, DenseLinearForm(Seq(1,0,0,1)))
+    val int = ass.linearInequality(DenseLinearForm(Seq(123, 1)))
+
+    int.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == expectedComponents)
+        m match {
+          case DecomposedDBM(dbm,components,_) => {
+            assert(components.map(_.toSet).toSet == expectedComponents)
+          }
+          case _ => assert(false)
+        }
+      }
+      case _ => assert(false)
+    }
+  }
 }
