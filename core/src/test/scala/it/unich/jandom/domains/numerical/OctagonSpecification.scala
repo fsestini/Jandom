@@ -305,8 +305,9 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
   }
 
   property ("Check that for strongClosure m_ij <= (m_{i, bari}+m_{barj, j})/2 holds (condition 3 of 3 for strong closure)") {
-    forAll(GenSmallEvenInt) {
-      (d: Int) =>
+    forAll(Gen.choose(1,3)) {
+      (dd: Int) =>
+      val d = dd * 2
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[RationalExt]) =>
         (new BagnaraStrongClosure[FunMatrix]()(me)).strongClosure(m) match {
