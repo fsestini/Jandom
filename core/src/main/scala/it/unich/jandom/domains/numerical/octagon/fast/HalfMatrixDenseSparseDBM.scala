@@ -10,136 +10,136 @@ case class HalfSubMatrix[A](mat: HalfMatrix[A], indices: Seq[VarIndex])
 object HalfMatrixDenseSparseInstance {
   val sparseThreshold = 0.5
 
-    val halfMatrixDenseSparseInstance = new DenseSparse[HalfMatrix] {
+  val halfMatrixDenseSparseInstance = new DenseSparse[HalfMatrix] {
 
-        def get[A](i: Int, j: Int)(m: HalfMatrix[A]): A = m(i, j)
+    def get[A](i: Int, j: Int)(m: HalfMatrix[A]): A = m(i, j)
 
-        def update[A](f: (Int, Int) => A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(f)
+    def update[A](f: (Int, Int) => A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(f)
 
-        def dbmUnion[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
-                       (implicit e: InfField[A]): HalfMatrix[A] = {
-          require(m1.dimension == m2.dimension)
-          val f = (i: Int, j: Int) => e.max(m1(i, j), m2(i, j))
-          HalfMatrix(f, nOfVars(m1))
-        }
-
-        def dbmIntersection[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
-                              (implicit e: InfField[A]): HalfMatrix[A] = {
-          require(m1.dimension == m2.dimension)
-          val f = (i: Int, j: Int) => e.min(m1(i, j), m2(i, j))
-          HalfMatrix(f, nOfVars(m1))
-        }
-
-        def widening[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
-                       (implicit e: InfField[A]): HalfMatrix[A] = {
-          val f = (i: Int, j: Int) => {
-            e.compare(m1(i, j), m2(i, j)) match {
-              case GT => m1(i, j)
-              case _ => e.infinity
-            }
-          }
-          update(f)(m1)
-        }
-
-        def narrowing[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
-                        (implicit e: InfField[A]): HalfMatrix[A] = {
-          val f = (i: Int, j: Int) =>
-              if (m1(i, j) == e.infinity) m2(i, j) else m1(i, j)
-          update(f)(m1)
-        }
-
-        def strongClosure[A](m: HalfMatrix[A])
-                            (implicit e: InfField[A]): Option[HalfMatrix[A]] =
-          if (
-            variables.Fast.sparsityIndex(
-              dimToVarCount(m.dimension),
-              computeSparsity(m))
-              >=  sparseThreshold)
-            SparseStrongClosure(m)
-          else
-            DenseStrongClosure(m)
-
-        def incrementalClosure[A](v: VarIndex)(m: HalfMatrix[A])
-                                 (implicit e: InfField[A])
-                                 : Option[HalfMatrix[A]] =
-          if (
-            variables.Fast.sparsityIndex(
-              dimToVarCount(m.dimension),
-              computeSparsity(m))
-              >=  sparseThreshold)
-            DenseIncrementalClosure(m, v)
-          else
-            SparseIncrementalClosure(m, v)
-
-        def forget[A](v: VarIndex)(m: HalfMatrix[A])
-                     (implicit e: InfField[A]): HalfMatrix[A] = {
-          val f = (i: Int, j: Int) =>
-            if (toIndexAndCoeff(i)._1 == v || toIndexAndCoeff(j)._1 == v)
-              if (i == j) e.zero else e.infinity
-            else
-              m(i, j)
-          update(f)(m)
-        }
-
-        def flipVar[A](v: VarIndex)(m: HalfMatrix[A])
-                      : HalfMatrix[A] = {
-          val f = (i: Int, j: Int) =>
-            if (i == varPlus(v) || i == varMinus(v))
-              if (j == varPlus(v) || j == varMinus(v))
-                m(signed(i), signed(j))
-              else
-                m(signed(i), j)
-            else
-              if (j == varPlus(v) || j == varMinus(v))
-                m(i, signed(j))
-              else
-                m(i, j)
-          update(f)(m)
-        }
-
-        def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrix[A])
-                             (implicit ifield: InfField[A])
-                             : HalfMatrix[A] = {
-          val f = (i: Int, j: Int) => {
-            val g1 = (i == varPlus(v) && j != varPlus(v) && j != varMinus(v)) ||
-                     (j == varMinus(v) && i != varPlus(v) && i != varMinus(v))
-            val g2 = (i != varPlus(v) && i != varMinus(v) && j == varPlus(v)) ||
-                     (j != varPlus(v) && j != varMinus(v) && i == varMinus(v))
-            val g3 = i == varPlus(v) && j == varMinus(v)
-            val g4 = i == varMinus(v) && j == varPlus(v)
-            if (g1) ifield.-(m(i, j), c) else
-            if (g2) ifield.+(m(i, j), c) else
-            if (g3) ifield.-(m(i, j), ifield.double(c)) else
-            if (g4) ifield.+(m(i, j), ifield.double(c)) else
-              m(i, j)
-          }
-          update(f)(m)
-        }
-
-
-        def compare[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
-                      (implicit ifield: InfField[A]): Option[Ordering] = {
-          require(m1.dimension == m2.dimension)
-          val ord = m1.lowerIndices.map({ case (i, j) =>
-              ifield.compare(m1(i, j), m2(i, j))
-            })
-          lazy val lt = ord.forall(v => v == EQ || v == LT)
-          lazy val eq = ord.forall(v => v == EQ)
-          lazy val gt = ord.forall(v => v == EQ || v == GT)
-          if (lt)
-            Some(LT)
-          else if (eq)
-            Some(EQ)
-          else if (gt)
-            Some(GT)
-          else
-            None
-        }
-
-      def update[A](i: Int, j: Int, x: A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(i, j, x)
-
-      def nOfVars[A](m: HalfMatrix[A]): VarCount = dimToVarCount(m.dimension)
+    def dbmUnion[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+      (implicit e: InfField[A]): HalfMatrix[A] = {
+      require(m1.dimension == m2.dimension)
+      val f = (i: Int, j: Int) => e.max(m1(i, j), m2(i, j))
+      HalfMatrix(f, nOfVars(m1))
     }
+
+    def dbmIntersection[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+      (implicit e: InfField[A]): HalfMatrix[A] = {
+      require(m1.dimension == m2.dimension)
+      val f = (i: Int, j: Int) => e.min(m1(i, j), m2(i, j))
+      HalfMatrix(f, nOfVars(m1))
+    }
+
+    def widening[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+      (implicit e: InfField[A]): HalfMatrix[A] = {
+      val f = (i: Int, j: Int) => {
+        e.compare(m1(i, j), m2(i, j)) match {
+          case GT => m1(i, j)
+          case _ => e.infinity
+        }
+      }
+      update(f)(m1)
+    }
+
+    def narrowing[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+      (implicit e: InfField[A]): HalfMatrix[A] = {
+      val f = (i: Int, j: Int) =>
+      if (m1(i, j) == e.infinity) m2(i, j) else m1(i, j)
+      update(f)(m1)
+    }
+
+    def strongClosure[A](m: HalfMatrix[A])
+      (implicit e: InfField[A]): Option[HalfMatrix[A]] =
+      if (
+        variables.Fast.sparsityIndex(
+          dimToVarCount(m.dimension),
+          computeSparsity(m))
+          >=  sparseThreshold)
+        SparseStrongClosure(m)
+      else
+        DenseStrongClosure(m)
+
+    def incrementalClosure[A](v: VarIndex)(m: HalfMatrix[A])
+      (implicit e: InfField[A])
+        : Option[HalfMatrix[A]] =
+      if (
+        variables.Fast.sparsityIndex(
+          dimToVarCount(m.dimension),
+          computeSparsity(m))
+          >=  sparseThreshold)
+        DenseIncrementalClosure(m, v)
+      else
+        SparseIncrementalClosure(m, v)
+
+    def forget[A](v: VarIndex)(m: HalfMatrix[A])
+      (implicit e: InfField[A]): HalfMatrix[A] = {
+      val f = (i: Int, j: Int) =>
+      if (toIndexAndCoeff(i)._1 == v || toIndexAndCoeff(j)._1 == v)
+        if (i == j) e.zero else e.infinity
+        else
+          m(i, j)
+      update(f)(m)
+    }
+
+    def flipVar[A](v: VarIndex)(m: HalfMatrix[A])
+        : HalfMatrix[A] = {
+      val f = (i: Int, j: Int) =>
+      if (i == varPlus(v) || i == varMinus(v))
+        if (j == varPlus(v) || j == varMinus(v))
+          m(signed(i), signed(j))
+        else
+          m(signed(i), j)
+        else
+          if (j == varPlus(v) || j == varMinus(v))
+          m(i, signed(j))
+        else
+          m(i, j)
+      update(f)(m)
+    }
+
+    def addScalarOnVar[A](v: VarIndex, c: A)(m: HalfMatrix[A])
+      (implicit ifield: InfField[A])
+        : HalfMatrix[A] = {
+      val f = (i: Int, j: Int) => {
+        val g1 = (i == varPlus(v) && j != varPlus(v) && j != varMinus(v)) ||
+        (j == varMinus(v) && i != varPlus(v) && i != varMinus(v))
+        val g2 = (i != varPlus(v) && i != varMinus(v) && j == varPlus(v)) ||
+        (j != varPlus(v) && j != varMinus(v) && i == varMinus(v))
+        val g3 = i == varPlus(v) && j == varMinus(v)
+        val g4 = i == varMinus(v) && j == varPlus(v)
+        if (g1) ifield.-(m(i, j), c) else
+          if (g2) ifield.+(m(i, j), c) else
+            if (g3) ifield.-(m(i, j), ifield.double(c)) else
+              if (g4) ifield.+(m(i, j), ifield.double(c)) else
+                m(i, j)
+      }
+      update(f)(m)
+    }
+
+
+    def compare[A](m1: HalfMatrix[A], m2: HalfMatrix[A])
+      (implicit ifield: InfField[A]): Option[Ordering] = {
+      require(m1.dimension == m2.dimension)
+      val ord = m1.lowerIndices.map({ case (i, j) =>
+        ifield.compare(m1(i, j), m2(i, j))
+      })
+      lazy val lt = ord.forall(v => v == EQ || v == LT)
+      lazy val eq = ord.forall(v => v == EQ)
+      lazy val gt = ord.forall(v => v == EQ || v == GT)
+      if (lt)
+        Some(LT)
+      else if (eq)
+        Some(EQ)
+      else if (gt)
+        Some(GT)
+      else
+        None
+    }
+
+    def update[A](i: Int, j: Int, x: A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(i, j, x)
+
+    def nOfVars[A](m: HalfMatrix[A]): VarCount = dimToVarCount(m.dimension)
+  }
 
   val halfMatrixDecomposableInstance = new Decomposable[HalfMatrix, HalfSubMatrix] {
 
