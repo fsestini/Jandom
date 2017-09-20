@@ -147,10 +147,12 @@ object CFDBMInstance {
       def narrowing[A, R <: DBMState, S <: DBMState]
         (dbm1: CFastDBM[M, SM, R, A], dbm2: CFastDBM[M, SM, S, A])
         (implicit ifield: InfField[A]): ExistsM[A] = {
+
         val nOfVars = Utils.nOfVars(dbm1)
         (Utils.cfastInnerMatrix(dbm1), Utils.cfastInnerMatrix(dbm2)) match {
           case (None, _) => Utils.packEx(BottomFast(nOfVars))
           case (_, None) => Utils.packEx(BottomFast(nOfVars))
+          // TODO: why not component-wise operator for decomposed matrices?
           case (Some(m1), Some(m2)) =>
             val newMat = mev.ds.narrowing(m1, m2)
             Utils.packEx(NCFast(FullDBM(newMat, mev)))
