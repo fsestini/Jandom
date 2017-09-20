@@ -12,21 +12,6 @@ object HalfMatrixDenseSparseInstance {
 
     val halfMatrixDenseSparseInstance = new DenseSparse[HalfMatrix] {
 
-        private def varsToIndices(indices: Seq[VarIndex]): Seq[(Int, Int)] = {
-          val varIndices = for (vi <- indices;
-                                vj <- indices;
-                                if vi >= vj) yield (vi, vj)
-
-          varIndices.flatMap({ case (vi, vj) =>
-            Seq(
-              (varPlus(vi), varPlus(vj)),
-              (varPlus(vi), varMinus(vj)),
-              (varMinus(vi), varPlus(vj)),
-              (varMinus(vi), varMinus(vj))
-            )
-          })
-        }
-
         def get[A](i: Int, j: Int)(m: HalfMatrix[A]): A = m(i, j)
 
         def update[A](f: (Int, Int) => A)(m: HalfMatrix[A]): HalfMatrix[A] = m.update(f)
