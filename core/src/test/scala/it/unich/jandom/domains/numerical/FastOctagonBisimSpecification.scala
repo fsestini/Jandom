@@ -30,7 +30,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import it.unich.jandom.utils.numberext.RationalExt
 
-class FastOctagonCompliance extends PropSpec with PropertyChecks {
+class FastOctagonBisimSpecification extends PropSpec with PropertyChecks {
   val mev = MEvidence(
     HalfMatrixDenseSparseInstance.halfMatrixDecomposableInstance,
     HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance,
