@@ -261,7 +261,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[RationalExt]) =>
-        (new BagnaraStrongClosure[FunMatrix, RationalExt]()(me)).strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
@@ -283,7 +283,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[RationalExt]) =>
-        (new BagnaraStrongClosure[FunMatrix, RationalExt]()(me)).strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
@@ -309,7 +309,7 @@ class OctagonSpecification extends PropSpec with PropertyChecks {
       (d: Int) =>
       forAll (GenFunMatrix(d)) {
         (m : FunMatrix[RationalExt]) =>
-        (new BagnaraStrongClosure[FunMatrix, RationalExt]()(me)).strongClosure(m) match {
+        (new BagnaraStrongClosure[FunMatrix]()(me)).strongClosure(m) match {
           case None => false
           case Some(c) =>
             forAll (
