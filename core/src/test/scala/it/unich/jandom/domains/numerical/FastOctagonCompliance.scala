@@ -56,7 +56,6 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
   val oct = new OctagonDomain[VecDBM, RationalExt, BoxRationalDomain](e, box)
   type VecDBM[B,C] = (DBM[VecMatrix, B, C])
 
-  val LFORMS = 20
   def GenVarAndLf(n: Int) : Gen[(LinearForm, Int)] = {
     require (n > 0)
     Gen.zip (GenLf(n), Gen.choose(0, n-1))
@@ -67,10 +66,18 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
     Gen.zip (GenLf(n), Gen.choose(0, n-1), arbitrary[Boolean])
   }
 
-  def GenListOfVarAndLf(n: Int) : Gen[Seq[(LinearForm, Int)]] = Gen.listOfN(LFORMS, GenVarAndLf(n))
+  def GenListOfVarAndLf(n: Int) : Gen[Seq[(LinearForm, Int)]] = for {
+    forms <- GenSmallInt
+    list <- Gen.listOfN(forms, GenVarAndLf(n))
+  } yield list
+
 
   type IsInequality = Boolean
-  def GenListOfVarAndLfAndIneq(n: Int) : Gen[Seq[(LinearForm, Int, IsInequality)]] = Gen.listOfN(LFORMS, GenVarAndLfAndIneq(n))
+  def GenListOfVarAndLfAndIneq(n: Int) : Gen[Seq[(LinearForm, Int, IsInequality)]] = for {
+    forms <- GenSmallInt
+    list <- Gen.listOfN(forms, GenVarAndLfAndIneq(n))
+  } yield list
+
 
   type FDOM = OctagonDomain[FastDBM, RationalExt, BoxRationalDomain]
   type DOM = OctagonDomain[VecDBM, RationalExt, BoxRationalDomain]
@@ -84,6 +91,22 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
   import org.scalacheck.Shrink
   implicit val noShrink: Shrink[Int] = Shrink.shrinkAny
 
+  def compare(
+    octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
+    octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
+    if (octf.dimension != octmine.dimension) false
+    else
+      (0 until octf.dimension).forall{
+        (i: Int) =>
+        (0 until octf.dimension).forall{
+          (j: Int) => fe.get(i,j)(octf.dbm) == e.get(i,j)(octmine.dbm)
+        }
+      }
+  }
+
+  type FastOct = AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain]
+  type MineOct = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]
+
   property ("Fast octagons match Mine octagons in their response to linear assignment") {
       forAll(GenSmallInt) {
         (d: Int) => {
@@ -92,21 +115,9 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
               val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
               val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
 
-              def compare(
-                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
-                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
-                if (octf.dimension != octmine.dimension) false
-                else
-                  (0 until octf.dimension).forall{
-                    (i: Int) =>
-                    (0 until octf.dimension).forall{
-                      (j: Int) => fe.get(i,j)(octf.dbm) == e.get(i,j)(octmine.dbm)
-                    }
-                  }
-              }
               def f(s: Seq[(LinearForm, Int)],
-                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
-                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
+                octf:  FastOct,
+                octmine: MineOct) : Boolean = {
                 if (s.size == 0)
                   true
                 else
@@ -120,8 +131,6 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
                   else
                     false
               }
-
-
               f(s, topf, topmine)
             }
           }
@@ -139,22 +148,9 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
               val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
               val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
 
-              def compare(
-                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
-                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
-                if (octf.dimension != octmine.dimension) false
-                else
-                  (0 until octf.dimension).forall{
-                    (i: Int) =>
-                    (0 until octf.dimension).forall{
-                      (j: Int) => fe.get(i,j)(octf.dbm) == e.get(i,j)(octmine.dbm)
-                    }
-                  }
-              }
-
               def f(s: Seq[(LinearForm, Int, IsInequality)],
-                octf:  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain],
-                octmine: AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain]) : Boolean = {
+                octf:  FastOct,
+                octmine: MineOct) : Boolean = {
                 if (s.size == 0)
                   true
                 else
