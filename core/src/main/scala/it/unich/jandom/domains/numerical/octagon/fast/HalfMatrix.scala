@@ -12,7 +12,7 @@ import it.unich.jandom.domains.numerical.octagon.variables
   * triangular half of it, as explained in Singh et al.
   */
 
-class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimension: Dimension) {
+case class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val dimension: Dimension) {
 
   def toList: List[A] = grid(dimension).map(p =>  vec(elementIndex(p._1, p._2))).toList
   override def toString: String = {
