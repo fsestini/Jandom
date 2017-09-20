@@ -134,43 +134,13 @@ object CFDBMInstance {
         (dbm1: CFastDBM[M, SM, R, A], dbm2: CFastDBM[M, SM, S, A])
         (implicit ifield: InfField[A]): ExistsM[A] = {
 
-        def aux(m1: FastDBM[M, SM, A], m2: FastDBM[M, SM, A]): FastDBM[M, SM, A] =
-          (m1, m2) match {
-            case (FullDBM(dbm1, mev), FullDBM(dbm2, _)) =>
-              FullDBM(mev.ds.widening(dbm1, dbm2), mev)
-            case (DecomposedDBM(dbm1, comps1, mev), DecomposedDBM(dbm2, comps2, _)) =>
-              val vars1 = comps1.foldRight(Seq[VarIndex]())(_ ++ _).toSet
-              val vars2 = comps2.foldRight(Seq[VarIndex]())(_ ++ _).toSet
-              val vars = vars1 intersect vars2
-              val newComps = comps1.map(_.filter(vars.contains(_)))
-              val matrices = newComps.map(c => {
-                  val sub1 = mev.dec.extract(c)(dbm1)
-                  val sub2 = mev.dec.extract(c)(dbm2)
-                  mev.sub.widening(sub1, sub2)
-                })
-              val newMat = matrices.foldLeft(dbm1)((mat, subMat) =>
-                  mev.dec.pour(subMat)(mat)
-                )
-              DecomposedDBM(newMat, newComps, mev)
-            case (dbm1 @ DecomposedDBM(_, _, _), dbm2 @ FullDBM(_, _)) =>
-              aux(dbm1.toFull, dbm2)
-            case (dbm1 @ FullDBM(_, _), dbm2 @ DecomposedDBM(_, _, _)) =>
-              aux(dbm1, dbm2.toFull)
-          }
-
         (dbm1, dbm2) match {
-          case (BottomFast(nOfVars), _) =>
-            Utils.packEx(BottomFast(nOfVars))
-          case (_, BottomFast(nOfVars)) =>
-            Utils.packEx(BottomFast(nOfVars))
-          case (CFast(m1), CFast(m2)) =>
-            Utils.packEx(NCFast(aux(m1, m2)))
-          case (CFast(m1), NCFast(m2)) =>
-            Utils.packEx(NCFast(aux(m1, m2)))
-          case (NCFast(m1), CFast(m2)) =>
-            Utils.packEx(NCFast(aux(m1, m2)))
-          case (NCFast(m1), NCFast(m2)) =>
-            Utils.packEx(NCFast(aux(m1, m2)))
+          case (BottomFast(nOfVars), _) => Utils.packEx(BottomFast(nOfVars))
+          case (_, BottomFast(nOfVars)) => Utils.packEx(BottomFast(nOfVars))
+          case (CFast(m1), CFast(m2))   => Utils.packEx(NCFast(m1.widening(m2)))
+          case (CFast(m1), NCFast(m2))  => Utils.packEx(NCFast(m1.widening(m2)))
+          case (NCFast(m1), CFast(m2))  => Utils.packEx(NCFast(m1.widening(m2)))
+          case (NCFast(m1), NCFast(m2)) => Utils.packEx(NCFast(m1.widening(m2)))
         }
       }
 
@@ -371,6 +341,9 @@ sealed trait FastDBM[M[_], SM[_], A] {
   def union(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
       FastDBM[M, SM, A]
 
+  def widening(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A]
+
 }
 
 // Full DBMs are fast DBMs that are not decomposed, i.e., they can be either
@@ -427,6 +400,13 @@ case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
     case FullDBM(otherDbm, _) => FullDBM(mev.ds.dbmUnion(dbm, otherDbm), mev)
     case otherDec @ DecomposedDBM(_,_,_) =>
       FullDBM(mev.ds.dbmUnion(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
+  }
+
+  def widening(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A] = other match {
+    case FullDBM(otherDbm, _) => FullDBM(mev.ds.widening(dbm, otherDbm), mev)
+    case otherDec @ DecomposedDBM(_,_,_) =>
+      FullDBM(mev.ds.widening(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
   }
 
 }
@@ -536,6 +516,26 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
         val sub1 = mev.dec.extract(c)(completeDBM)
         val sub2 = mev.dec.extract(c)(otherCompleteDBM)
         mev.sub.dbmUnion(sub1, sub2) })
+      val newMat = matrices.foldLeft(completeDBM)(
+        (mat, subMat) => mev.dec.pour(subMat)(mat))
+      DecomposedDBM(newMat, newComps, mev)
+  }
+
+  def widening(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
+      FastDBM[M, SM, A] = other match {
+
+    case FullDBM(otherFull, _) =>
+      FullDBM(mev.ds.widening(Utils.fastInnerMatrix(this.toFull), otherFull), mev)
+
+    case DecomposedDBM(otherCompleteDBM, otherComponents, _) =>
+      val vars1 = indepComponents.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+      val vars2 = otherComponents.foldRight(Seq[VarIndex]())(_ ++ _).toSet
+      val vars = vars1 intersect vars2
+      val newComps = indepComponents.map(_.filter(vars.contains(_)))
+      val matrices = newComps.map(c => {
+        val sub1 = mev.dec.extract(c)(completeDBM)
+        val sub2 = mev.dec.extract(c)(otherCompleteDBM)
+        mev.sub.widening(sub1, sub2) })
       val newMat = matrices.foldLeft(completeDBM)(
         (mat, subMat) => mev.dec.pour(subMat)(mat))
       DecomposedDBM(newMat, newComps, mev)
