@@ -170,4 +170,36 @@ class FastOctagonSuite extends FunSuite {
     val intersection = b1 intersection b2
     assert(intersection.toInterval.isEmpty == true)
   }
+
+  test ("T[v1 <- 2v0 - 1][v3 <- 2v2 - 1] U  T[v1 <- v0][v3 <- v2] has independen components [{v1, v0}, {v2, v3}}") {
+    val top = e.topDBM[RationalExt](VarCount(4))
+    val expectedComponents = Set(Set(VarIndex(0), VarIndex(1)), Set(VarIndex(2), VarIndex(3)))
+    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    // T[v1 <- v0][v3 <- v2]
+    val ass = t.linearAssignment(1, DenseLinearForm(Seq(1,1))).linearAssignment(3, DenseLinearForm(Seq(1,0,0,1)))
+    ass.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == expectedComponents)
+      }
+      case _ => assert(false)
+    }
+    // T[v1 <- 2v0 - 1][v3 <- 2v2 - 1]
+    val ass2 = t.linearAssignment(1, DenseLinearForm(Seq(-1,1))).linearAssignment(3, DenseLinearForm(Seq(-1,0,0,1)))
+    ass2.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == expectedComponents)
+      }
+      case _ => assert(false)
+    }
+    val union = ass.union(ass2)
+    union.dbm match {
+      case CFast(m) => {
+        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+        assert(comp.map(_.toSet).toSet == expectedComponents)
+      }
+      case _ => assert(false)
+    }
+  }
 }
