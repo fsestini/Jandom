@@ -95,7 +95,7 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
       (implicit evidence: InfField[A]): DBM[M, Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
-          (new BagnaraStrongClosure[M,A]()).incrementalClosure(v)(m) match {
+          (new BagnaraStrongClosure[M]()).incrementalClosure(v)(m) match {
             case Some(closed: M[A]) => ClosedDBM[M, A](closed)
             case None => BottomDBM[M, A](dbm.noOfVariables)
           }
@@ -106,7 +106,7 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
                         (implicit evidence: InfField[A]): DBM[M, Closed, A] =
       dbm.innerMatrix match {
         case Some(m) =>
-          (new BagnaraStrongClosure[M,A]()).strongClosure(m) match {
+          (new BagnaraStrongClosure[M]()).strongClosure(m) match {
             case Some(closed: M[A]) => ClosedDBM[M,A](closed)
             case None => BottomDBM[M,A](dbm.noOfVariables)
           }
@@ -318,7 +318,7 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
 // for i = 0 to 2*n - 1
 //   for j = 0 to 2*n - 1
 //     m(i,j) = min( m(i,j), m(i, signed(i)) + m(signed(j), j) / 2)
-class BagnaraStrongClosure[M[_], A](implicit val me: Matrix[M]) {
+class BagnaraStrongClosure[M[_]](implicit val me: Matrix[M]) {
 
   private def signed(i: Int) = if (i % 2 == 0) i + 1 else i - 1
 

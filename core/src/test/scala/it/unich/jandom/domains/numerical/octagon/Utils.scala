@@ -110,7 +110,7 @@ class Utils(val box: BoxRationalDomain) {
       yield
       {
         // caveat: there is no guarantee re: the distribution of bottoms, should probably include a few pre-computed non-bottom ones?
-        val closure = (new BagnaraStrongClosure[FunMatrix, RationalExt]()(me)).strongClosure(m)
+        val closure = (new BagnaraStrongClosure[FunMatrix]()(me)).strongClosure(m)
         if (closure == None) {
           new BottomDBM(VarCount(nOfVars))
         } else {
