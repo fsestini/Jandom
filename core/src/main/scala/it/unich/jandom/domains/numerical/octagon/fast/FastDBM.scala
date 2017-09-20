@@ -391,22 +391,22 @@ case class FullDBM[M[_], SM[_], A](dbm: M[A], mev: MEvidence[M, SM])
       FastDBM[M, SM, A] =
     other match {
       case FullDBM(otherDbm, _) => FullDBM(mev.ds.dbmIntersection(dbm, otherDbm), mev)
-      case otherDec @ DecomposedDBM(_,_,_) =>
-        FullDBM(mev.ds.dbmIntersection(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
+      case DecomposedDBM(completeDBM, _, _) =>
+        FullDBM(mev.ds.dbmIntersection(dbm, completeDBM), mev)
     }
 
   def union(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
       FastDBM[M, SM, A] = other match {
     case FullDBM(otherDbm, _) => FullDBM(mev.ds.dbmUnion(dbm, otherDbm), mev)
-    case otherDec @ DecomposedDBM(_,_,_) =>
-      FullDBM(mev.ds.dbmUnion(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
+    case DecomposedDBM(completeDBM, _, _) =>
+      FullDBM(mev.ds.dbmUnion(dbm, completeDBM), mev)
   }
 
   def widening(other: FastDBM[M, SM, A])(implicit ifield: InfField[A]):
       FastDBM[M, SM, A] = other match {
     case FullDBM(otherDbm, _) => FullDBM(mev.ds.widening(dbm, otherDbm), mev)
-    case otherDec @ DecomposedDBM(_,_,_) =>
-      FullDBM(mev.ds.widening(dbm, Utils.fastInnerMatrix(otherDec.toFull)), mev)
+    case DecomposedDBM(completeDBM, _, _) =>
+      FullDBM(mev.ds.widening(dbm, completeDBM), mev)
   }
 
 }
@@ -479,7 +479,7 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
     other match {
 
       case FullDBM(otherFull, _) =>
-        FullDBM(mev.ds.dbmIntersection(Utils.fastInnerMatrix(this.toFull), otherFull), mev)
+        FullDBM(mev.ds.dbmIntersection(completeDBM, otherFull), mev)
 
       case DecomposedDBM(otherCompleteDBM, otherComponents, _) =>
 
@@ -504,7 +504,7 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
       FastDBM[M, SM, A] = other match {
 
     case FullDBM(otherFull, _) =>
-      FullDBM(mev.ds.dbmUnion(Utils.fastInnerMatrix(this.toFull), otherFull), mev)
+      FullDBM(mev.ds.dbmUnion(completeDBM, otherFull), mev)
 
     case DecomposedDBM(otherCompleteDBM, otherComponents, _) =>
 
@@ -525,7 +525,7 @@ case class DecomposedDBM[M[_], SM[_], A](completeDBM: M[A],
       FastDBM[M, SM, A] = other match {
 
     case FullDBM(otherFull, _) =>
-      FullDBM(mev.ds.widening(Utils.fastInnerMatrix(this.toFull), otherFull), mev)
+      FullDBM(mev.ds.widening(completeDBM, otherFull), mev)
 
     case DecomposedDBM(otherCompleteDBM, otherComponents, _) =>
       val vars1 = indepComponents.foldRight(Seq[VarIndex]())(_ ++ _).toSet
