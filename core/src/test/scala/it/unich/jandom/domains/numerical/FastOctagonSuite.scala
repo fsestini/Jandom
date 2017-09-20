@@ -254,4 +254,21 @@ class FastOctagonSuite extends FunSuite {
       case _ => assert(false)
     }
   }
+
+  test ("Check that diagnonal == 0 on top.linearAssignment(0, 123).linearInequality(0,1,0,0,0), which is closed") {
+    val d = 4
+    val topf =  AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(d)), oct, box, e)
+    val lf = DenseLinearForm(Seq(0,1,0,0,0))
+    val inef = topf.linearAssignment(0, LinearForm.c(123)).linearInequality(lf)
+
+    inef.dbm match {
+      case CFast(m) => assert(true)
+      case _ => assert(false)
+    }
+
+    assert(e.get(0,0)(inef.dbm).get == 0)
+    assert(e.get(1,1)(inef.dbm).get == 0)
+    assert(e.get(2,2)(inef.dbm).get == 0)
+    assert(e.get(3,3)(inef.dbm).get == 0)
+  }
 }
