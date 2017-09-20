@@ -5,6 +5,7 @@ import it.unich.jandom.domains.numerical.octagon.variables.VarCount
 import it.unich.jandom.domains.numerical.octagon.variables.CountOps
 import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps
 import scala.language.higherKinds
+import scala.language.reflectiveCalls
 
 // M-based raw DBM implementation
 sealed trait DBM[M[A], S, A] {
