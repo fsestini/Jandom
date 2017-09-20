@@ -183,6 +183,16 @@ class FastOctagonSuite extends FunSuite {
       .linearAssignment(2, 456)
       .linearAssignment(3, 456)
 
+    assert(e.get(0,0)(b1.dbm).get == 0)
+    assert(e.get(1,1)(b1.dbm).get == 0)
+    assert(e.get(2,2)(b1.dbm).get == 0)
+    assert(e.get(3,3)(b1.dbm).get == 0)
+
+    assert(e.get(0,0)(b2.dbm).get == 0)
+    assert(e.get(1,1)(b2.dbm).get == 0)
+    assert(e.get(2,2)(b2.dbm).get == 0)
+    assert(e.get(3,3)(b2.dbm).get == 0)
+
     val union = b1 union b2
     assert(e.get(0,0)(union.dbm).get == 0)
     assert(e.get(1,1)(union.dbm).get == 0)
