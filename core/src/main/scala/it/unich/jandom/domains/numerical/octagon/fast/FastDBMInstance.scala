@@ -201,10 +201,10 @@ object CFDBMInstance {
             mapInnerMatrix[M, SM, A](mev.dec.mapVariables(f))(fast.toFull))(dbm)
       }
 
-      def compare[A](x: ExistsM[A], y: ExistsM[A])
+      def compare[A](x: CFastDBM[M,SM,Closed,A], y: CFastDBM[M,SM,Closed,A])
                     (implicit evidence: InfField[A]): Option[Ordering] = {
-        val dbm1: Option[M[A]] = cfastInnerMatrix(x.elem)
-        val dbm2: Option[M[A]] = cfastInnerMatrix(y.elem)
+        val dbm1: Option[M[A]] = cfastInnerMatrix(x)
+        val dbm2: Option[M[A]] = cfastInnerMatrix(y)
         (dbm1, dbm2) match {
           case (None, None) => Some(EQ)
           case (Some(_), None) => Some(GT)

@@ -283,10 +283,9 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
 
     type PosetConstraint[A] = InfField[A]
 
-    def compare[A](x: ExistsDBM[({ type Q[S] = DBM[M, S, A]})#Q],
-                   y: ExistsDBM[({ type Q[S] = DBM[M, S, A]})#Q])
+    def compare[A](x: DBM[M, Closed, A], y: DBM[M, Closed, A])
                   (implicit evidence: InfField[A]): Option[Ordering] = {
-      (x.elem.innerMatrix, y.elem.innerMatrix) match {
+      (x.innerMatrix, y.innerMatrix) match {
         case (None, None) => Some(EQ)
         case (Some(_), None) => Some(GT)
         case (None, Some(_)) => Some(LT)
