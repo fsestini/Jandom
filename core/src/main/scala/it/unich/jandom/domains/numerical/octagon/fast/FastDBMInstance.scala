@@ -50,12 +50,12 @@ object CFDBMInstance {
           case NCFast(m: FastDBM[M, SM, A]) => m.strongClosure
         }
 
-      def forget[S <: DBMState, A](vi: VarIndex)(m: CFastDBM[M, SM, S, A])
-        (implicit f: InfField[A]): CFastDBM[M, SM, S, A] =
+      def forget[A](vi: VarIndex)(m: CFastDBM[M, SM, Closed, A])
+        (implicit f: InfField[A]): CFastDBM[M, SM, Closed, A] =
         // TODO: this is eccessively approximate for decomposed matrices.
         // Forget operator for those should remove the forgot variable from the
         // indep. component including it (if any).
-        mapFastDBM[M, SM, S, A](mapInnerMatrix(mev.ds.forget(vi)))(m)
+        mapFastDBM[M, SM, Closed, A](mapInnerMatrix(mev.ds.forget(vi)))(m)
 
       def nOfVars[S <: DBMState, A](m: CFastDBM[M, SM, S, A]): VarCount =
         FastDBMUtils.nOfVars(m)

@@ -114,8 +114,8 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
         case None => BottomDBM[M,A](dbm.noOfVariables)
       }
 
-    def forget[S <: DBMState, A](vi: VarIndex)(m: DBM[M, S, A])
-                                (implicit ifield: InfField[A]): DBM[M, S, A] = {
+    def forget[A](vi: VarIndex)(m: DBM[M, Closed, A])
+      (implicit ifield: InfField[A]): DBM[M, Closed, A] = {
       m.liftFromInner((inner) => {
         val f: (Int, Int) => A = (i, j) => {
           if (i != VarIndexOps.varPlus(vi) && i != VarIndexOps.varMinus(vi) && j != VarIndexOps.varPlus(vi) && j != VarIndexOps.varMinus(vi))

@@ -95,9 +95,10 @@ trait DifferenceBoundMatrix[M[_, _]]
   def addScalarOnVar[S <: DBMState, A](v: VarIndex, c: A)
     (m: M[S, A])(implicit ifield: InfField[A]): M[S, A]
 
-  // forget operator preserves strong closure
-  def forget[S <: DBMState, A](v: VarIndex)(m: M[S, A])
-                              (implicit ifield: InfField[A]): M[S, A]
+  // Forget operator preserves strong closure, and it is exact for strongly
+  // closed arguments. [Mine06]
+  def forget[A](v: VarIndex)(m: M[Closed, A])
+    (implicit ifield: InfField[A]): M[Closed, A]
 
   //////////////////////////////////////////////////////////////////////////////
 
