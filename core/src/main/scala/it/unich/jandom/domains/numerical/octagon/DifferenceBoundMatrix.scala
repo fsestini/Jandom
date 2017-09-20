@@ -68,9 +68,10 @@ trait DifferenceBoundMatrix[M[_, _]]
   def fromFun[A](d: Dimension, f: ((Int, Int) => A))
     (implicit ifield: InfField[A]): M[NonClosed, A]
 
-  // dbm union preserves strong closure
-  def dbmUnion[S <: DBMState, A](m1: M[S, A], m2: M[S, A])
-    (implicit ifield: InfField[A]): M[S, A]
+  // The best abstraction for the union is only reached when the arguments are
+  // strongly closed DBMs. DBM union also preserves strong closure. [Mine06]
+  def dbmUnion[A](m1: M[Closed, A], m2: M[Closed, A])
+    (implicit ifield: InfField[A]): M[Closed, A]
 
   // dbm intersection is exact regardless of the closure state of the inputs,
   // and it seldomly produces a strongly closed result.

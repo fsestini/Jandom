@@ -104,20 +104,14 @@ object CFDBMInstance {
                                    (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] =
         mapFastDBM[M, SM, S, A](mapInnerMatrix(mev.ds.flipVar(vi)))(m)
 
-      // TODO: fix type of dbmUnion in typeclass: m1 and m2 should not be forced
-      // to have the same closure state.
-      def dbmUnion[S <: DBMState, A]
-        (m1: CFastDBM[M, SM, S, A], m2: CFastDBM[M, SM, S, A])
-        (implicit ifield: InfField[A]): CFastDBM[M, SM, S, A] = {
+      def dbmUnion[A]
+        (m1: CFastDBM[M, SM, Closed, A], m2: CFastDBM[M, SM, Closed, A])
+        (implicit ifield: InfField[A]): CFastDBM[M, SM, Closed, A] = {
 
         (m1, m2) match {
           case (BottomFast(nOfVars), _) => BottomFast(nOfVars)
           case (_, BottomFast(nOfVars)) => BottomFast(nOfVars)
           case (CFast(dbm1), CFast(dbm2)) => CFast(dbm1.union(dbm2))
-          // case (CFast(dbm1), NCFast(dbm2)) => NCFast[M,SM,A](dbm1.union(dbm2))
-          // case (NCFast(dbm1), CFast(dbm2)) => NCFast(dbm1.union(dbm2))
-          case (NCFast(dbm1), NCFast(dbm2)) => NCFast(dbm1.union(dbm2))
-          case _ => throw new IllegalArgumentException()
         }
       }
 

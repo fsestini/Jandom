@@ -178,8 +178,8 @@ class DBMInstance[M[_]](implicit me: Matrix[M]) {
       })
     }
 
-    def dbmUnion[S <: DBMState, A](m1: DBM[M, S, A], m2: DBM[M, S, A])
-                                  (implicit ifield: InfField[A]): DBM[M, S, A] = m1.union(m2)
+    def dbmUnion[A](m1: DBM[M, Closed, A], m2: DBM[M, Closed, A])
+      (implicit ifield: InfField[A]): DBM[M, Closed, A] = m1.union(m2)
 
     def addScalarOnVar[S <: DBMState, A](vi: VarIndex, const: A)
                                         (fundbm: DBM[M, S, A])
