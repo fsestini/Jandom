@@ -180,4 +180,84 @@ class FastOctagonCompliance extends PropSpec with PropertyChecks {
         }
       }
   }
+
+  property ("Fast octagons match Mine octagons in their response to union") {
+      forAll(GenSmallInt) {
+        (d: Int) => {
+          forAll(GenListOfVarAndLfAndIneq(d)) {
+            (s: Seq[(LinearForm, Int, IsInequality)]) => {
+              val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
+              val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
+
+              def f(s: Seq[(LinearForm, Int, IsInequality)],
+                octf:  FastOct,
+                octmine: MineOct) : (FastOct, MineOct) = {
+                if (s.size == 0)
+                  (octf, octmine)
+                else {
+                  assert (compare(octf, octmine))
+                  if (s.head._3) {
+                    f(
+                      s.tail,
+                      octf.linearInequality(s.head._1),
+                      octmine.linearInequality(s.head._1)
+                    )
+                  } else {
+                    f(
+                      s.tail,
+                      octf.linearAssignment(s.head._2, s.head._1),
+                      octmine.linearAssignment(s.head._2, s.head._1)
+                    )
+                  }
+                }
+              }
+
+              val (octf1, octmine1) = f(s, topf, topmine)
+              val (octf2, octmine2) = f(s, topf, topmine)
+              assert(compare(octf1.union(octf2), octmine1.union(octmine2)))
+            }
+          }
+        }
+      }
+  }
+
+  property ("Fast octagons match Mine octagons in their response to intersection") {
+      forAll(GenSmallInt) {
+        (d: Int) => {
+          forAll(GenListOfVarAndLfAndIneq(d)) {
+            (s: Seq[(LinearForm, Int, IsInequality)]) => {
+              val topf =  AbstractOctagon[FDOM, FastDBM,  RationalExt, BoxRationalDomain](fe.topDBM[RationalExt](VarCount(d)), foct, box, fe)
+              val topmine = AbstractOctagon[DOM, VecDBM,  RationalExt, BoxRationalDomain](VecDBMInstance.funDBM.topDBM[RationalExt](VarCount(d)), oct, box, e)
+
+              def f(s: Seq[(LinearForm, Int, IsInequality)],
+                octf:  FastOct,
+                octmine: MineOct) : (FastOct, MineOct) = {
+                if (s.size == 0)
+                  (octf, octmine)
+                else {
+                  assert (compare(octf, octmine))
+                  if (s.head._3) {
+                    f(
+                      s.tail,
+                      octf.linearInequality(s.head._1),
+                      octmine.linearInequality(s.head._1)
+                    )
+                  } else {
+                    f(
+                      s.tail,
+                      octf.linearAssignment(s.head._2, s.head._1),
+                      octmine.linearAssignment(s.head._2, s.head._1)
+                    )
+                  }
+                }
+              }
+
+              val (octf1, octmine1) = f(s, topf, topmine)
+              val (octf2, octmine2) = f(s, topf, topmine)
+              assert(compare(octf1.intersection(octf2), octmine1.intersection(octmine2)))
+            }
+          }
+        }
+      }
+  }
 }
