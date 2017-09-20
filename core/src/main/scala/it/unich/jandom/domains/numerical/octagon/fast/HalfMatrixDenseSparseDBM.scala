@@ -12,8 +12,6 @@ object HalfMatrixDenseSparseInstance {
 
     val halfMatrixDenseSparseInstance = new DenseSparse[HalfMatrix] {
 
-        import HalfMatrixDenseSparseDBM._
-
         private def varsToIndices(indices: Seq[VarIndex]): Seq[(Int, Int)] = {
           val varIndices = for (vi <- indices;
                                 vj <- indices;
@@ -74,7 +72,7 @@ object HalfMatrixDenseSparseInstance {
               >=  sparseThreshold)
             SparseStrongClosure(m)
           else
-            denseStrongClosure(m)
+            DenseStrongClosure(m)
 
         def incrementalClosure[A](v: VarIndex)(m: HalfMatrix[A])
                                  (implicit e: InfField[A])
@@ -84,9 +82,9 @@ object HalfMatrixDenseSparseInstance {
               dimToVarCount(m.dimension),
               computeSparsity(m))
               >=  sparseThreshold)
-            denseIncrementalClosure(v)(m)
+            DenseIncrementalClosure(m, v)
           else
-            sparseIncrementalClosure(v)(m)
+            SparseIncrementalClosure(m, v)
 
         def forget[A](v: VarIndex)(m: HalfMatrix[A])
                      (implicit e: InfField[A]): HalfMatrix[A] = {
@@ -273,23 +271,8 @@ object HalfMatrixDenseSparseInstance {
       HalfSubMatrix(ds.addScalarOnVar(v, c)(m.mat), m.indices)
   }
 
-}
-
-object HalfMatrixDenseSparseDBM {
-  def computeSparsity[A](m: HalfMatrix[A])
-                        (implicit ifield: InfField[A]): NNI =
+  def computeSparsity[A](m: HalfMatrix[A])(implicit ifield: InfField[A]): NNI =
     NNI(m.toSeq.count(v => ifield.compare(ifield.infinity, v) == EQ))
-
-  def denseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseStrongClosure(m)
-
-  def sparseStrongClosure[A](m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    SparseStrongClosure(m)
-
-  def denseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    DenseIncrementalClosure(m, vi)
-  def sparseIncrementalClosure[A](vi: VarIndex)(m: HalfMatrix[A])(implicit ifield: InfField[A]) =
-    SparseIncrementalClosure(m, vi)
 }
 
 object DenseIncrementalClosure extends DenseClosureStrategy {
