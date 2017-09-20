@@ -141,7 +141,7 @@ object HalfMatrixDenseSparseInstance {
       def nOfVars[A](m: HalfMatrix[A]): VarCount = dimToVarCount(m.dimension)
     }
 
-  val halfMatrixDecomposableInstance: Decomposable[HalfMatrix, HalfSubMatrix] = new Decomposable[HalfMatrix, HalfSubMatrix] {
+  val halfMatrixDecomposableInstance = new Decomposable[HalfMatrix, HalfSubMatrix] {
 
     val ds = halfMatrixDenseSparseInstance
 
