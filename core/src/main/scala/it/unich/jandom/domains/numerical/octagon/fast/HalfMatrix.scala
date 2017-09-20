@@ -101,12 +101,13 @@ object HalfMatrix {
   }
 
   def apply[A](f: (Int, Int) => A, nOfVars: VarCount): HalfMatrix[A] = {
-    val vec : Vector[A] = (allIndices(varCountToDim(nOfVars))).map(
-      (i) => (allIndices(varCountToDim(nOfVars))).map(
-        (j) =>
-        f(i,j)
-      )
-    ).flatten.toVector
+    val vec : Vector[A] =
+      variables.Fast.allIndices(variables.Fast.dimToVecSize(varCountToDim(nOfVars))).map(
+        (k) => {
+          val (i,j) = fromIndex(k)
+          f(i,j)
+        }
+      ).toVector
     new HalfMatrix[A] (vec, varCountToDim(nOfVars))
   }
 }
