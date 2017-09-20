@@ -171,6 +171,25 @@ class FastOctagonSuite extends FunSuite {
     assert(intersection.toInterval.isEmpty == true)
   }
 
+  test ("Diagonal of union is 0") {
+    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(4)), oct, box, e)
+    val b1 = top.linearAssignment(0, 123)
+      .linearAssignment(1, 123)
+      .linearAssignment(2, 123)
+      .linearAssignment(3, 123)
+
+    val b2 = top.linearAssignment(0, 456)
+      .linearAssignment(1, 456)
+      .linearAssignment(2, 456)
+      .linearAssignment(3, 456)
+
+    val union = b1 union b2
+    assert(e.get(0,0)(union.dbm).get == 0)
+    assert(e.get(1,1)(union.dbm).get == 0)
+    assert(e.get(2,2)(union.dbm).get == 0)
+    assert(e.get(3,3)(union.dbm).get == 0)
+  }
+
   test ("T[v1 <- 2v0 - 1][v3 <- 2v2 - 1] U  T[v1 <- v0][v3 <- v2] has independen components [{v1, v0}, {v2, v3}}") {
     val top = e.topDBM[RationalExt](VarCount(4))
     val expectedComponents = Set(Set(VarIndex(0), VarIndex(1)), Set(VarIndex(2), VarIndex(3)))
