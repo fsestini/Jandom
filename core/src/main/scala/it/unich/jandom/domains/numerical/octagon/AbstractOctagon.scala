@@ -576,9 +576,9 @@ object AbstractOctagon {
 class DBMUtils[N](implicit ifield: InfField[N]) {
   type ExistsMN[M[_,_]] = ExistsDBM[({ type T[S] = M[S, N]})#T]
 
-  def singleConstantExactAssignment[M[_,_], S <: DBMState]
+  def singleConstantExactAssignment[M[_,_]]
     (v: VarIndex, const: N)
-    (dbm: M[S, N], e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
+    (dbm: M[Closed, N], e: DifferenceBoundMatrix[M]): ExistsMN[M] = {
     val f: (Int, Int) => N = (i, j) =>
       if (i == varPlus(v) && j == varMinus(v)) ifield.neg(ifield.double(const)) else
         if (i == varMinus(v) && j == varPlus(v)) ifield.double(const) else
