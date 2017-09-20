@@ -65,7 +65,8 @@ trait DifferenceBoundMatrix[M[_, _]]
   // This differs from the *real* top DBM, which has +\infty on all elements.
   // In particular, isTop(topDBM(n)) == false.
   def topDBM[A](nOfVars : VarCount)(implicit ifield: InfField[A]) : M[Closed, A]
-  def fromFun[A] (d: Dimension, f: ((Int, Int) => A))(implicit ifield: InfField[A]) : M[Closed, A]
+  def fromFun[A](d: Dimension, f: ((Int, Int) => A))
+    (implicit ifield: InfField[A]): M[NonClosed, A]
 
   // dbm union preserves strong closure
   def dbmUnion[S <: DBMState, A](m1: M[S, A], m2: M[S, A])
