@@ -96,6 +96,7 @@ package variables {
      *
      */
     def dimToVecSize(d: Dimension) = VecSize(d.dim*(d.dim/2 + 1))
+    def allIndices(s: VecSize) = (0 until s.size)
     def fill[A](v: VecSize)(elem: A) = Vector.fill(v.size)(elem)
   }
 }
