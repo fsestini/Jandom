@@ -240,6 +240,11 @@ class FastOctagonSpecification extends PropSpec with PropertyChecks {
     }
   }
 
+  // TODO: i seguenti test sono tristemente non-deterministici: a volte passano
+  // (probabilmente perche` i generatori falliscono a tal punto da generare solo
+  // casi triviali), in altri casi il test fallisce con diverse pagine di stack
+  // trace (dove nessuna pero` menziona la fonte dell'errore nelle funzioni
+  // testate)
   property ("Check that strongClosure for HalfMatrix DBMs is coherent") {
     forAll(GenSmallEvenInt) {
       (dd: Int) =>
