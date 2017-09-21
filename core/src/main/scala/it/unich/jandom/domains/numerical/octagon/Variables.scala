@@ -46,11 +46,12 @@ package variables {
 
   // Distinguish integers used as variable count or matrix dimension
   case class VarCount(private[variables] val count: Int) {
-    require(count >= 0)
+    require(count >= 0, "cannot create negative VarCount")
   }
 
   case class Dimension(private[variables] val dim: Int) {
-    require(dim % 2 == 0 && dim >= 0)
+    require(dim % 2 == 0 && dim >= 0,
+      "cannot create Dimension with negative or off values")
   }
 
   object CountOps {
@@ -80,7 +81,8 @@ package variables {
       1.0 - (is.nni / (2 * d.count * d.count + 2 * d.count))
 
     case class VecSize (private[variables] val size: Int) {
-      require(size % 2 == 0 && size >= 0)
+      require(size % 2 == 0 && size >= 0,
+        "cannot create VecSize with negative or odd values")
     }
     /*
      * Consider d = 2, then |vec| = 2*(2/1+1) = 4, vec =
