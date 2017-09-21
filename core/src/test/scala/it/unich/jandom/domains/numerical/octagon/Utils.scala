@@ -1,6 +1,7 @@
 package it.unich.jandom.domains.numerical.octagon.testutils
 import it.unich.jandom.domains.numerical.octagon._
 import it.unich.jandom.domains.numerical._
+import it.unich.jandom.domains.numerical.octagon.fast._
 
 import variables._
 
@@ -134,5 +135,13 @@ class Utils(val box: BoxRationalDomain) {
           new ClosedDBM[FunMatrix, RationalExt](closure.get)(me)
         }
       }
+
+  def GenHalfMatrix(d: Int, pInf: Int = 20): Gen[HalfMatrix[RationalExt]] = for {
+    rowSeq <- Gen.containerOfN[Array, RationalExt](d, GenFiniteRationalExtsAndInf(pInf))
+    arrayOfRows <- Gen.containerOfN[Array, Array[RationalExt]](d, rowSeq)
+  } yield
+    HalfMatrix[RationalExt](
+      (i: Int, j: Int) => if (i == j) 0 else arrayOfRows(i)(j),
+      VarCount(d / 2))
 
 }
