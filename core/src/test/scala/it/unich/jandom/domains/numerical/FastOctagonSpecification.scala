@@ -240,4 +240,67 @@ class FastOctagonSpecification extends PropSpec with PropertyChecks {
     }
   }
 
+  property ("Check that strongClosure for HalfMatrix DBMs is coherent") {
+    forAll(GenSmallEvenInt) {
+      (dd: Int) =>
+      val d = (dd.abs + 1) * 2 // hack apparentemente necessario due to shrinking
+      forAll (GenHalfMatrix(d)) {
+        (m : HalfMatrix[RationalExt]) =>
+        mev.ds.strongClosure(m) match {
+          case None => true
+          case Some(closed) =>
+            forAll (
+              Gen.zip(
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1))) {
+              case (i, j) =>
+                val ibar = signed(i)
+                val jbar = signed(j)
+                closed(jbar, ibar) == closed(i, j)
+            }
+        }
+      }
+    }
+  }
+
+  property ("Check that strongClosure for HalfMatrix DBMs is closed") {
+    forAll(GenSmallEvenInt) {
+      (dd: Int) =>
+      val d = (dd.abs + 1) * 2 // hack apparentemente necessario due to shrinking
+      forAll (GenHalfMatrix(d)) {
+        (m : HalfMatrix[RationalExt]) =>
+        mev.ds.strongClosure(m) match {
+          case None => assert(true)
+          case Some(c) =>
+            forAll (
+              Gen.zip(
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1),
+                Gen.choose(0,d - 1))) {
+              case (i, j, k) =>
+                if (i == j)
+                  c(i,j) == 0
+                else
+                  c(i,j) <= c(i, k) + c(k, j)
+            }
+        }
+      }
+    }
+  }
+
+  property ("Check that strongClosure for HalfMatrix DBMs has null diagonal") {
+    forAll(GenSmallEvenInt) {
+      (dd: Int) =>
+      val d = (dd.abs + 1) * 2 // hack apparentemente necessario due to shrinking
+      forAll (GenHalfMatrix(d)) {
+        (m : HalfMatrix[RationalExt]) =>
+        mev.ds.strongClosure(m) match {
+          case None => assert(true)
+          case Some(closed) =>
+            (0 until d - 1).forall(i => closed(i, i) == 0)
+        }
+      }
+    }
+  }
+
 }
