@@ -59,7 +59,8 @@ case class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val di
       HalfMatrix.getIndex(i, j)
 
   def update(i: Int, j: Int, x: A): HalfMatrix[A] = {
-    require(inDimension(i, j, dimension))
+    require(inDimension(i, j, dimension),
+      "HalfMatrix.update(Int,Int,A): index out of bounds")
     new HalfMatrix(vec.updated(elementIndex(i, j), x), dimension)
   }
 
@@ -70,12 +71,14 @@ case class HalfMatrix[A] private[fast] (private[fast] val vec: Vector[A], val di
   }
 
   def apply(i: Int, j: Int): A = {
-    require(inDimension(i, j, dimension))
+    require(inDimension(i, j, dimension),
+      "Halfmatrix.apply: index out of bounds")
     vec(elementIndex(i, j))
   }
 
   def combine[B, C](that: HalfMatrix[B], f: (A, B) => C): HalfMatrix[C] = {
-    require(this.dimension == that.dimension)
+    require(this.dimension == that.dimension,
+      "HalfMatrix.combine: dimension mismatch")
     val mat = (this.vec zip that.vec) map (f.tupled)
     new HalfMatrix(mat, dimension)
   }
