@@ -21,6 +21,8 @@ import it.unich.jandom.domains.numerical.octagon._
 import it.unich.jandom.domains.numerical._
 import variables._
 import VarIndexOps._
+import CountOps._
+import InfField._
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 import spire.math.Rational
@@ -182,6 +184,59 @@ class FastOctagonSpecification extends PropSpec with PropertyChecks {
             (i1 <= i2)
           }
         }
+    }
+  }
+
+  // Given a list of variables, set all entries involving variables in the list
+  // to a non-infinite value, and leave all the others unchanged. Useful since
+  // m' = linkVars(linkVars(m, xs), ys) where xs and ys are disjoint is such
+  // that computeComponents(m') = { xs, ys }
+  def linkVars[A](m: HalfMatrix[A], ixs: List[VarIndex])
+    (implicit ifield: InfField[A]): HalfMatrix[A] = {
+
+    def concerns(i: Int)(v: VarIndex): Boolean =
+      varPlus(v) == i || varMinus(v) == i
+
+    m.update((i, j) =>
+      if (ixs.exists(concerns(i)) && ixs.exists(concerns(j)))
+        ifield.zero
+      else m(i, j))
+  }
+
+  def infinity[A](vc: VarCount)(implicit ifield: InfField[A]): HalfMatrix[A] =
+    new HalfMatrix(varCountToDim(vc), ifield.infinity)
+
+  property ("Decomposable matrices should get decomposed after closure") {
+    forAll(Gen.choose(5,10)) {
+      (n: Int) =>
+      val vcount = n // 5 + n
+      forAll(GenSubsetOf(0, vcount)) {
+        (sub: List[Int]) =>
+        forAll(GenPartitionOf(sub)) {
+          (part: List[List[Int]]) =>
+
+          // hack apparentemente necessario, visto che aggiungere suchThat(...)
+          // ai generatori non ha alcun effetto
+          val ppartitions = part.map(_.map(VarIndex))
+          val partitions =
+            if (ppartitions.length >= 2) ppartitions
+            else allVars(VarCount(vcount)).toList :: Nil
+
+          val hm: HalfMatrix[RationalExt] = infinity(VarCount(vcount))
+          val linked = partitions.foldLeft(hm)((m, p) => linkVars(m, p))
+          val ncFast = FullDBM(linked, mev)
+
+          val cFast: CFastDBM[HalfMatrix, HalfSubMatrix, Closed, RationalExt] =
+            ncFast.strongClosure(mev, ifieldRationalExt)
+          cFast match {
+            case CFast(DecomposedDBM(_, comps, _)) =>
+              val set1: Set[Set[VarIndex]] = partitions.map(_.toSet).toSet
+              val set2: Set[Set[VarIndex]] = comps.map(_.toSet).toSet
+              set1 == set2
+            case _ => false
+          }
+        }
+      }
     }
   }
 
