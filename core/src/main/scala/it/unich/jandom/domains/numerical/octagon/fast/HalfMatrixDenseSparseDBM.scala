@@ -403,7 +403,7 @@ object SparseStrongClosure extends SparseClosureStrategy {
               (implicit ifield: InfField[A])
               : Option[HalfMatrix[A]] = {
     val newMat = allVars(e.nOfVars(m)).foldLeft(m)(loopBody)
-    strengthening(newMat)
+    ClosureUtils.nullCheck(strengthening(newMat))
   }
 }
 
@@ -498,8 +498,10 @@ object SparseIncrementalClosure extends SparseClosureStrategy {
         )
       )
 
-    strengthening(
-      loopBody(updated2, v)
+    ClosureUtils.nullCheck(
+      strengthening(
+        loopBody(updated2, v)
+      )
     )
   }
 }
@@ -603,22 +605,16 @@ trait SparseClosureStrategy {
 
   protected def strengthening[A](m: HalfMatrix[A])
                               (implicit ifield: InfField[A])
-                              : Option[HalfMatrix[A]] = {
+                              : HalfMatrix[A] = {
     val idxs = allIndices(varCountToDim(e.nOfVars(m)))
     val d = idxs.filter(i => m(signed(i), i) != ifield.infinity)
 
-    val newMat: HalfMatrix[A] =
-      d.foldLeft(m)((m, i) => {
-        val ii = m(signed(i), i)
-        d.foldLeft(m)((m, j) => {
-          val jj = m(signed(j), j)
-          val min = ifield.min(m(signed(i), j), ifield.half(ifield.+(ii,jj)))
-          m.update(signed(i), j, min) }) })
-
-    if (idxs.exists(i => ifield.compare(newMat(i, i), ifield.zero) == LT))
-      None
-    else
-      Some(newMat)
+    d.foldLeft(m)((m, i) => {
+      val ii = m(signed(i), i)
+      d.foldLeft(m)((m, j) => {
+        val jj = m(signed(j), j)
+        val min = ifield.min(m(signed(i), j), ifield.half(ifield.+(ii,jj)))
+        m.update(signed(i), j, min) }) })
   }
 
   def loopBody[A] (m: HalfMatrix[A], vi: VarIndex)(implicit ifield: InfField[A]) = {
