@@ -55,6 +55,23 @@ class Utils(val box: BoxRationalDomain) {
     (pExact, GenExactLf(n))
   )
 
+  def GenSubsetOf(min: Int, max: Int): Gen[List[Int]] =
+    if (min > max) Gen.const(Nil) else for {
+      b <- Gen.oneOf(0, 1)
+      xs <- GenSubsetOf(min + 1, max)
+    } yield if (b == 1) min :: xs else xs
+
+  def GenPartitionOf(list: List[Int]): Gen[List[List[Int]]] = list match {
+    case Nil => Gen.const(Nil :: Nil)
+    case x :: Nil => Gen.const((x :: Nil) :: Nil)
+    case x :: xs => for {
+      pss <- GenPartitionOf(xs)
+      b <- Gen.oneOf(0,1)
+    } yield pss match {
+      case (p :: ps) => if (b == 1) ((x :: p) :: ps) else ((x :: Nil) :: p :: ps)
+    }
+  }
+
   // // These are for disabling shrinking
   // // From https://gist.github.com/davidallsopp/f65d73fea8b5e5165fc3
   // //
