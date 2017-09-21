@@ -294,7 +294,7 @@ object DenseIncrementalClosure extends DenseClosureStrategy {
         })
       })
 
-    nullCheck(
+    ClosureUtils.nullCheck(
       strengtheningHalfScalar(
         loopBody(updated, v)))
   }
@@ -303,7 +303,7 @@ object DenseIncrementalClosure extends DenseClosureStrategy {
 object DenseStrongClosure extends DenseClosureStrategy {
   def apply[A](m: HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
     val newM = allVars(e.nOfVars(m)).foldLeft(m)(loopBody)
-    nullCheck(strengtheningHalfScalar(newM))
+    ClosureUtils.nullCheck(strengtheningHalfScalar(newM))
   }
 }
 
@@ -386,13 +386,6 @@ trait DenseClosureStrategy {
             ifield.half(ifield.+(ii, jj))))(m)
       })
     })
-  }
-
-  protected def nullCheck[A](m : HM[A])(implicit ifield: InfField[A]): Option[HM[A]] = {
-    val bottom: Boolean = allIndices(varCountToDim(e.nOfVars(m))) // 0 until n
-      .exists(
-      i => ifield.compare(e.get(i, i)(m), ifield.zero) == LT)
-    if (bottom) None else Some(m)
   }
 
   def loopBody[A](m: HM[A], k: VarIndex)(implicit ifield: InfField[A]) = {
@@ -636,4 +629,21 @@ trait SparseClosureStrategy {
     val (m4, rm1) = computeRow(m3, 2*vi.i + 1, 2*vi.i, rm, rp1)
     computeIteration(m4, vi.i, rp1, rm1, cp1, cm1, a, b)
   }
+}
+
+object ClosureUtils {
+
+  val e: DenseSparse[HalfMatrix] =
+    HalfMatrixDenseSparseInstance.halfMatrixDenseSparseInstance
+
+  def nullCheck[A](m : HalfMatrix[A])(implicit ifield: InfField[A]): Option[HalfMatrix[A]] = {
+    val bottom: Boolean =
+      allIndices(varCountToDim(e.nOfVars(m))).exists(
+        i => ifield.compare(e.get(i, i)(m), ifield.zero) == LT)
+    if (bottom) None else {
+      val nulled = m.update((i, j) => if (i == j) ifield.zero else m(i, j))
+      Some(nulled)
+    }
+  }
+
 }
