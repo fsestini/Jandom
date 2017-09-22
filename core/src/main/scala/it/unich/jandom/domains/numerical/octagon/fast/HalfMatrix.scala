@@ -1,9 +1,12 @@
 package it.unich.jandom.domains.numerical.octagon.fast
+
 import it.unich.jandom.domains.numerical.octagon.variables.VarIndexOps
 import it.unich.jandom.domains.numerical.octagon.variables.CountOps._
 import it.unich.jandom.domains.numerical.octagon.variables.VarCount
 import it.unich.jandom.domains.numerical.octagon.variables.Dimension
 import it.unich.jandom.domains.numerical.octagon.variables
+import it.unich.jandom.domains.numerical.octagon._
+import scalaz._
 
 /**
   * Created by fsestini on 7/11/17.
