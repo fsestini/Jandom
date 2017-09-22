@@ -49,27 +49,25 @@ class FunMatrix[A](private val fun: (Int, Int) => A, val dimension: Dimension) {
 
   def toList: List[A] = CountOps.grid(dimension).map(p => fun(p._1, p._2)).toList
 
-  override def toString: String = {
-    val pad = 4
-    val maxLength =
-      toList
-        .map(_.toString.size)
-        .max
-
-    (CountOps.allIndices(dimension)).map(
-      (i: Int) =>
+  override def toString: String =
+    if (toList.length == 0) "[empty matrix]" else {
+      val pad = 4
+      val maxLength = toList.map(_.toString.size).max
       (CountOps.allIndices(dimension)).map(
-        (j: Int) => {
-          val res =
-            if (fun(i,j) == Double.PositiveInfinity)
-              0x221E.toChar.toString // infty
-            else
-              fun(i,j).toString
-          (" " * ((maxLength + pad) - res.length)) + res
-        }
-      ).mkString("")
-    ).mkString("\n")
-  }
+        (i: Int) =>
+        (CountOps.allIndices(dimension)).map(
+          (j: Int) => {
+            val res =
+              if (fun(i,j) == Double.PositiveInfinity)
+                0x221E.toChar.toString // infty
+              else
+                fun(i,j).toString
+            (" " * ((maxLength + pad) - res.length)) + res
+          }
+        ).mkString("")
+      ).mkString("\n")
+    }
+
 }
 
 object FunMatrix {
