@@ -141,7 +141,7 @@ class Utils(val box: BoxRationalDomain) {
     arrayOfRows <- Gen.containerOfN[Array, Array[RationalExt]](d, rowSeq)
   } yield
     HalfMatrix[RationalExt](
-      (i: Int, j: Int) => if (i == j) 0 else arrayOfRows(i)(j),
+      (i: Int, j: Int) => if (i == j) RationalExt(0) else arrayOfRows(i)(j),
       VarCount(d / 2))
 
 }

@@ -35,10 +35,10 @@ class FastOctagonSuite extends FunSuite {
 
   val inf = Double.PositiveInfinity
   val e = CFDBMInstance.instance(mev)
-  type FastDBM[S, A] = CFastDBM[HalfMatrix, HalfSubMatrix, S, A]
+  type FastDBMSA[S, A] = CFastDBM[HalfMatrix, HalfSubMatrix, S, A]
   val box =  BoxRationalDomain()
-  val oct = new OctagonDomain[FastDBM, RationalExt, BoxRationalDomain](e, box)
-  type DOM = OctagonDomain[FastDBM, RationalExt, BoxRationalDomain]
+  val oct = new OctagonDomain[FastDBMSA, RationalExt, BoxRationalDomain](e, box)
+  type DOM = OctagonDomain[FastDBMSA, RationalExt, BoxRationalDomain]
 
   test("Sanity check for pure") {
     assert(mev.dec.pure(VarCount(1), RationalExt.PositiveInfinity).vec.size == 4)
@@ -49,7 +49,7 @@ class FastOctagonSuite extends FunSuite {
 
   test("T {v0 <- 123}.toInterval == [123,123]") {
     val top = e.topDBM[RationalExt](VarCount(1))
-    val t = AbstractOctagon[DOM, FastDBM, RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA, RationalExt, BoxRationalDomain](top, oct, box, e)
     assert(t.dbm == top)
     val a = t.linearAssignment(0, LinearForm.c(123))
     assert(a.toInterval.high.head == 123 & a.toInterval.low.head == 123)
@@ -58,7 +58,7 @@ class FastOctagonSuite extends FunSuite {
   // TODO Once found the cause, rename
   test("bug #697659 - failing requirement") {
     val top = e.topDBM[RationalExt](VarCount(2))
-    val t = AbstractOctagon[DOM, FastDBM, RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA, RationalExt, BoxRationalDomain](top, oct, box, e)
     assert(t.dbm == top)
     val working = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(1)/Rational(1))))
     val failing = t.linearAssignment(0, DenseLinearForm(Seq(Rational(1)/Rational(1),Rational(2)/Rational(1))))
@@ -67,7 +67,7 @@ class FastOctagonSuite extends FunSuite {
   // TODO Once found the cause, rename
   test("bug #697684 - failing requirement") {
     val top = e.topDBM[RationalExt](VarCount(2))
-    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](top, oct, box, e)
     assert(t.dbm == top)
     val foo = DenseLinearForm(Seq(Rational(0), Rational(1)))
     val bar = DenseLinearForm(Seq(Rational(-1)/Rational(1), Rational(-1)/Rational(1)))
@@ -75,15 +75,23 @@ class FastOctagonSuite extends FunSuite {
     val second = first.linearInequality(bar)
   }
 
+  def extractM[M[_], SM[_], A] (m :  FastDBM[M, SM, A]) = {
+    m match {
+      case FullDBM(m, _) => m
+      case DecomposedDBM(m, _, _) => m
+    }
+  }
+
   test("Sanity check for calculateComponents") {
     val top = e.topDBM[RationalExt](VarCount(4))
-    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](top, oct, box, e)
     assert(t.dbm == top)
     // At first, T_4 [v0 <- c] has 1 independent component
     val first = t.linearAssignment(0, DenseLinearForm(Seq(Rational(0))))
     first.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents[HalfMatrix, RationalExt](m, mev.ds)(ifieldRationalExt)
         assert(comp == List(List(VarIndex(0))))
       }
       case _ => assert(false)
@@ -91,8 +99,9 @@ class FastOctagonSuite extends FunSuite {
     // T_4 [v0 <- c][v3 <- c] has 1 independent component
     val second = first.linearAssignment(3, DenseLinearForm(Seq(Rational(1))))
     second.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(3))))
       }
       case _ => assert(false)
@@ -100,8 +109,9 @@ class FastOctagonSuite extends FunSuite {
     // T_4 [v0 <- c][v3 <- c][v3 <- v0] has 1 independent component again
     val third = second.linearAssignment(3, DenseLinearForm(Seq(Rational(0), Rational(1))))
     third.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(3))))
       }
       case _ => assert(false)
@@ -126,8 +136,9 @@ class FastOctagonSuite extends FunSuite {
     val example = e.fromFun(Dimension(10), (i,j) => a(i)(j))
 
     example match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents[HalfMatrix, HalfSubMatrix, RationalExt](m)(mev, ifieldRationalExt)
+      case NCFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == Set(Set(VarIndex(0), VarIndex(2), VarIndex(4)), Set(VarIndex(1))))
       }
       case _ => assert(false)
@@ -135,22 +146,22 @@ class FastOctagonSuite extends FunSuite {
   }
 
   test ("Union of T, T == T") {
-    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val top = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
     val union = top union top
     assert(union.toInterval.isEmpty == false)
     assert(union == top)
   }
 
   test ("Union of T, _|_ == _|_") {
-    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
-    val bot = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.bottomDBM[RationalExt](VarCount(1)), oct, box, e)
+    val top = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val bot = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.bottomDBM[RationalExt](VarCount(1)), oct, box, e)
     val union = top union bot
     assert(union.toInterval.isEmpty == true)
     assert(union == bot)
   }
 
   test ("Union of [1,1], [2, 2] == [1, 2]") {
-    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val top = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
     val c2 = LinearForm.c(1)
     val c1 = LinearForm.c(2)
     val b1 = top.linearAssignment(0, c1)
@@ -162,7 +173,7 @@ class FastOctagonSuite extends FunSuite {
   }
 
   test ("Intersection of [1,1], [2,2] is empty") {
-    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
+    val top = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(1)), oct, box, e)
     val c2 = LinearForm.c(1)
     val c1 = LinearForm.c(2)
     val b1 = top.linearAssignment(0, c1)
@@ -172,7 +183,7 @@ class FastOctagonSuite extends FunSuite {
   }
 
   test ("Diagonal of union is 0") {
-    val top = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(4)), oct, box, e)
+    val top = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(4)), oct, box, e)
     val b1 = top.linearAssignment(0, 123)
       .linearAssignment(1, 123)
       .linearAssignment(2, 123)
@@ -203,12 +214,13 @@ class FastOctagonSuite extends FunSuite {
   test ("T[v1 <- 2v0 - 1][v3 <- 2v2 - 1] U  T[v1 <- v0][v3 <- v2] has independen components [{v1, v0}, {v2, v3}}") {
     val top = e.topDBM[RationalExt](VarCount(4))
     val expectedComponents = Set(Set(VarIndex(0), VarIndex(1)), Set(VarIndex(2), VarIndex(3)))
-    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](top, oct, box, e)
     // T[v1 <- v0][v3 <- v2]
     val ass = t.linearAssignment(1, DenseLinearForm(Seq(1,1))).linearAssignment(3, DenseLinearForm(Seq(1,0,0,1)))
     ass.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == expectedComponents)
       }
       case _ => assert(false)
@@ -216,16 +228,18 @@ class FastOctagonSuite extends FunSuite {
     // T[v1 <- 2v0 - 1][v3 <- 2v2 - 1]
     val ass2 = t.linearAssignment(1, DenseLinearForm(Seq(-1,1))).linearAssignment(3, DenseLinearForm(Seq(-1,0,0,1)))
     ass2.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == expectedComponents)
       }
       case _ => assert(false)
     }
     val union = ass.union(ass2)
     union.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == expectedComponents)
       }
       case _ => assert(false)
@@ -236,15 +250,16 @@ class FastOctagonSuite extends FunSuite {
   test ("T[v1 <- v0 - 1][v3 <- v2 - 1] has 2 independent components {{v1, v0}, {v2, v3}}; [v0 >= 123] performs closure and results in a DecomposedDBM with independent components") {
     val top = e.topDBM[RationalExt](VarCount(4))
     val expectedComponents = Set(Set(VarIndex(0), VarIndex(1)), Set(VarIndex(2), VarIndex(3)))
-    val t = AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](top, oct, box, e)
+    val t = AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](top, oct, box, e)
     val ass = t.linearAssignment(1, DenseLinearForm(Seq(1,1))).linearAssignment(3, DenseLinearForm(Seq(1,0,0,1)))
     val int = ass.linearInequality(DenseLinearForm(Seq(123, 1)))
 
     int.dbm match {
-      case CFast(m) => {
-        val comp = FastDbmUtils.calculateComponents(m)(mev, ifieldRationalExt)
+      case CFast(m_) => {
+        val m = extractM[HalfMatrix, HalfSubMatrix, RationalExt] (m_)
+        val comp = FastDBMUtils.calculateComponents(m, mev.ds)(ifieldRationalExt)
         assert(comp.map(_.toSet).toSet == expectedComponents)
-        m match {
+        m_ match {
           case DecomposedDBM(dbm,components,_) => {
             assert(components.map(_.toSet).toSet == expectedComponents)
           }
@@ -257,7 +272,7 @@ class FastOctagonSuite extends FunSuite {
 
   test ("Check that diagnonal == 0 on top.linearAssignment(0, 123).linearInequality(0,1,0,0,0), which is closed") {
     val d = 4
-    val topf =  AbstractOctagon[DOM, FastDBM,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(d)), oct, box, e)
+    val topf =  AbstractOctagon[DOM, FastDBMSA,  RationalExt, BoxRationalDomain](e.topDBM[RationalExt](VarCount(d)), oct, box, e)
     val lf = DenseLinearForm(Seq(0,1,0,0,0))
     val inef = topf.linearAssignment(0, LinearForm.c(123)).linearInequality(lf)
 
