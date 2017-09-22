@@ -39,6 +39,20 @@ case class VecMatrix[A](private val vec: Vector[Vector[A]], val dimension: Dimen
   def toList: List[A] = vec.flatten.toList
 }
 
+object VecMatrix {
+
+  def apply[A](dim: Dimension, x: A): VecMatrix[A] =
+    new VecMatrix[A](fill(dim)(x), dim)
+
+  def apply[A](dim: Dimension, f: (Int, Int) => A): VecMatrix[A] = {
+    new VecMatrix(
+      (allIndices(dim)).map(
+        (i: Int) => (allIndices(dim)).map(
+          (j: Int) => f(i,j)).toVector).toVector, dim)
+  }
+
+}
+
 object VecMatrixMatrixInstance {
   implicit val vecMatrixIsMatrix: Matrix[VecMatrix] = new Matrix[VecMatrix] {
     def combine[A, B, C](f: (A, B) => C)
@@ -55,22 +69,9 @@ object VecMatrixMatrixInstance {
     def foldRight[A, B](fa: VecMatrix[A], z: => B)(f: (A, => B) => B): B =
       fa.toList.foldRight(z)((x, y) => f(x, y))
 
-    def pure[A](dimension: Dimension, x: A): VecMatrix[A] = {
-      val newV: Vector[Vector[A]] = fill(dimension)(x)
-      new VecMatrix[A](newV, dimension)
-    }
-    def make[A](f: ((Int, Int) => A), dimension: Dimension): VecMatrix[A] = {
-      new VecMatrix(
-        (allIndices(dimension)).map(
-          (i: Int) =>
-          (allIndices(dimension)).map(
-            (j: Int) => f(i,j)
-          ).toVector
-        ).toVector
-          ,
-        dimension
-      )
-    }
+    def pure[A](dim: Dimension, x: A): VecMatrix[A] = VecMatrix(dim, x)
+    def make[A](f: ((Int, Int) => A), dim: Dimension) = VecMatrix(dim, f)
+
     def dimension[A](m: VecMatrix[A]): Dimension = m.dimension
 
   }
