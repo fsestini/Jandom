@@ -117,3 +117,33 @@ object HalfMatrix {
     new HalfMatrix[A] (vec, varCountToDim(nOfVars))
   }
 }
+
+
+object HalfMatrixMatrixInstance {
+
+  implicit val halfMatrixIsMatrix: Matrix[HalfMatrix] = new Matrix[HalfMatrix] {
+
+    def combine[A, B, C](f: (A, B) => C)
+      (ma: HalfMatrix[A], mb: HalfMatrix[B]) = ma.combine(mb, f)
+
+    def update[A](i: Int, j: Int, x: A)(m: HalfMatrix[A]) = m.update(i, j, x)
+
+    def update[A](f: (Int, Int) => A)(m: HalfMatrix[A]) = m.update(f)
+
+    def get[A](i: Int, j: Int)(m: HalfMatrix[A]): A = m(i, j)
+
+    def foldMap[A, B](fa: HalfMatrix[A])(f: (A) => B)(implicit F: Monoid[B]): B =
+      fa.toSeq.toList.map(f).fold(F.zero)((x, y) => F.append(x, y))
+
+    def foldRight[A, B](fa: HalfMatrix[A], z: => B)(f: (A, => B) => B): B =
+      fa.toSeq.toList.foldRight(z)((x, y) => f(x, y))
+
+    def pure[A](dimension: Dimension, x: A) = new HalfMatrix(dimension, x)
+
+    def make[A](f: ((Int, Int) => A), dimension: Dimension) =
+      HalfMatrix(f, dimToVarCount(dimension))
+
+    def dimension[A](m: HalfMatrix[A]): Dimension = m.dimension
+
+  }
+}
